@@ -1,8 +1,8 @@
 const TRIP_FIELDS = `
   "id":       id.current,
   tripDate,
-  cardTitle,
   pageTitle,
+  description,
   location,
   coords,
   date,
@@ -13,6 +13,7 @@ const TRIP_FIELDS = `
   tags,
   heroImage { ..., "alt": alt },
   accentColor,
+  storyTitle,
   story[] {
     type,
     content,

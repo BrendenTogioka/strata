@@ -38,10 +38,11 @@ const usedCategories = [...new Set(trips.map((t: any) => t.category).filter(Bool
 const usedTags       = [...new Set(trips.flatMap((t: any) => t.tags ?? []))] as string[]
 
 const cards = trips.map((trip: any, i: number) => ({
-  id:        trip.id,
-  num:       String(i + 1).padStart(2, '0'),
-  title:     trip.cardTitle?.replace('\n', ' '),
-  location:  trip.location,
+  id:          trip.id,
+  num:         String(i + 1).padStart(2, '0'),
+  title:       trip.pageTitle?.join(' ') ?? '',
+  description: trip.description ?? '',
+  location:    trip.location,
   date:      trip.date,
   tripDate:  trip.tripDate ?? '',
   category:  trip.category ?? '',
@@ -132,6 +133,9 @@ const cards = trips.map((trip: any, i: number) => ({
             )}
             <h2 class="exp-grid-title">{card.title}</h2>
             <p class="exp-grid-meta">{card.location} · {card.date}</p>
+            {card.description && (
+              <p class="exp-grid-desc">{card.description}</p>
+            )}
             {card.tags.length > 0 && (
               <div class="exp-grid-tags">
                 {card.tags.slice(0, 3).map((tag: string) => (

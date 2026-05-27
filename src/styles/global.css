@@ -805,14 +805,22 @@ nav {
 .trip-stats-bar {
   position: relative;
   z-index: 2;
-  display: flex;
-  align-items: center;
   background: rgba(12,9,6,0.85);
   backdrop-filter: blur(12px);
   border-top: 1px solid rgba(255,255,255,0.06);
-  padding: 1.25rem 2.5rem;
+  padding: 1.25rem 0;
   opacity: 0;
   transform: translateY(20px);
+}
+/* Stat items align to the same centered column as the trip title + story copy */
+.trip-stats-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 0.75rem;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0 2.5rem;
 }
 .stat {
   display: flex;
@@ -837,15 +845,24 @@ nav {
   width: 1px;
   height: 2rem;
   background: rgba(255,255,255,0.08);
-  margin: 0 2rem;
+  margin: 0 1.5rem;
   flex-shrink: 0;
 }
 
-/* Story section */
+/* Story section — centered reading column shared with the stats + trip title */
 .trip-story {
-  max-width: 72rem;
+  max-width: 48rem;
   margin: 0 auto;
   padding: 12vh 2.5rem 10vh;
+}
+.trip-story-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  color: var(--bone);
+  margin-bottom: 3rem;
 }
 .trip-story-inner {
   display: flex;
@@ -861,7 +878,6 @@ nav {
   font-size: clamp(1.05rem, 1.5vw, 1.35rem);
   line-height: 1.85;
   color: var(--fog);
-  max-width: 65ch;
 }
 .trip-paragraph em { color: var(--bone); font-style: italic; }
 
@@ -1101,6 +1117,18 @@ nav {
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   color: var(--fog);
+}
+.exp-grid-desc {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--fog);
+  margin-top: 0.15rem;
+  /* Safety clamp on the narrowest cards; the 140-char limit fits within this */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .exp-grid-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.2rem; }
 .exp-grid-tag {
@@ -1362,14 +1390,16 @@ nav {
   .trip-coords { font-size: 0.7rem; }
 
   /* Stats bar — wrap to 2-column grid */
-  .trip-stats-bar {
+  .trip-stats-bar { padding: 1.25rem 0; }
+  .trip-stats-inner {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.25rem 0;
-    padding: 1.25rem;
+    padding: 0 1.25rem;
+    max-width: 100%;
   }
   .stat-divider { display: none; }
-  .stat:nth-child(5) { /* Duration — last lone item */
+  .stat:last-child { /* Duration — lone item spans the row */
     grid-column: 1 / -1;
   }
 

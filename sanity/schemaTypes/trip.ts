@@ -11,9 +11,10 @@ export default defineType({
       name: 'id',
       title: 'URL slug',
       type: 'slug',
-      description: 'Used in the URL: /expedition/[slug]. Auto-generated from the card title.',
+      description: 'Used in the URL: /expedition/[slug]. Auto-generated from the page title lines.',
       options: {
-        source: 'cardTitle',
+        source: (doc: { pageTitle?: string[] }) =>
+          Array.isArray(doc.pageTitle) ? doc.pageTitle.join(' ') : '',
         slugify: (input: string) =>
           input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
       },
@@ -30,20 +31,21 @@ export default defineType({
 
     // ── Titles ──────────────────────────────────────────────────────────
     defineField({
-      name: 'cardTitle',
-      title: 'Card title',
-      type: 'string',
-      description: 'Title shown on the gallery card. Use \\n for a line break.',
-      validation: Rule => Rule.required(),
-    }),
-
-    defineField({
       name: 'pageTitle',
       title: 'Page title lines',
       type: 'array',
       of: [{ type: 'string' }],
-      description: 'Two lines of the hero title, e.g. ["VALLEY", "OF FIRE"]',
+      description: 'The hero title, one line per entry, e.g. ["VALLEY", "OF FIRE"]. These lines also stack to form the gallery card title.',
       validation: Rule => Rule.required().min(1).max(3),
+    }),
+
+    defineField({
+      name: 'description',
+      title: 'Short description',
+      type: 'text',
+      rows: 3,
+      description: 'One or two sentences. Shown on the expeditions archive cards and used as the page’s search/social description. Max 140 characters so it stays fully visible.',
+      validation: Rule => Rule.required().max(140),
     }),
 
     // ── Location & stats ────────────────────────────────────────────────
@@ -168,6 +170,13 @@ export default defineType({
     }),
 
     // ── Story ───────────────────────────────────────────────────────────
+    defineField({
+      name: 'storyTitle',
+      title: 'Trip title (above story)',
+      type: 'string',
+      description: 'Optional headline shown under the stats bar, directly above the story copy.',
+    }),
+
     defineField({
       name: 'story',
       title: 'Story',
@@ -328,14 +337,14 @@ export default defineType({
 
   preview: {
     select: {
-      title:    'cardTitle',
-      tripDate: 'tripDate',
-      media:    'heroImage',
+      pageTitle: 'pageTitle',
+      tripDate:  'tripDate',
+      media:     'heroImage',
     },
-    prepare({ title, tripDate, media }: { title: string; tripDate: string; media: unknown }) {
+    prepare({ pageTitle, tripDate, media }: { pageTitle?: string[]; tripDate: string; media: unknown }) {
       const year = tripDate ? new Date(tripDate).getFullYear() : '—'
       return {
-        title:    title,
+        title:    Array.isArray(pageTitle) ? pageTitle.join(' ') : '—',
         subtitle: String(year),
         media,
       }

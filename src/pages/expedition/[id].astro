@@ -65,6 +65,7 @@ function getEmbedUrl(url: string): string {
 
 <BaseLayout
   title={`${trip.pageTitle.join(' ')} — STRATA`}
+  description={trip.description}
   ogImage={ogUrl}
   isExpedition={true}
   preloadImage={heroUrl}
@@ -110,35 +111,40 @@ function getEmbedUrl(url: string): string {
 
       <!-- Stats bar -->
       <div class="trip-stats-bar">
-        <div class="stat">
-          <span class="stat-label">Location</span>
-          <span class="stat-value">{trip.location}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-label">Date</span>
-          <span class="stat-value">{trip.date}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-label">Distance</span>
-          <span class="stat-value">{trip.distance}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-label">Elevation</span>
-          <span class="stat-value">{trip.elevation}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-label">Duration</span>
-          <span class="stat-value">{trip.duration}</span>
+        <div class="trip-stats-inner">
+          <div class="stat">
+            <span class="stat-label">Location</span>
+            <span class="stat-value">{trip.location}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Date</span>
+            <span class="stat-value">{trip.date}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Distance</span>
+            <span class="stat-value">{trip.distance}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Elevation</span>
+            <span class="stat-value">{trip.elevation}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-label">Duration</span>
+            <span class="stat-value">{trip.duration}</span>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Story -->
     <section class="trip-story">
+      {trip.storyTitle && (
+        <h2 class="trip-story-title">{trip.storyTitle}</h2>
+      )}
       <div class="trip-story-inner">
         {trip.story.map((block: { type: string; content?: string; richText?: any[]; image?: any; images?: any[]; url?: string }) =>
           block.type === 'divider' ? (
@@ -231,7 +237,7 @@ function getEmbedUrl(url: string): string {
           <div class="trip-next-overlay"></div>
           <div class="trip-next-content">
             <span class="trip-next-num">{String(nextIndex + 1).padStart(2, '0')}</span>
-            <span class="trip-next-title">{nextTrip.cardTitle.replace('\n', ' ')}</span>
+            <span class="trip-next-title">{nextTrip.pageTitle?.join(' ')}</span>
             <span class="trip-next-arrow">→</span>
           </div>
         </button>

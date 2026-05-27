@@ -15,7 +15,7 @@ const trips = await client.fetch(RECENT_TRIPS_QUERY)
 // Shape Sanity trip documents for the gallery component (10 most recent)
 const expeditions = trips.map((trip: any, i: number) => ({
   num:        String(i + 1).padStart(2, '0'),
-  title:      trip.cardTitle,
+  title:      trip.pageTitle?.join('\n') ?? '',
   location:   trip.location,
   year:       trip.date?.split(' ').pop() ?? '',
   // Mid-res fallback + full-quality URL for iris overlay transition

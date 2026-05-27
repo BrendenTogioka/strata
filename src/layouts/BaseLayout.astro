@@ -31,6 +31,9 @@ const {
     <meta property="og:image"       content={ogImage} />
     <title>{title}</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
     <!-- Preload hero image for fastest LCP -->
     <link rel="preload" as="image" href="/images/valley-fire.webp" fetchpriority="high" />
     {preloadImage && (
