@@ -28,15 +28,6 @@ export default defineType({
       validation: Rule => Rule.required(),
     }),
 
-    defineField({
-      name: 'sortOrder',
-      title: 'Position in gallery',
-      type: 'number',
-      description: 'Controls the order trips appear (1 = first). Also used as the display number — entry 1 shows as "01".',
-      validation: Rule => Rule.required().integer().positive(),
-      hidden: true,
-    }),
-
     // ── Titles ──────────────────────────────────────────────────────────
     defineField({
       name: 'cardTitle',

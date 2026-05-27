@@ -28,7 +28,7 @@ export default defineConfig({
                   .title('All trips')
                   .schemaType('trip')
                   .filter('_type == "trip"')
-                  .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+                  .defaultOrdering([{ field: 'tripDate', direction: 'desc' }])
               ),
           ]),
     }),
