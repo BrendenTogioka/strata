@@ -159,13 +159,16 @@ const {
     const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
     if (irisOverlay) {
       const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
-      const fadeOutIris = () => gsap.to(irisOverlay, {
-        opacity: 0, duration: 0.45, ease: 'power2.in',
-        onComplete: () => irisOverlay.remove(),
+      const fadeOutIris = () => requestAnimationFrame(() => {
+        gsap.to(irisOverlay, {
+          opacity: 0, duration: 0.45, ease: 'power2.in',
+          onComplete: () => irisOverlay.remove(),
+        })
       })
       if (tripHero) {
-        if (tripHero.complete) fadeOutIris()
-        else tripHero.addEventListener('load', fadeOutIris, { once: true })
+        // decode() resolves only when the image is fully decoded and ready to
+        // paint — more reliable than .complete or the load event alone.
+        tripHero.decode().catch(() => {}).then(fadeOutIris)
       } else {
         irisOverlay.remove()
       }
