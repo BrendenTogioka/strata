@@ -1,8 +1,5 @@
 ---
-// Static HTML shell for Sanity Studio.
-// Studio is a React SPA — it mounts client-side and manages its own routing.
-// Deep-link refreshes (e.g. /studio/desk/trip) will land here and Studio
-// restores state from the URL — no server routes needed for local editing.
+import StudioMount from '../components/StudioMount.tsx'
 ---
 
 <!doctype html>
@@ -13,12 +10,11 @@
     <title>Strata Studio</title>
     <meta name="robots" content="noindex, nofollow" />
     <style>
-      html, body, #root { margin: 0; padding: 0; height: 100%; }
+      html, body { margin: 0; padding: 0; height: 100%; }
       body { background: #101112; }
     </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/components/StudioMount.tsx"></script>
+    <StudioMount client:only="react" />
   </body>
 </html>
