@@ -13,6 +13,7 @@
     "migrate": "node scripts/migrate-to-sanity.mjs",
     "migrate:richtext": "node scripts/migrate-story-richtext.mjs",
     "migrate:featured": "node scripts/migrate-featured.mjs",
+    "migrate:copy": "node scripts/migrate-copy.mjs",
     "studio": "sanity dev"
   },
   "dependencies": {
