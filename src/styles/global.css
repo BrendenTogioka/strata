@@ -230,9 +230,9 @@ nav {
 }
 .expedition-header {
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 4.5rem; left: 0; right: 0; /* clear the fixed nav / STRATA logo */
   z-index: 10;
-  padding: 2rem 2.5rem;
+  padding: 1rem 2.5rem;
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -796,6 +796,7 @@ nav {
 }
 .trip-title .line {
   display: block;
+  white-space: nowrap;
   color: var(--bone);
   transform: translateY(110%);
 }

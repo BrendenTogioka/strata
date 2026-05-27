@@ -76,6 +76,29 @@ const {
 
   const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches
 
+  // ── Trip title fit-to-width ────────────────────────────────────────────
+  // The hero title is sized with a viewport-based clamp for maximum impact,
+  // but a long word (e.g. "NARROWS") can exceed the available width and get
+  // clipped by .trip-title { overflow: hidden }. Reset to the CSS size, then
+  // shrink the font only if the widest line overflows — short words like
+  // "FIRE" stay huge, long words scale down to fit. Runs after fonts load and
+  // on resize so measurements use the actual display face (Bebas Neue).
+  function fitTripTitles() {
+    document.querySelectorAll<HTMLElement>('.trip-title').forEach((title) => {
+      const lines = title.querySelectorAll<HTMLElement>('.line')
+      if (!lines.length) return
+      title.style.fontSize = ''                       // reset to the CSS clamp
+      const avail = title.clientWidth
+      if (!avail) return
+      let widest = 0
+      lines.forEach(l => { widest = Math.max(widest, l.scrollWidth) })
+      if (widest > avail) {
+        const base = parseFloat(getComputedStyle(title).fontSize)
+        title.style.fontSize = `${base * (avail / widest) * 0.98}px`
+      }
+    })
+  }
+
   // ── Module-level state ─────────────────────────────────────────────────
   let lenis:       InstanceType<typeof Lenis> | null = null
   let lenisTicker: ((time: number) => void)   | null = null
@@ -388,6 +411,11 @@ const {
 
     // ── Trip page ─────────────────────────────────────────────────────────
     if (document.querySelector('.trip-page')) {
+      // Scale the hero title to fit before the reveal animation, then again
+      // once the display font has loaded (web-font metrics differ from fallback)
+      fitTripTitles()
+      document.fonts?.ready.then(fitTripTitles)
+
       // Reset text states — hero image shows immediately (no CSS hiding it)
       gsap.set('.trip-title .line', { y: '110%' })
       gsap.set('.trip-stats-bar',   { opacity: 0, y: 20 })
@@ -448,6 +476,13 @@ const {
 
   // Animations fire on every page load (covers both initial load + transitions)
   document.addEventListener('astro:page-load', initPageAnimations)
+
+  // Re-fit hero titles on resize (no-op on pages without a .trip-title)
+  let fitRaf = 0
+  window.addEventListener('resize', () => {
+    cancelAnimationFrame(fitRaf)
+    fitRaf = requestAnimationFrame(fitTripTitles)
+  }, { passive: true })
 
   // ── Teardown + reinit between page swaps ──────────────────────────────
   // IMPORTANT: initLenis() must run BEFORE mm.revert() and ScrollTrigger.killAll()

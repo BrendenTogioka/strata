@@ -12,9 +12,12 @@ interface IrisOptions {
  * Iris expand transition.
  * 1. Animates the card image rect to fullscreen (visual feedback).
  * 2. Calls Astro's navigate() — a client-side swap, not a hard reload.
- *    The Astro swap replaces .content; the iris overlay (on body) is removed
- *    as part of that replacement, which is fine because the destination page's
- *    hero image + accent-color fallback appear immediately.
+ *    The overlay is appended to <html> (not <body>) so it survives Astro's
+ *    body swap — swapBodyElement only preserves [data-astro-transition-persist]
+ *    elements inside <body> and discards everything else. By living a level up,
+ *    the overlay stays on screen across the swap until the destination's
+ *    initPageAnimations fades it out once .trip-hero-img has decoded. That
+ *    handoff is what prevents the dark flash between navigations.
  */
 export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): void {
   // Kick off a preload for the destination's full-res hero immediately —
@@ -54,7 +57,9 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
   })
   img.src = src
   container.appendChild(img)
-  document.body.appendChild(container)
+  // Append to <html>, not <body> — see note above. A body child would be
+  // destroyed by Astro's swap before the destination hero is ready.
+  document.documentElement.appendChild(container)
 
   // Expand to fullscreen, then hand off to Astro's client-side router
   gsap.to(container, {
