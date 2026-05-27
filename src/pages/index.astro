@@ -8,13 +8,13 @@ import AuroraSection from '../components/AuroraSection.astro'
 import JungleSection from '../components/JungleSection.astro'
 import ContactSection from '../components/ContactSection.astro'
 import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
-import { ALL_TRIPS_QUERY } from '../lib/queries'
+import { RECENT_TRIPS_QUERY } from '../lib/queries'
 
-const trips = await client.fetch(ALL_TRIPS_QUERY)
+const trips = await client.fetch(RECENT_TRIPS_QUERY)
 
-// Shape Sanity trip documents for the gallery component
-const expeditions = trips.map((trip: any) => ({
-  num:        String(trip.sortOrder).padStart(2, '0'),
+// Shape Sanity trip documents for the gallery component (10 most recent)
+const expeditions = trips.map((trip: any, i: number) => ({
+  num:        String(i + 1).padStart(2, '0'),
   title:      trip.cardTitle,
   location:   trip.location,
   year:       trip.date?.split(' ').pop() ?? '',

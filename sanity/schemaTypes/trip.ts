@@ -21,11 +21,20 @@ export default defineType({
     }),
 
     defineField({
+      name: 'tripDate',
+      title: 'Trip date',
+      type: 'date',
+      description: 'Used for gallery ordering (newest first) and the expeditions archive.',
+      validation: Rule => Rule.required(),
+    }),
+
+    defineField({
       name: 'sortOrder',
       title: 'Position in gallery',
       type: 'number',
       description: 'Controls the order trips appear (1 = first). Also used as the display number — entry 1 shows as "01".',
       validation: Rule => Rule.required().integer().positive(),
+      hidden: true,
     }),
 
     // ── Titles ──────────────────────────────────────────────────────────
@@ -64,9 +73,9 @@ export default defineType({
 
     defineField({
       name: 'date',
-      title: 'Date',
+      title: 'Display date',
       type: 'string',
-      description: 'Display date, e.g. "November 2023"',
+      description: 'Shown on the trip page, e.g. "November 2023"',
     }),
 
     defineField({
@@ -88,6 +97,53 @@ export default defineType({
       title: 'Duration',
       type: 'string',
       description: 'e.g. "2 days" or "5 nights"',
+    }),
+
+    // ── Classification ──────────────────────────────────────────────────
+    defineField({
+      name: 'category',
+      title: 'Category',
+      type: 'string',
+      description: 'Primary environment type',
+      options: {
+        list: [
+          { title: 'Desert',   value: 'desert'   },
+          { title: 'Canyon',   value: 'canyon'   },
+          { title: 'Arctic',   value: 'arctic'   },
+          { title: 'Mountain', value: 'mountain' },
+          { title: 'Jungle',   value: 'jungle'   },
+          { title: 'Coastal',  value: 'coastal'  },
+          { title: 'Forest',   value: 'forest'   },
+        ],
+        layout: 'radio',
+      },
+    }),
+
+    defineField({
+      name: 'tags',
+      title: 'Tags',
+      type: 'array',
+      of: [{ type: 'string' }],
+      description: 'Select all that apply',
+      options: {
+        list: [
+          { title: 'Photography',  value: 'photography'  },
+          { title: 'Hiking',       value: 'hiking'       },
+          { title: 'Backpacking',  value: 'backpacking'  },
+          { title: 'Camping',      value: 'camping'      },
+          { title: 'Day Hike',     value: 'day-hike'     },
+          { title: 'Overnight',    value: 'overnight'    },
+          { title: 'Winter',       value: 'winter'       },
+          { title: 'Water',        value: 'water'        },
+          { title: 'Night Sky',    value: 'night-sky'    },
+          { title: 'Golden Hour',  value: 'golden-hour'  },
+          { title: 'Technical',    value: 'technical'    },
+          { title: 'Remote',       value: 'remote'       },
+          { title: 'Tropical',     value: 'tropical'     },
+          { title: 'Swimming',     value: 'swimming'     },
+          { title: 'Solo',         value: 'solo'         },
+        ],
+      },
     }),
 
     // ── Visual ──────────────────────────────────────────────────────────
@@ -125,7 +181,7 @@ export default defineType({
       name: 'story',
       title: 'Story',
       type: 'array',
-      description: 'The trip narrative. Add text blocks and pull quotes.',
+      description: 'The trip narrative. Mix paragraphs, quotes, images, galleries, videos, callouts, and dividers.',
       of: [
         {
           type: 'object',
@@ -138,26 +194,36 @@ export default defineType({
               type: 'string',
               options: {
                 list: [
-                  { title: 'Paragraph', value: 'text' },
-                  { title: 'Pull quote', value: 'quote' },
-                  { title: 'Image',     value: 'image' },
+                  { title: 'Paragraph',  value: 'text'     },
+                  { title: 'Pull quote', value: 'quote'    },
+                  { title: 'Callout',    value: 'callout'  },
+                  { title: 'Image',      value: 'image'    },
+                  { title: 'Gallery',    value: 'gallery'  },
+                  { title: 'Video',      value: 'video'    },
+                  { title: 'Divider',    value: 'divider'  },
                 ],
                 layout: 'radio',
               },
               validation: Rule => Rule.required(),
             }),
+
+            // Text content — paragraph, pull quote, callout
             defineField({
               name: 'content',
               title: 'Content',
               type: 'text',
-              rows: 5,
-              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type === 'image',
+              rows: 4,
+              description: 'For Callout, use short field-note style: "Day 3 · Summit Ridge · −18°C"',
+              hidden: ({ parent }: { parent?: { type?: string } }) =>
+                !['text', 'quote', 'callout'].includes(parent?.type ?? ''),
               validation: Rule => Rule.custom((val, ctx) => {
-                const parent = ctx.parent as { type?: string } | undefined
-                if (parent?.type !== 'image' && !val) return 'Required'
+                const type = (ctx.parent as { type?: string } | undefined)?.type
+                if (['text', 'quote', 'callout'].includes(type ?? '') && !val) return 'Required'
                 return true
               }),
             }),
+
+            // Single image
             defineField({
               name: 'image',
               title: 'Image',
@@ -169,12 +235,45 @@ export default defineType({
                 defineField({ name: 'caption', title: 'Caption',  type: 'string' }),
               ],
             }),
+
+            // Gallery — 2–4 images shown in a grid row
+            defineField({
+              name: 'images',
+              title: 'Images',
+              type: 'array',
+              description: '2–4 images render as a grid row',
+              of: [{
+                type: 'image',
+                options: { hotspot: true },
+                fields: [
+                  defineField({ name: 'alt',     title: 'Alt text', type: 'string' }),
+                  defineField({ name: 'caption', title: 'Caption',  type: 'string' }),
+                ],
+              }],
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'gallery',
+            }),
+
+            // Video — YouTube or Vimeo URL
+            defineField({
+              name: 'url',
+              title: 'Video URL',
+              type: 'url',
+              description: 'YouTube or Vimeo URL',
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'video',
+            }),
           ],
+
           preview: {
             select: { type: 'type', content: 'content', media: 'image' },
             prepare({ type, content, media }: { type: string; content: string; media: unknown }) {
-              if (type === 'image') return { title: '🖼 Image', media }
-              const icon = type === 'quote' ? '❝' : '¶'
+              const labels: Record<string, string> = {
+                text: '¶', quote: '❝', callout: '◆', image: '🖼', gallery: '▦', video: '▶', divider: '—',
+              }
+              if (type === 'image')   return { title: '🖼 Image', media }
+              if (type === 'gallery') return { title: '▦ Gallery' }
+              if (type === 'video')   return { title: '▶ Video' }
+              if (type === 'divider') return { title: '— Divider' }
+              const icon = labels[type] ?? '·'
               return { title: `${icon} ${content?.substring(0, 60) ?? ''}…` }
             },
           },
@@ -185,15 +284,15 @@ export default defineType({
 
   preview: {
     select: {
-      title:     'cardTitle',
-      sortOrder: 'sortOrder',
-      media:     'heroImage',
+      title:    'cardTitle',
+      tripDate: 'tripDate',
+      media:    'heroImage',
     },
-    prepare({ title, sortOrder, media }: { title: string; sortOrder: number; media: unknown }) {
-      const num = String(sortOrder ?? '?').padStart(2, '0')
+    prepare({ title, tripDate, media }: { title: string; tripDate: string; media: unknown }) {
+      const year = tripDate ? new Date(tripDate).getFullYear() : '—'
       return {
-        title:    `${num} — ${title}`,
-        subtitle: 'Trip',
+        title:    title,
+        subtitle: String(year),
         media,
       }
     },
@@ -201,9 +300,14 @@ export default defineType({
 
   orderings: [
     {
-      title: 'Sort order',
-      name:  'sortOrderAsc',
-      by: [{ field: 'sortOrder', direction: 'asc' }],
+      title: 'Newest first',
+      name:  'tripDateDesc',
+      by: [{ field: 'tripDate', direction: 'desc' }],
+    },
+    {
+      title: 'Oldest first',
+      name:  'tripDateAsc',
+      by: [{ field: 'tripDate', direction: 'asc' }],
     },
   ],
 })

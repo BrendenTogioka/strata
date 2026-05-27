@@ -1,0 +1,246 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { client, urlFor } from '../lib/sanity'
+import { ALL_TRIPS_QUERY } from '../lib/queries'
+
+const trips = await client.fetch(ALL_TRIPS_QUERY)
+
+const CATEGORY_LABELS: Record<string, string> = {
+  desert:   'Desert',
+  canyon:   'Canyon',
+  arctic:   'Arctic',
+  mountain: 'Mountain',
+  jungle:   'Jungle',
+  coastal:  'Coastal',
+  forest:   'Forest',
+}
+
+const TAG_LABELS: Record<string, string> = {
+  photography:  'Photography',
+  hiking:       'Hiking',
+  backpacking:  'Backpacking',
+  camping:      'Camping',
+  'day-hike':   'Day Hike',
+  overnight:    'Overnight',
+  winter:       'Winter',
+  water:        'Water',
+  'night-sky':  'Night Sky',
+  'golden-hour':'Golden Hour',
+  technical:    'Technical',
+  remote:       'Remote',
+  tropical:     'Tropical',
+  swimming:     'Swimming',
+  solo:         'Solo',
+}
+
+// Collect only the categories/tags that are actually used
+const usedCategories = [...new Set(trips.map((t: any) => t.category).filter(Boolean))] as string[]
+const usedTags       = [...new Set(trips.flatMap((t: any) => t.tags ?? []))] as string[]
+
+const cards = trips.map((trip: any, i: number) => ({
+  id:        trip.id,
+  num:       String(i + 1).padStart(2, '0'),
+  title:     trip.cardTitle?.replace('\n', ' '),
+  location:  trip.location,
+  date:      trip.date,
+  tripDate:  trip.tripDate ?? '',
+  category:  trip.category ?? '',
+  tags:      (trip.tags ?? []) as string[],
+  accent:    trip.accentColor ?? '#C04820',
+  img:       trip.heroImage
+               ? urlFor(trip.heroImage).width(800).quality(80).format('webp').url()
+               : '',
+  alt:       trip.heroImage?.alt ?? trip.location,
+  href:      `/expedition/${trip.id}`,
+  heroUrl:   trip.heroImage
+               ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
+               : '',
+}))
+---
+
+<BaseLayout title="Expeditions — STRATA" description="The full STRATA expedition archive.">
+  <div class="expeditions-page">
+
+    <header class="expeditions-header">
+      <p class="expeditions-eyebrow">EXPEDITION LOG</p>
+      <h1 class="expeditions-title">ALL EXPEDITIONS</h1>
+      <p class="expeditions-count">{trips.length} entries</p>
+    </header>
+
+    <!-- Filter + sort bar -->
+    <div class="expeditions-bar" id="expeditions-bar">
+      <div class="filter-group">
+        <span class="filter-label">Category</span>
+        <div class="filter-pills" id="cat-filters">
+          <button class="filter-pill active" data-cat="">All</button>
+          {usedCategories.map(cat => (
+            <button class="filter-pill" data-cat={cat}>
+              {CATEGORY_LABELS[cat] ?? cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {usedTags.length > 0 && (
+        <div class="filter-group">
+          <span class="filter-label">Tags</span>
+          <div class="filter-pills" id="tag-filters">
+            {usedTags.map(tag => (
+              <button class="filter-pill tag-pill" data-tag={tag}>
+                {TAG_LABELS[tag] ?? tag}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div class="filter-group filter-group--sort">
+        <span class="filter-label">Sort</span>
+        <select id="sort-select" class="sort-select">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="expeditions-grid" id="expeditions-grid">
+      {cards.map((card: typeof cards[0]) => (
+        <a
+          class="exp-grid-card"
+          href={card.href}
+          data-category={card.category}
+          data-tags={card.tags.join(',')}
+          data-date={card.tripDate}
+          data-hero-url={card.heroUrl}
+          data-src={card.img}
+          data-href={card.href}
+          style={`--accent:${card.accent}`}
+        >
+          <div class="exp-grid-img-wrap">
+            <img
+              src={card.img}
+              alt={card.alt}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div class="exp-grid-overlay"></div>
+          <div class="exp-grid-content">
+            {card.category && (
+              <span class="exp-grid-category">{CATEGORY_LABELS[card.category] ?? card.category}</span>
+            )}
+            <h2 class="exp-grid-title">{card.title}</h2>
+            <p class="exp-grid-meta">{card.location} · {card.date}</p>
+            {card.tags.length > 0 && (
+              <div class="exp-grid-tags">
+                {card.tags.slice(0, 3).map((tag: string) => (
+                  <span class="exp-grid-tag">{TAG_LABELS[tag] ?? tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </a>
+      ))}
+    </div>
+
+    <p class="expeditions-empty" id="expeditions-empty" style="display:none">
+      No expeditions match the current filters.
+    </p>
+
+  </div>
+</BaseLayout>
+
+<script>
+  import { playIrisTransition } from '../utils/irisTransition'
+
+  function initExpeditions() {
+    const grid    = document.getElementById('expeditions-grid')
+    const empty   = document.getElementById('expeditions-empty')
+    const catBtns = document.querySelectorAll<HTMLButtonElement>('#cat-filters .filter-pill')
+    const tagBtns = document.querySelectorAll<HTMLButtonElement>('#tag-filters .tag-pill')
+    const sortSel = document.getElementById('sort-select') as HTMLSelectElement | null
+    if (!grid) return
+
+    let activeCat  = ''
+    let activeTags = new Set<string>()
+
+    function cards() {
+      return [...grid!.querySelectorAll<HTMLElement>('.exp-grid-card')]
+    }
+
+    function applyFilters() {
+      let visible = 0
+      cards().forEach(card => {
+        const cat  = card.dataset.category ?? ''
+        const tags = card.dataset.tags?.split(',').filter(Boolean) ?? []
+        const catOk  = !activeCat || cat === activeCat
+        const tagsOk = activeTags.size === 0 || [...activeTags].some(t => tags.includes(t))
+        const show   = catOk && tagsOk
+        card.style.display = show ? '' : 'none'
+        if (show) visible++
+      })
+      if (empty) empty.style.display = visible === 0 ? '' : 'none'
+    }
+
+    function applySort(order: string) {
+      const sorted = cards().sort((a, b) => {
+        const da = a.dataset.date ?? ''
+        const db = b.dataset.date ?? ''
+        return order === 'oldest' ? da.localeCompare(db) : db.localeCompare(da)
+      })
+      sorted.forEach(card => grid!.appendChild(card))
+    }
+
+    catBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        catBtns.forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+        activeCat = btn.dataset.cat ?? ''
+        applyFilters()
+      })
+    })
+
+    tagBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag ?? ''
+        if (activeTags.has(tag)) {
+          activeTags.delete(tag)
+          btn.classList.remove('active')
+        } else {
+          activeTags.add(tag)
+          btn.classList.add('active')
+        }
+        applyFilters()
+      })
+    })
+
+    sortSel?.addEventListener('change', () => applySort(sortSel.value))
+
+    // Iris transition on card click
+    cards().forEach(card => {
+      card.addEventListener('mouseenter', () => {
+        const heroUrl = card.dataset.heroUrl
+        if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
+          const link = document.createElement('link')
+          link.rel  = 'preload'
+          link.as   = 'image'
+          link.href = heroUrl
+          document.head.appendChild(link)
+        }
+      }, { once: true })
+
+      card.addEventListener('click', e => {
+        e.preventDefault()
+        const src     = card.dataset.src     ?? ''
+        const href    = card.dataset.href    ?? card.getAttribute('href') ?? '/'
+        const heroSrc = card.dataset.heroUrl ?? ''
+        const img     = card.querySelector<HTMLImageElement>('.exp-grid-img-wrap img')
+        if (!img || !src) { window.location.href = href; return }
+        playIrisTransition({ src, rect: img.getBoundingClientRect(), href, heroSrc })
+      })
+    })
+  }
+
+  document.addEventListener('astro:page-load', initExpeditions)
+</script>

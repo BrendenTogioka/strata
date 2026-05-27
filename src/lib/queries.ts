@@ -1,8 +1,6 @@
-// ── Shared projection ─────────────────────────────────────────────────────
-// All fields needed to render a trip — used in both list and detail queries.
 const TRIP_FIELDS = `
   "id":       id.current,
-  sortOrder,
+  tripDate,
   cardTitle,
   pageTitle,
   location,
@@ -11,21 +9,29 @@ const TRIP_FIELDS = `
   distance,
   elevation,
   duration,
+  category,
+  tags,
   heroImage { ..., "alt": alt },
   accentColor,
-  story[] { type, content, image { ..., alt, caption } }
+  story[] {
+    type,
+    content,
+    url,
+    image { ..., alt, caption },
+    images[] { _key, ..., alt, caption }
+  }
 `
 
-// ── All trips (for home page gallery + getStaticPaths) ───────────────────
+// All trips newest-first — used by getStaticPaths and the expeditions archive
 export const ALL_TRIPS_QUERY = `
-  *[_type == "trip"] | order(sortOrder asc) {
+  *[_type == "trip"] | order(tripDate desc) {
     ${TRIP_FIELDS}
   }
 `
 
-// ── Single trip by slug (for trip page) ──────────────────────────────────
-export const TRIP_BY_ID_QUERY = `
-  *[_type == "trip" && id.current == $id][0] {
+// 10 most recent trips — used by the home page gallery
+export const RECENT_TRIPS_QUERY = `
+  *[_type == "trip"] | order(tripDate desc) [0...10] {
     ${TRIP_FIELDS}
   }
 `

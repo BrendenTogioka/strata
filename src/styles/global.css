@@ -885,13 +885,205 @@ nav {
   max-height: 70vh;
   object-fit: cover;
 }
-.story-img-caption {
+.story-caption {
   margin-top: 0.6rem;
   font-family: var(--font-body);
   font-style: italic;
   font-size: 0.78rem;
   color: var(--fog);
   letter-spacing: 0.04em;
+}
+.story-gallery {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), 1fr);
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 860px;
+  margin: 0;
+}
+.story-gallery-item { margin: 0; }
+.story-gallery-item img {
+  width: 100%; height: 260px;
+  object-fit: cover; display: block;
+}
+.story-video {
+  width: 100%; max-width: 860px;
+  aspect-ratio: 16 / 9;
+  margin: 0;
+}
+.story-video iframe { width: 100%; height: 100%; border: none; display: block; }
+.story-divider {
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem 0;
+  opacity: 1 !important; transform: none !important;
+}
+.story-divider-mark {
+  color: var(--fog);
+  font-size: 0.9rem;
+  letter-spacing: 0.6em;
+  padding-left: 0.6em;
+}
+.story-callout {
+  padding: 0.9rem 1.4rem;
+  border-left: 2px solid var(--rust);
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(0.7rem, 1.1vw, 0.82rem);
+  letter-spacing: 0.1em;
+  color: var(--fog);
+  text-transform: uppercase;
+  max-width: 50ch;
+}
+
+/* ─── Expeditions archive page ─── */
+.expeditions-page {
+  min-height: 100vh;
+  padding: 14vh 2.5rem 8rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.expeditions-header { margin-bottom: 3.5rem; }
+.expeditions-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  color: var(--fog);
+  margin-bottom: 0.75rem;
+}
+.expeditions-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3.5rem, 8vw, 7rem);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  margin-bottom: 0.5rem;
+}
+.expeditions-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--fog);
+  letter-spacing: 0.12em;
+}
+.expeditions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 3rem;
+  align-items: flex-start;
+  margin-bottom: 3rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(240,226,206,0.08);
+}
+.filter-group { display: flex; flex-direction: column; gap: 0.6rem; }
+.filter-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: var(--fog);
+  text-transform: uppercase;
+}
+.filter-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.filter-pill {
+  padding: 0.3rem 0.85rem;
+  border: 1px solid rgba(240,226,206,0.15);
+  background: transparent;
+  color: var(--fog);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  cursor: none;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.filter-pill:hover  { border-color: var(--rust); color: var(--bone); }
+.filter-pill.active { border-color: var(--rust); background: var(--rust); color: var(--bone); }
+.filter-group--sort { margin-left: auto; }
+.sort-select {
+  background: transparent;
+  border: 1px solid rgba(240,226,206,0.15);
+  color: var(--fog);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.75rem;
+  cursor: none;
+  appearance: none;
+}
+.sort-select option { background: var(--char); color: var(--bone); }
+.expeditions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+.exp-grid-card {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  cursor: none;
+}
+.exp-grid-img-wrap {
+  position: absolute; inset: 0;
+  transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+.exp-grid-card:hover .exp-grid-img-wrap { transform: scale(1.04); }
+.exp-grid-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.exp-grid-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(12,9,6,0.92) 100%);
+  transition: opacity 0.3s;
+}
+.exp-grid-card:hover .exp-grid-overlay { opacity: 0.85; }
+.exp-grid-content {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.5rem;
+  display: flex; flex-direction: column; gap: 0.35rem;
+}
+.exp-grid-category {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent, var(--rust));
+}
+.exp-grid-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--bone);
+}
+.exp-grid-meta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--fog);
+}
+.exp-grid-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.2rem; }
+.exp-grid-tag {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid rgba(240,226,206,0.2);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: var(--fog);
+}
+.expeditions-empty {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--fog);
+  padding: 3rem 0;
+  letter-spacing: 0.1em;
+}
+@media (max-width: 768px) {
+  .expeditions-page { padding: 12vh 1.25rem 6rem; }
+  .expeditions-bar { gap: 1rem; }
+  .filter-group--sort { margin-left: 0; }
+  .expeditions-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .exp-grid-card { aspect-ratio: 2 / 3; }
+  .story-gallery { grid-template-columns: 1fr 1fr !important; }
+  .story-gallery-item img { height: 180px; }
+}
+@media (max-width: 480px) {
+  .expeditions-grid { grid-template-columns: 1fr; }
 }
 
 /* Next expedition */
