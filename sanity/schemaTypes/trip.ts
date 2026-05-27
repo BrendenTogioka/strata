@@ -21,18 +21,10 @@ export default defineType({
     }),
 
     defineField({
-      name: 'num',
-      title: 'Entry number',
-      type: 'string',
-      description: 'Display number, e.g. "01"',
-      validation: Rule => Rule.required(),
-    }),
-
-    defineField({
       name: 'sortOrder',
-      title: 'Sort order',
+      title: 'Position in gallery',
       type: 'number',
-      description: 'Controls order in the gallery (1 = first)',
+      description: 'Controls the order trips appear (1 = first). Also used as the display number — entry 1 shows as "01".',
       validation: Rule => Rule.required().integer().positive(),
     }),
 
@@ -148,6 +140,7 @@ export default defineType({
                 list: [
                   { title: 'Paragraph', value: 'text' },
                   { title: 'Pull quote', value: 'quote' },
+                  { title: 'Image',     value: 'image' },
                 ],
                 layout: 'radio',
               },
@@ -158,16 +151,31 @@ export default defineType({
               title: 'Content',
               type: 'text',
               rows: 5,
-              validation: Rule => Rule.required(),
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type === 'image',
+              validation: Rule => Rule.custom((val, ctx) => {
+                const parent = ctx.parent as { type?: string } | undefined
+                if (parent?.type !== 'image' && !val) return 'Required'
+                return true
+              }),
+            }),
+            defineField({
+              name: 'image',
+              title: 'Image',
+              type: 'image',
+              options: { hotspot: true },
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'image',
+              fields: [
+                defineField({ name: 'alt',     title: 'Alt text', type: 'string' }),
+                defineField({ name: 'caption', title: 'Caption',  type: 'string' }),
+              ],
             }),
           ],
           preview: {
-            select: { type: 'type', content: 'content' },
-            prepare({ type, content }: { type: string; content: string }) {
+            select: { type: 'type', content: 'content', media: 'image' },
+            prepare({ type, content, media }: { type: string; content: string; media: unknown }) {
+              if (type === 'image') return { title: '🖼 Image', media }
               const icon = type === 'quote' ? '❝' : '¶'
-              return {
-                title: `${icon} ${content?.substring(0, 60) ?? ''}…`,
-              }
+              return { title: `${icon} ${content?.substring(0, 60) ?? ''}…` }
             },
           },
         },
@@ -177,11 +185,12 @@ export default defineType({
 
   preview: {
     select: {
-      title:  'cardTitle',
-      num:    'num',
-      media:  'heroImage',
+      title:     'cardTitle',
+      sortOrder: 'sortOrder',
+      media:     'heroImage',
     },
-    prepare({ title, num, media }: { title: string; num: string; media: unknown }) {
+    prepare({ title, sortOrder, media }: { title: string; sortOrder: number; media: unknown }) {
+      const num = String(sortOrder ?? '?').padStart(2, '0')
       return {
         title:    `${num} — ${title}`,
         subtitle: 'Trip',

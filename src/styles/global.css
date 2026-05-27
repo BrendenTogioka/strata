@@ -873,6 +873,26 @@ nav {
   color: var(--bone);
   max-width: 50ch;
 }
+.story-img {
+  width: 100%;
+  max-width: 860px;
+  margin: 0;
+}
+.story-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 70vh;
+  object-fit: cover;
+}
+.story-img-caption {
+  margin-top: 0.6rem;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--fog);
+  letter-spacing: 0.04em;
+}
 
 /* Next expedition */
 .trip-next {

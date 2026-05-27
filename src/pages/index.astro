@@ -14,7 +14,7 @@ const trips = await client.fetch(ALL_TRIPS_QUERY)
 
 // Shape Sanity trip documents for the gallery component
 const expeditions = trips.map((trip: any) => ({
-  num:        trip.num,
+  num:        String(trip.sortOrder).padStart(2, '0'),
   title:      trip.cardTitle,
   location:   trip.location,
   year:       trip.date?.split(' ').pop() ?? '',

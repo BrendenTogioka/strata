@@ -13,6 +13,9 @@ export async function getStaticPaths() {
 
 const { trip, trips: allTrips } = Astro.props
 
+const tripNum     = String(trip.sortOrder).padStart(2, '0')
+const nextTripNum = (idx: number) => String(allTrips[idx]?.sortOrder ?? idx + 1).padStart(2, '0')
+
 // Resolve image URLs at build time
 const heroUrl    = trip.heroImage
   ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
@@ -115,8 +118,22 @@ const nextHeroUrl = nextTrip?.heroImage
     <!-- Story -->
     <section class="trip-story">
       <div class="trip-story-inner">
-        {trip.story.map((block: { type: string; content: string }, i: number) =>
-          block.type === 'quote' ? (
+        {trip.story.map((block: { type: string; content?: string; image?: any }, i: number) =>
+          block.type === 'image' && block.image ? (
+            <figure class="story-block story-img">
+              <img
+                src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
+                srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
+                sizes="(max-width: 768px) 100vw, 860px"
+                alt={block.image.alt ?? ''}
+                loading="lazy"
+                decoding="async"
+              />
+              {block.image.caption && (
+                <figcaption class="story-img-caption">{block.image.caption}</figcaption>
+              )}
+            </figure>
+          ) : block.type === 'quote' ? (
             <blockquote
               class="story-block trip-pull-quote"
               style={`--accent:${trip.accentColor}`}
@@ -156,7 +173,7 @@ const nextHeroUrl = nextTrip?.heroImage
           </div>
           <div class="trip-next-overlay"></div>
           <div class="trip-next-content">
-            <span class="trip-next-num">{nextTrip.num}</span>
+            <span class="trip-next-num">{String(nextTrip.sortOrder).padStart(2, '0')}</span>
             <span class="trip-next-title">{nextTrip.cardTitle.replace('\n', ' ')}</span>
             <span class="trip-next-arrow">→</span>
           </div>

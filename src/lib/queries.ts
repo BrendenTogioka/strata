@@ -2,7 +2,7 @@
 // All fields needed to render a trip — used in both list and detail queries.
 const TRIP_FIELDS = `
   "id":       id.current,
-  num,
+  sortOrder,
   cardTitle,
   pageTitle,
   location,
@@ -13,8 +13,7 @@ const TRIP_FIELDS = `
   duration,
   heroImage { ..., "alt": alt },
   accentColor,
-  story[] { type, content },
-  sortOrder
+  story[] { type, content, image { ..., alt, caption } }
 `
 
 // ── All trips (for home page gallery + getStaticPaths) ───────────────────
