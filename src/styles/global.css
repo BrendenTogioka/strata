@@ -348,49 +348,6 @@ nav {
   height: 100vh;
 }
 
-/* ─────────────────────────────────────────────────
-   AURORA SECTION
-───────────────────────────────────────────────── */
-.aurora-section {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-}
-.aurora-bg {
-  position: absolute;
-  inset: -15% 0;
-  z-index: 0;
-  will-change: transform;
-}
-.aurora-bg img,
-.aurora-bg .img-placeholder {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: center 30%;
-}
-/* R3F canvas overlay */
-.aurora-canvas-wrap {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-.aurora-overlay {
-  position: absolute; inset: 0; z-index: 2;
-  background: linear-gradient(
-    135deg,
-    rgba(12, 9, 6, 0.65) 0%,
-    rgba(12, 9, 6, 0.2) 50%,
-    rgba(12, 9, 6, 0.7) 100%
-  );
-}
-.aurora-content {
-  position: relative; z-index: 3;
-  padding: 0 2.5rem;
-  max-width: 55%;
-}
 .section-eyebrow {
   display: flex;
   align-items: center;
@@ -428,7 +385,6 @@ nav {
   display: block;
   transform: translateY(110%);
 }
-.section-title .aurora-accent { color: var(--aurora-g); }
 .section-body {
   margin-top: 2rem;
   font-size: clamp(1rem, 1.3vw, 1.2rem);
@@ -441,95 +397,54 @@ nav {
 .section-body em { color: var(--bone); font-style: italic; }
 
 /* ─────────────────────────────────────────────────
-   MOUNTAIN SECTION (split parallax)
+   FEATURED SECTIONS (curated homepage trips)
+   One component, three layouts: text-right, text-left, color-quote
 ───────────────────────────────────────────────── */
-.mountain-section {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 8vh;
-}
-/* Both layers stack. Sky moves slow, ground moves fast. */
-.mtn-layer {
-  position: absolute;
-  inset: -20% 0;
-  will-change: transform;
-  height: 140%;
-}
-.mtn-layer img,
-.mtn-layer .img-placeholder {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: center 50%;
-}
-.mtn-sky {
-  clip-path: inset(0 0 48% 0); /* top 52% */
-  z-index: 0;
-}
-.mtn-ground {
-  clip-path: inset(52% 0 0 0); /* bottom 48% */
-  z-index: 1;
-}
-.mtn-overlay {
-  position: absolute; inset: 0; z-index: 2;
-  background: linear-gradient(
-    to bottom,
-    rgba(12, 9, 6, 0.0) 0%,
-    rgba(12, 9, 6, 0.0) 50%,
-    rgba(12, 9, 6, 0.65) 85%,
-    rgba(12, 9, 6, 0.92) 100%
-  );
-}
-.mtn-content {
-  position: relative; z-index: 3;
-  padding: 0 2.5rem;
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-}
-.mtn-text-block { max-width: 42%; }
-.mtn-text-block .section-title .arctic-accent { color: var(--arctic); }
-
-/* ─────────────────────────────────────────────────
-   JUNGLE / NARROWS SECTION (editorial split)
-───────────────────────────────────────────────── */
-.jungle-section {
+.feature {
   position: relative;
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow: hidden;
 }
-.jungle-img-col {
+.feature-img-col {
   position: relative;
+  display: block;
   overflow: hidden;
 }
-.jungle-img-col .parallax-img-wrap {
+.feature-img-wrap {
   position: absolute;
-  inset: -15% 0;
-  height: 130%;
+  inset: -12% 0;
+  height: 124%;
   will-change: transform;
 }
-.jungle-img-col img,
-.jungle-img-col .img-placeholder {
+.feature-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover;
   object-position: center;
 }
-.jungle-text-col {
-  background: var(--deep-green);
+.feature-text-col {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 10vh 4rem;
+  padding: 10vh 5vw;
+  background: var(--ink);
 }
-.jungle-text-col .section-title .moss-accent { color: var(--moss); }
-.jungle-quote {
+/* Layout: image right / text left — swap the column order */
+.feature--text-left .feature-img-col  { order: 2; }
+.feature--text-left .feature-text-col { order: 1; }
+/* Layout: text + quote on a colour panel (darkened accent for contrast) */
+.feature--color-quote .feature-text-col {
+  background: color-mix(in srgb, var(--feat-accent, #C04820) 72%, #0C0906);
+}
+/* Feature title — sized for a half-width column; .line clips, .line-inner animates */
+.feature .section-title { font-size: clamp(2.5rem, 5.5vw, 6rem); }
+.feature .section-title .line { overflow: hidden; transform: none; }
+.feature .section-title .line-inner { display: block; transform: translateY(110%); }
+.feature-quote {
   margin-top: 2.5rem;
   padding-left: 1.5rem;
-  border-left: 2px solid var(--moss);
+  border-left: 2px solid var(--bone);
   font-family: var(--font-body);
   font-style: italic;
   font-size: clamp(1.1rem, 1.8vw, 1.6rem);
@@ -538,61 +453,29 @@ nav {
   opacity: 0;
   transform: translateY(14px);
 }
+.feature-link {
+  margin-top: 2.25rem;
+  align-self: flex-start;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--bone);
+  border-bottom: 1px solid var(--feat-accent, var(--rust));
+  padding-bottom: 0.35rem;
+  opacity: 0;
+  transform: translateY(14px);
+}
+.feature-link span { display: inline-block; transition: transform 0.3s var(--ease-expo); }
+.feature-link:hover span { transform: translateX(5px); }
 
-/* ─────────────────────────────────────────────────
-   NARROWS SECTION (full-bleed dark)
-───────────────────────────────────────────────── */
-.narrows-section {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.narrows-bg {
-  position: absolute;
-  inset: -15% 0;
-  z-index: 0;
-  will-change: transform;
-}
-.narrows-bg img,
-.narrows-bg .img-placeholder {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  object-position: 40% center;
-}
-.narrows-overlay {
-  position: absolute; inset: 0; z-index: 1;
-  background: linear-gradient(
-    to right,
-    rgba(12, 9, 6, 0.0) 0%,
-    rgba(12, 9, 6, 0.0) 45%,
-    rgba(12, 9, 6, 0.75) 70%,
-    rgba(12, 9, 6, 0.95) 100%
-  );
-}
-.narrows-content {
-  position: relative; z-index: 2;
-  padding: 0 2.5rem;
-  max-width: 55%;
-}
-.narrows-content .section-title .canyon-accent { color: var(--terracotta); }
-
-/* ── Narrows title: use inner-span technique so overflow:hidden clips
-   each LINE vertically (for the reveal animation) without clipping the
-   word "NARROWS" horizontally at the container edge. ── */
-.narrows-title {
-  overflow: visible;        /* allow NARROWS to extend beyond container */
-}
-.narrows-title .line {
-  overflow: hidden;         /* each line clips its own inner span downward */
-  display: block;
-  transform: none;          /* override shared .section-title .line translateY */
-}
-.narrows-title .line-inner {
-  display: block;
-  transform: translateY(110%);  /* start below; GSAP animates to y:0 */
+@media (max-width: 900px) {
+  .feature { grid-template-columns: 1fr; min-height: auto; }
+  .feature-img-col { height: 65vh; }
+  .feature-img-wrap { inset: -8% 0; height: 116%; }
+  .feature--text-left .feature-img-col  { order: 1; }
+  .feature--text-left .feature-text-col { order: 2; }
+  .feature-text-col { padding: 8vh 1.5rem; }
 }
 
 /* ─────────────────────────────────────────────────
@@ -658,13 +541,6 @@ nav {
   color: var(--fog);
   opacity: 0; transform: translateY(8px);
 }
-
-/* ─── Shared section accent overrides ─── */
-/* These are applied via class names inside .section-title */
-.arctic-accent  { color: var(--arctic) !important; }
-.canyon-accent  { color: var(--terracotta) !important; }
-.moss-accent    { color: var(--moss) !important; }
-.aurora-accent  { color: var(--aurora-g) !important; }
 
 /* ─────────────────────────────────────────────────
    IMAGE PLACEHOLDER gradients (until real photos added)
@@ -1266,9 +1142,6 @@ nav {
 
 /* ── Tablet (≤ 1024px) ── */
 @media (max-width: 1024px) {
-  .narrows-content  { max-width: 70%; }
-  .aurora-content   { max-width: 65%; }
-  .mtn-text-block   { max-width: 55%; }
   .exp-card         { width: 70vw; }
   .exp-card:first-child { width: 80vw; }
 }
@@ -1318,49 +1191,6 @@ nav {
   .exp-card-title { opacity: 1 !important; transform: none !important; }
   .exp-card-open { display: none; } /* tap replaces hover on mobile */
 
-  /* Aurora section */
-  .aurora-content {
-    max-width: 90%;
-    padding: 0 1.25rem;
-  }
-
-  /* Narrows section */
-  .narrows-content {
-    max-width: 95%;
-    padding: 0 1.25rem;
-  }
-  .narrows-overlay {
-    /* Cover whole section on mobile so text is readable */
-    background: linear-gradient(
-      to bottom,
-      rgba(12, 9, 6, 0.3) 0%,
-      rgba(12, 9, 6, 0.7) 60%,
-      rgba(12, 9, 6, 0.95) 100%
-    );
-  }
-
-  /* Mountain section */
-  .mtn-content { justify-content: flex-start; }
-  .mtn-text-block { max-width: 90%; }
-
-  /* Jungle section — stack vertically */
-  .jungle-section {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-  .jungle-img-col {
-    height: 65vw;
-    min-height: 260px;
-    position: relative;
-    overflow: hidden;
-  }
-  .jungle-img-col .parallax-img-wrap {
-    /* On mobile don't over-extend for parallax */
-    inset: -5% 0;
-    height: 110%;
-  }
-  .jungle-text-col { padding: 6vh 1.5rem; }
-  .jungle-text-col .section-title { font-size: clamp(3rem, 14vw, 6rem); }
 
   /* Section shared — full width titles on mobile */
   .section-title { font-size: clamp(3rem, 14vw, 6rem); }
@@ -1437,25 +1267,6 @@ nav {
 
 /* ── Additional mobile refinements ── */
 @media (max-width: 768px) {
-  /* Narrows — flip from right-align to left-align */
-  .narrows-section { justify-content: flex-start; }
-  .narrows-content { padding: 0 1.25rem; max-width: 100%; }
-  .narrows-overlay {
-    background: linear-gradient(
-      to bottom,
-      rgba(12, 9, 6, 0.25) 0%,
-      rgba(12, 9, 6, 0.6) 55%,
-      rgba(12, 9, 6, 0.95) 100%
-    );
-  }
-
-  /* Mountain section — text to left */
-  .mtn-content { justify-content: flex-start; }
-  .mtn-text-block { max-width: 100%; }
-
-  /* Aurora section — full width content */
-  .aurora-content { max-width: 100%; }
-  
   /* Section title overflow safety */
   .section-title { overflow: hidden; }
 }

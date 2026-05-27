@@ -169,6 +169,62 @@ export default defineType({
         }).warning('Should be a valid hex colour like #C04820'),
     }),
 
+    // ── Homepage feature ──────────────────────────────────────────────────
+    defineField({
+      name: 'featured',
+      title: 'Feature on homepage',
+      type: 'boolean',
+      description: 'Show this trip as a large cinematic section on the home page (below the recent-trips scroll).',
+      initialValue: false,
+    }),
+
+    defineField({
+      name: 'featureLayout',
+      title: 'Feature layout',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Image left · text right',   value: 'text-right'  },
+          { title: 'Image right · text left',   value: 'text-left'   },
+          { title: 'Text + quote on colour',    value: 'color-quote' },
+        ],
+        layout: 'radio',
+      },
+      hidden: ({ parent }: { parent?: { featured?: boolean } }) => !parent?.featured,
+      validation: Rule => Rule.custom((val, ctx) => {
+        const featured = (ctx.parent as { featured?: boolean } | undefined)?.featured
+        if (featured && !val) return 'Pick a layout for the homepage feature'
+        return true
+      }),
+    }),
+
+    defineField({
+      name: 'featureBlurb',
+      title: 'Feature copy',
+      type: 'text',
+      rows: 3,
+      description: 'The paragraph shown in the homepage feature. Leave empty to reuse the short description above.',
+      hidden: ({ parent }: { parent?: { featured?: boolean } }) => !parent?.featured,
+    }),
+
+    defineField({
+      name: 'featureQuote',
+      title: 'Feature pull quote',
+      type: 'text',
+      rows: 2,
+      description: 'Shown only with the “Text + quote on colour” layout.',
+      hidden: ({ parent }: { parent?: { featured?: boolean; featureLayout?: string } }) =>
+        !parent?.featured || parent?.featureLayout !== 'color-quote',
+    }),
+
+    defineField({
+      name: 'featureOrder',
+      title: 'Feature order',
+      type: 'number',
+      description: 'Lower numbers appear first on the home page.',
+      hidden: ({ parent }: { parent?: { featured?: boolean } }) => !parent?.featured,
+    }),
+
     // ── Story ───────────────────────────────────────────────────────────
     defineField({
       name: 'storyTitle',

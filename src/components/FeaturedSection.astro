@@ -1,0 +1,74 @@
+---
+import { urlFor, sanityImgSrcset } from '../lib/sanity'
+
+interface Props {
+  feature: {
+    id: string
+    pageTitle?: string[]
+    location?: string
+    heroImage?: any
+    accentColor?: string
+    featureLayout?: 'text-right' | 'text-left' | 'color-quote'
+    featureBlurb?: string
+    featureQuote?: string
+  }
+  index: number
+}
+
+const { feature, index } = Astro.props
+
+const layout = feature.featureLayout ?? 'text-right'
+const accent = feature.accentColor ?? '#C04820'
+const href   = `/expedition/${feature.id}`
+const num    = String(index + 1).padStart(3, '0')
+const lines  = feature.pageTitle ?? []
+const alt    = feature.heroImage?.alt ?? feature.location ?? ''
+
+const img = feature.heroImage
+  ? urlFor(feature.heroImage).width(1400).quality(85).format('webp').url()
+  : ''
+const imgSrcset = feature.heroImage
+  ? sanityImgSrcset(feature.heroImage, [700, 1000, 1400, 2000], 85)
+  : ''
+---
+
+<section class={`feature feature--${layout}`} style={`--feat-accent:${accent}`}>
+  <a class="feature-img-col" href={href} aria-label={lines.join(' ')}>
+    <div class="feature-img-wrap">
+      <img
+        src={img}
+        srcset={imgSrcset}
+        sizes="(max-width: 900px) 100vw, 50vw"
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  </a>
+
+  <div class="feature-text-col">
+    <div class="section-eyebrow">
+      <span class="eyebrow-num">{num}</span>
+      <span class="eyebrow-line"></span>
+      {feature.location && <span class="eyebrow-text">{feature.location}</span>}
+    </div>
+
+    <h2 class="section-title" aria-label={lines.join(' ')}>
+      {lines.map((line, i) => (
+        <span class="line">
+          <span class="line-inner" style={i === 1 ? 'color:var(--feat-accent)' : ''}>{line}</span>
+        </span>
+      ))}
+    </h2>
+
+    {feature.featureBlurb && (
+      <p class="section-body">{feature.featureBlurb}</p>
+    )}
+
+    {layout === 'color-quote' && feature.featureQuote && (
+      <blockquote class="feature-quote">{feature.featureQuote}</blockquote>
+    )}
+
+    <a class="feature-link" href={href}>Read the expedition <span aria-hidden="true">→</span></a>
+  </div>
+</section>

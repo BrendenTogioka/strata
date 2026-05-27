@@ -13,6 +13,11 @@ const TRIP_FIELDS = `
   tags,
   heroImage { ..., "alt": alt },
   accentColor,
+  featured,
+  featureLayout,
+  "featureBlurb": coalesce(featureBlurb, description),
+  featureQuote,
+  featureOrder,
   storyTitle,
   story[] {
     type,
@@ -34,6 +39,13 @@ export const ALL_TRIPS_QUERY = `
 // 10 most recent trips — used by the home page gallery
 export const RECENT_TRIPS_QUERY = `
   *[_type == "trip"] | order(tripDate desc) [0...10] {
+    ${TRIP_FIELDS}
+  }
+`
+
+// Curated homepage features — large cinematic sections under the recent scroll
+export const FEATURED_TRIPS_QUERY = `
+  *[_type == "trip" && featured == true] | order(featureOrder asc, tripDate desc) {
     ${TRIP_FIELDS}
   }
 `

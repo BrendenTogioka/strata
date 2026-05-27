@@ -300,100 +300,33 @@ const {
       })
     }
 
-    // ── Narrows ──────────────────────────────────────────────────────────
-    const narrowsSection = document.querySelector<HTMLElement>('.narrows-section')
-    const narrowsBg      = document.getElementById('narrows-bg')
-    if (narrowsSection && narrowsBg) {
-      gsap.to(narrowsBg, {
-        yPercent: 15, ease: 'none',
-        scrollTrigger: { trigger: narrowsSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      })
-      gsap.to('.narrows-section .section-eyebrow', {
-        scrollTrigger: { trigger: narrowsSection, start: 'top 75%', once: true },
-        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-      })
-      // Target .line-inner (not .line) — each .line is the clip mask,
-      // .line-inner is the animated element, so NARROWS never clips horizontally.
-      gsap.to('.narrows-section .section-title .line-inner', {
-        scrollTrigger: { trigger: narrowsSection, start: 'top 70%', once: true },
+    // ── Featured sections (curated homepage trips) ────────────────────────
+    // One data-driven block for every .feature section, regardless of layout.
+    gsap.utils.toArray<HTMLElement>('.feature').forEach((section) => {
+      const imgWrap = section.querySelector<HTMLElement>('.feature-img-wrap')
+      if (imgWrap) {
+        gsap.to(imgWrap, {
+          yPercent: -10, ease: 'none',
+          scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        })
+      }
+      const eyebrow = section.querySelector('.section-eyebrow')
+      if (eyebrow) {
+        gsap.to(eyebrow, {
+          scrollTrigger: { trigger: section, start: 'top 75%', once: true },
+          opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+        })
+      }
+      // .line is the clip mask; .line-inner is animated so long words never clip.
+      gsap.to(section.querySelectorAll('.section-title .line-inner'), {
+        scrollTrigger: { trigger: section, start: 'top 70%', once: true },
         y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
       })
-      gsap.to('.narrows-section .section-body', {
-        scrollTrigger: { trigger: narrowsSection, start: 'top 60%', once: true },
-        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+      gsap.to(section.querySelectorAll('.section-body, .feature-quote, .feature-link'), {
+        scrollTrigger: { trigger: section, start: 'top 60%', once: true },
+        opacity: 1, y: 0, stagger: 0.12, duration: 0.9, ease: 'power3.out',
       })
-    }
-
-    // ── Aurora ───────────────────────────────────────────────────────────
-    const auroraSection = document.querySelector<HTMLElement>('.aurora-section')
-    const auroraBg      = document.getElementById('aurora-bg')
-    if (auroraSection && auroraBg) {
-      gsap.to(auroraBg, {
-        yPercent: 18, ease: 'none',
-        scrollTrigger: { trigger: auroraSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      })
-      gsap.to('.aurora-section .section-eyebrow', {
-        scrollTrigger: { trigger: auroraSection, start: 'top 75%', once: true },
-        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-      })
-      gsap.to('.aurora-section .section-title .line', {
-        scrollTrigger: { trigger: auroraSection, start: 'top 70%', once: true },
-        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
-      })
-      gsap.to('.aurora-section .section-body', {
-        scrollTrigger: { trigger: auroraSection, start: 'top 60%', once: true },
-        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-      })
-    }
-
-    // ── Mountain (split parallax) ─────────────────────────────────────────
-    const mountainSection = document.querySelector<HTMLElement>('.mountain-section')
-    const mtnSky          = document.getElementById('mtn-sky')
-    const mtnGround       = document.getElementById('mtn-ground')
-    if (mountainSection && mtnSky && mtnGround) {
-      gsap.fromTo(mtnSky,    { y: 0 }, {
-        y: -60, ease: 'none',
-        scrollTrigger: { trigger: mountainSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      })
-      gsap.fromTo(mtnGround, { y: 0 }, {
-        y: 80, ease: 'none',
-        scrollTrigger: { trigger: mountainSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      })
-      gsap.to('.mtn-section-eyebrow', {
-        scrollTrigger: { trigger: mountainSection, start: 'top 75%', once: true },
-        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-      })
-      gsap.to('.mountain-section .section-title .line', {
-        scrollTrigger: { trigger: mountainSection, start: 'top 70%', once: true },
-        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
-      })
-      gsap.to('.mountain-section .section-body', {
-        scrollTrigger: { trigger: mountainSection, start: 'top 60%', once: true },
-        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-      })
-    }
-
-    // ── Jungle ───────────────────────────────────────────────────────────
-    const jungleSection = document.querySelector<HTMLElement>('.jungle-section')
-    const jungleImgWrap = document.getElementById('jungle-img-wrap')
-    if (jungleSection && jungleImgWrap) {
-      gsap.to(jungleImgWrap, {
-        yPercent: -12, ease: 'none',
-        scrollTrigger: { trigger: jungleSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      })
-      gsap.to('.jungle-section .section-eyebrow', {
-        scrollTrigger: { trigger: jungleSection, start: 'top 75%', once: true },
-        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
-      })
-      gsap.to('.jungle-section .section-title .line', {
-        scrollTrigger: { trigger: jungleSection, start: 'top 70%', once: true },
-        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
-      })
-      gsap.to('.jungle-section .section-body, .jungle-quote', {
-        scrollTrigger: { trigger: jungleSection, start: 'top 60%', once: true },
-        opacity: 1, y: 0, stagger: 0.15, duration: 0.9, ease: 'power3.out',
-      })
-    }
+    })
 
     // ── Contact section ──────────────────────────────────────────────────
     const contactSection = document.querySelector<HTMLElement>('.contact')

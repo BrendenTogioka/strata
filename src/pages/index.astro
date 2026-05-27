@@ -2,15 +2,13 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import HeroSection from '../components/HeroSection.astro'
 import ExpeditionGallery from '../components/ExpeditionGallery.astro'
-import NarrowsSection from '../components/NarrowsSection.astro'
-import MountainSection from '../components/MountainSection.astro'
-import AuroraSection from '../components/AuroraSection.astro'
-import JungleSection from '../components/JungleSection.astro'
+import FeaturedSection from '../components/FeaturedSection.astro'
 import ContactSection from '../components/ContactSection.astro'
 import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
-import { RECENT_TRIPS_QUERY } from '../lib/queries'
+import { RECENT_TRIPS_QUERY, FEATURED_TRIPS_QUERY } from '../lib/queries'
 
-const trips = await client.fetch(RECENT_TRIPS_QUERY)
+const trips    = await client.fetch(RECENT_TRIPS_QUERY)
+const featured = await client.fetch(FEATURED_TRIPS_QUERY)
 
 // Shape Sanity trip documents for the gallery component (10 most recent)
 const expeditions = trips.map((trip: any, i: number) => ({
@@ -38,9 +36,8 @@ const expeditions = trips.map((trip: any, i: number) => ({
 <BaseLayout>
   <HeroSection />
   <ExpeditionGallery expeditions={expeditions} />
-  <NarrowsSection />
-  <AuroraSection />
-  <MountainSection />
-  <JungleSection />
+  {featured.map((feature: any, i: number) => (
+    <FeaturedSection feature={feature} index={i} />
+  ))}
   <ContactSection />
 </BaseLayout>
