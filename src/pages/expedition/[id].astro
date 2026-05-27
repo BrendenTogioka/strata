@@ -1,7 +1,22 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
+import { toHTML } from '@portabletext/to-html'
 import { client, urlFor, sanityImgSrcset } from '../../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../../lib/queries'
+
+// Portable Text → HTML for story paragraphs. Defaults cover h2/h3/blockquote,
+// bullet/numbered lists, bold/italic/code; we add underline, strike, and links.
+const ptComponents = {
+  marks: {
+    underline:       ({ children }: any) => `<span class="pt-u">${children}</span>`,
+    'strike-through':({ children }: any) => `<s>${children}</s>`,
+    link: ({ children, value }: any) => {
+      const href = value?.href ?? '#'
+      const external = /^https?:\/\//i.test(href)
+      return `<a href="${href}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>${children}</a>`
+    },
+  },
+}
 
 export async function getStaticPaths() {
   const trips = await client.fetch(ALL_TRIPS_QUERY)
@@ -125,7 +140,7 @@ function getEmbedUrl(url: string): string {
     <!-- Story -->
     <section class="trip-story">
       <div class="trip-story-inner">
-        {trip.story.map((block: { type: string; content?: string; image?: any; images?: any[]; url?: string }) =>
+        {trip.story.map((block: { type: string; content?: string; richText?: any[]; image?: any; images?: any[]; url?: string }) =>
           block.type === 'divider' ? (
             <div class="story-block story-divider" role="separator">
               <span class="story-divider-mark">✦</span>
@@ -180,6 +195,8 @@ function getEmbedUrl(url: string): string {
             >
               {block.content}
             </blockquote>
+          ) : block.type === 'text' && block.richText?.length ? (
+            <div class="story-block trip-paragraph" set:html={toHTML(block.richText, { components: ptComponents })} />
           ) : (
             <p class="story-block trip-paragraph">
               {block.content}

@@ -177,21 +177,21 @@ const {
   function initPageAnimations() {
 
     // ── Iris overlay handoff ────────────────────────────────────────────
-    // The overlay from the previous page's iris transition is kept alive
-    // until the destination hero image is ready, then faded out.
+    // The overlay from the previous page's iris transition is kept on screen
+    // until the destination hero is decoded, then removed in one frame. We do
+    // NOT cross-fade it out: the overlay image and the hero are the same photo
+    // at the same fullscreen framing, so a fade just layers a second "hero
+    // fade-in" on top of the title reveal — which reads as the intro playing
+    // twice. A hard cut after the hero has painted is seamless and prevents
+    // the dark flash when the hero wasn't cached (e.g. from the expeditions grid).
     const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
     if (irisOverlay) {
       const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
-      const fadeOutIris = () => requestAnimationFrame(() => {
-        gsap.to(irisOverlay, {
-          opacity: 0, duration: 0.45, ease: 'power2.in',
-          onComplete: () => irisOverlay.remove(),
-        })
-      })
+      const removeIris = () => requestAnimationFrame(() => irisOverlay.remove())
       if (tripHero) {
         // decode() resolves only when the image is fully decoded and ready to
         // paint — more reliable than .complete or the load event alone.
-        tripHero.decode().catch(() => {}).then(fadeOutIris)
+        tripHero.decode().catch(() => {}).then(removeIris)
       } else {
         irisOverlay.remove()
       }

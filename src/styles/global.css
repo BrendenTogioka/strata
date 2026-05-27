@@ -864,6 +864,50 @@ nav {
   max-width: 65ch;
 }
 .trip-paragraph em { color: var(--bone); font-style: italic; }
+
+/* Rich-text (Portable Text) story paragraphs — the div inherits the base
+   .trip-paragraph type; these rules style the block + inline elements inside. */
+.trip-paragraph > * { margin: 0; }
+.trip-paragraph > * + * { margin-top: 1.4rem; }
+.trip-paragraph strong { color: var(--bone); font-weight: 600; }
+.trip-paragraph .pt-u { text-decoration: underline; text-underline-offset: 0.18em; }
+.trip-paragraph s { color: var(--fog); opacity: 0.75; }
+.trip-paragraph a {
+  color: var(--bone);
+  text-decoration: underline;
+  text-decoration-color: var(--rust);
+  text-underline-offset: 0.2em;
+  transition: color 0.25s;
+}
+.trip-paragraph a:hover { color: var(--rust); }
+.trip-paragraph code {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85em;
+  background: var(--char);
+  color: var(--bone);
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+}
+.trip-paragraph h2,
+.trip-paragraph h3 {
+  font-family: var(--font-display);
+  color: var(--bone);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  margin-top: 2.6rem;
+}
+.trip-paragraph h2 { font-size: clamp(1.7rem, 3vw, 2.4rem); }
+.trip-paragraph h3 { font-size: clamp(1.35rem, 2.2vw, 1.8rem); }
+.trip-paragraph blockquote {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--accent, var(--rust));
+  font-style: italic;
+  color: var(--bone);
+}
+.trip-paragraph ul,
+.trip-paragraph ol { padding-left: 1.5rem; }
+.trip-paragraph li { margin-top: 0.5rem; }
+.trip-paragraph li::marker { color: var(--rust); }
 .trip-pull-quote {
   padding-left: 2rem;
   border-left: 2px solid var(--accent, var(--rust));

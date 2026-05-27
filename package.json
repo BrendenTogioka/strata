@@ -11,11 +11,13 @@
     "preview": "astro preview",
     "astro": "astro",
     "migrate": "node scripts/migrate-to-sanity.mjs",
+    "migrate:richtext": "node scripts/migrate-story-richtext.mjs",
     "studio": "sanity dev"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.5",
     "@astrojs/sitemap": "^3.7.3",
+    "@portabletext/to-html": "^5.0.2",
     "@sanity/client": "^7.22.0",
     "@sanity/image-url": "^2.1.1",
     "@sanity/vision": "^5.27.0",

@@ -198,7 +198,55 @@ export default defineType({
               validation: Rule => Rule.required(),
             }),
 
-            // Text content — paragraph, pull quote, callout
+            // Rich text — paragraph blocks (Portable Text)
+            defineField({
+              name: 'richText',
+              title: 'Text',
+              type: 'array',
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'text',
+              validation: Rule => Rule.custom((val, ctx) => {
+                const type = (ctx.parent as { type?: string } | undefined)?.type
+                if (type === 'text' && (!val || (Array.isArray(val) && val.length === 0))) return 'Required'
+                return true
+              }),
+              of: [
+                {
+                  type: 'block',
+                  // Heading options — H1 is reserved for the trip hero title
+                  styles: [
+                    { title: 'Normal', value: 'normal' },
+                    { title: 'H2',     value: 'h2'      },
+                    { title: 'H3',     value: 'h3'      },
+                    { title: 'Quote',  value: 'blockquote' },
+                  ],
+                  lists: [
+                    { title: 'Bullet',   value: 'bullet' },
+                    { title: 'Numbered', value: 'number' },
+                  ],
+                  marks: {
+                    decorators: [
+                      { title: 'Bold',          value: 'strong'         },
+                      { title: 'Italic',        value: 'em'             },
+                      { title: 'Underline',     value: 'underline'      },
+                      { title: 'Strike',        value: 'strike-through' },
+                      { title: 'Code',          value: 'code'           },
+                    ],
+                    annotations: [
+                      {
+                        name: 'link',
+                        type: 'object',
+                        title: 'Link',
+                        fields: [
+                          { name: 'href', type: 'url', title: 'URL' },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+
+            // Plain text content — pull quote, callout
             defineField({
               name: 'content',
               title: 'Content',
@@ -206,10 +254,10 @@ export default defineType({
               rows: 4,
               description: 'For Callout, use short field-note style: "Day 3 · Summit Ridge · −18°C"',
               hidden: ({ parent }: { parent?: { type?: string } }) =>
-                !['text', 'quote', 'callout'].includes(parent?.type ?? ''),
+                !['quote', 'callout'].includes(parent?.type ?? ''),
               validation: Rule => Rule.custom((val, ctx) => {
                 const type = (ctx.parent as { type?: string } | undefined)?.type
-                if (['text', 'quote', 'callout'].includes(type ?? '') && !val) return 'Required'
+                if (['quote', 'callout'].includes(type ?? '') && !val) return 'Required'
                 return true
               }),
             }),
@@ -255,8 +303,8 @@ export default defineType({
           ],
 
           preview: {
-            select: { type: 'type', content: 'content', media: 'image' },
-            prepare({ type, content, media }: { type: string; content: string; media: unknown }) {
+            select: { type: 'type', content: 'content', richText: 'richText', media: 'image' },
+            prepare({ type, content, richText, media }: { type: string; content: string; richText?: any[]; media: unknown }) {
               const labels: Record<string, string> = {
                 text: '¶', quote: '❝', callout: '◆', image: '🖼', gallery: '▦', video: '▶', divider: '—',
               }
@@ -264,8 +312,13 @@ export default defineType({
               if (type === 'gallery') return { title: '▦ Gallery' }
               if (type === 'video')   return { title: '▶ Video' }
               if (type === 'divider') return { title: '— Divider' }
+              // Paragraphs store Portable Text — pull the first block's plain text
+              const fromRichText = richText
+                ?.find(b => b._type === 'block')
+                ?.children?.map((c: any) => c.text).join('') ?? ''
+              const text = type === 'text' ? fromRichText : (content ?? '')
               const icon = labels[type] ?? '·'
-              return { title: `${icon} ${content?.substring(0, 60) ?? ''}…` }
+              return { title: `${icon} ${text.substring(0, 60)}…` }
             },
           },
         },

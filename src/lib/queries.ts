@@ -16,6 +16,7 @@ const TRIP_FIELDS = `
   story[] {
     type,
     content,
+    richText,
     url,
     image { ..., alt, caption },
     images[] { _key, ..., alt, caption }
