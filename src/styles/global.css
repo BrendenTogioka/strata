@@ -1,0 +1,1180 @@
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: auto; }
+body { overflow-x: hidden; }
+img, video { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+
+/* ─── Design Tokens ─── */
+:root {
+  /* Core palette — drawn from the photos */
+  --ink:         #0C0906;   /* warm near-black */
+  --char:        #1A1410;   /* deep charcoal */
+  --rust:        #C04820;   /* Valley of Fire ember */
+  --terracotta:  #D0744A;   /* sandstone warm */
+  --bone:        #F0E2CE;   /* warm bone */
+  --fog:         #A09078;   /* hazy mid-tone */
+  --aurora-g:    #44EE88;   /* northern lights green */
+  --boreal:      #2A6A44;   /* deep aurora green */
+  --arctic:      #88AACC;   /* icy mountain blue */
+  --rose:        #D890A8;   /* mountain sunset rose */
+  --moss:        #5A6A48;   /* jungle moss */
+  --deep-green:  #0F2010;   /* jungle dark */
+  --canyon:      #6B2A12;   /* narrows depth */
+  --mist:        #8FA88A;   /* jungle mist / soft green-grey */
+
+  --font-display: 'Big Shoulders Display', sans-serif;
+  --font-body:    'Lora', Georgia, serif;
+
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+/* ─── Base ─── */
+body {
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font-body);
+  font-size: clamp(16px, 1.1vw, 18px);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  cursor: none;
+}
+
+/* ─── Custom cursor ─── */
+.cursor {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: var(--rust);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+
+  mix-blend-mode: screen;
+  transition: width 0.3s var(--ease-expo), height 0.3s var(--ease-expo);
+}
+.cursor-ring {
+  position: fixed;
+  width: 34px; height: 34px;
+  border: 1px solid rgba(192, 72, 32, 0.4);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+
+  transition: width 0.4s var(--ease-expo), height 0.4s var(--ease-expo);
+}
+
+/* ─── App shell ─── */
+.app { position: relative; }
+
+/* fixed canvas (stars) */
+.canvas-wrap {
+  position: fixed; inset: 0;
+  z-index: 0; pointer-events: none;
+}
+
+/* scrollable content sits on top */
+.content { position: relative; z-index: 1; }
+
+/* ─── Navigation ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.75rem 2.5rem;
+  mix-blend-mode: difference;
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 0.2em;
+  color: var(--bone);
+}
+.nav-links {
+  display: flex; gap: 2.5rem; list-style: none;
+}
+.nav-links a {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fog);
+  transition: color 0.3s;
+}
+.nav-links a:hover { color: var(--bone); }
+
+/* ─────────────────────────────────────────────────
+   HERO SECTION
+───────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 8vh;
+}
+/* parallax image container — taller than viewport so it can move */
+.hero-img-wrap {
+  position: absolute;
+  inset: -15% 0;
+  z-index: 0;
+}
+.hero-img-wrap img,
+.hero-img-wrap .img-placeholder {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center 60%;
+  display: block;
+}
+/* gradient overlay darkens bottom so text is legible */
+.hero-overlay {
+  position: absolute;
+  inset: 0; z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(12, 9, 6, 0.1) 0%,
+    rgba(12, 9, 6, 0.0) 40%,
+    rgba(12, 9, 6, 0.55) 75%,
+    rgba(12, 9, 6, 0.88) 100%
+  );
+}
+.hero-content {
+  position: relative; z-index: 2;
+  padding: 0 2.5rem;
+  width: 100%;
+}
+.hero-location {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  opacity: 0;
+  transform: translateY(16px);
+}
+.hero-location-dot {
+  width: 6px; height: 6px;
+  background: var(--rust);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hero-location span {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  color: var(--fog);
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(6rem, 20vw, 22rem);
+  line-height: 0.85;
+  letter-spacing: -0.01em;
+  color: var(--bone);
+  overflow: hidden;
+}
+.hero-title .line {
+  display: block;
+  transform: translateY(110%);
+}
+.hero-title .accent { color: var(--rust); }
+.hero-sub {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.hero-sub-text {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  color: var(--fog);
+  max-width: 40ch;
+}
+.hero-scroll-cue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.hero-scroll-cue span {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--fog);
+  writing-mode: vertical-rl;
+}
+.scroll-bar {
+  width: 1px; height: 4rem;
+  background: linear-gradient(to bottom, var(--rust), transparent);
+  animation: scrollPulse 2.2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(0.8); }
+  50%       { opacity: 1;   transform: scaleY(1.1); }
+}
+
+/* ─────────────────────────────────────────────────
+   EXPEDITION GALLERY (horizontal scroll)
+───────────────────────────────────────────────── */
+.expedition {
+  position: relative;
+  overflow: hidden;
+}
+.expedition-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+  padding: 2rem 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  pointer-events: none;
+}
+.expedition-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  color: var(--fog);
+}
+.expedition-count {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  color: var(--rust);
+  letter-spacing: 0.1em;
+}
+.expedition-track {
+  display: flex;
+  height: 100vh;
+  will-change: transform;
+}
+.exp-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 60vw;
+  height: 100vh;
+  overflow: hidden;
+}
+.exp-card:first-child { width: 70vw; }
+.exp-card-img-wrap {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+.exp-card-img-wrap img,
+.exp-card-img-wrap .img-placeholder {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.exp-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(12, 9, 6, 0.82) 0%,
+    rgba(12, 9, 6, 0.0) 55%
+  );
+  z-index: 1;
+}
+.exp-card-content {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 2;
+  padding: 2.5rem;
+}
+.exp-card-num {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  color: var(--rust);
+  margin-bottom: 0.5rem;
+  opacity: 0; transform: translateY(12px);
+}
+.exp-card-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2.5rem, 5vw, 5.5rem);
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  color: var(--bone);
+  overflow: hidden;
+  opacity: 0; transform: translateY(16px);
+}
+.exp-card-meta {
+  margin-top: 0.75rem;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--fog);
+  opacity: 0; transform: translateY(10px);
+}
+/* Open label — appears on card hover */
+.exp-card-open {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--bone);
+  background: rgba(12,9,6,0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 0.6em 1.2em;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s var(--ease-expo);
+  pointer-events: none;
+}
+.exp-card:hover .exp-card-open {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Spacer card for end padding */
+.exp-spacer {
+  flex-shrink: 0;
+  width: 15vw;
+  height: 100vh;
+}
+
+/* ─────────────────────────────────────────────────
+   AURORA SECTION
+───────────────────────────────────────────────── */
+.aurora-section {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.aurora-bg {
+  position: absolute;
+  inset: -15% 0;
+  z-index: 0;
+  will-change: transform;
+}
+.aurora-bg img,
+.aurora-bg .img-placeholder {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+/* R3F canvas overlay */
+.aurora-canvas-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.aurora-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(
+    135deg,
+    rgba(12, 9, 6, 0.65) 0%,
+    rgba(12, 9, 6, 0.2) 50%,
+    rgba(12, 9, 6, 0.7) 100%
+  );
+}
+.aurora-content {
+  position: relative; z-index: 3;
+  padding: 0 2.5rem;
+  max-width: 55%;
+}
+.section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.eyebrow-num {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: var(--rust);
+}
+.eyebrow-text {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.eyebrow-line {
+  flex: none; width: 2rem; height: 1px;
+  background: var(--rust);
+}
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(3.5rem, 9vw, 11rem);
+  line-height: 0.88;
+  color: var(--bone);
+  overflow: hidden;
+}
+.section-title .line {
+  display: block;
+  transform: translateY(110%);
+}
+.section-title .aurora-accent { color: var(--aurora-g); }
+.section-body {
+  margin-top: 2rem;
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  color: var(--fog);
+  max-width: 45ch;
+  line-height: 1.8;
+  opacity: 0;
+  transform: translateY(14px);
+}
+.section-body em { color: var(--bone); font-style: italic; }
+
+/* ─────────────────────────────────────────────────
+   MOUNTAIN SECTION (split parallax)
+───────────────────────────────────────────────── */
+.mountain-section {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 8vh;
+}
+/* Both layers stack. Sky moves slow, ground moves fast. */
+.mtn-layer {
+  position: absolute;
+  inset: -20% 0;
+  will-change: transform;
+  height: 140%;
+}
+.mtn-layer img,
+.mtn-layer .img-placeholder {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 50%;
+}
+.mtn-sky {
+  clip-path: inset(0 0 48% 0); /* top 52% */
+  z-index: 0;
+}
+.mtn-ground {
+  clip-path: inset(52% 0 0 0); /* bottom 48% */
+  z-index: 1;
+}
+.mtn-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(
+    to bottom,
+    rgba(12, 9, 6, 0.0) 0%,
+    rgba(12, 9, 6, 0.0) 50%,
+    rgba(12, 9, 6, 0.65) 85%,
+    rgba(12, 9, 6, 0.92) 100%
+  );
+}
+.mtn-content {
+  position: relative; z-index: 3;
+  padding: 0 2.5rem;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+.mtn-text-block { max-width: 42%; }
+.mtn-text-block .section-title .arctic-accent { color: var(--arctic); }
+
+/* ─────────────────────────────────────────────────
+   JUNGLE / NARROWS SECTION (editorial split)
+───────────────────────────────────────────────── */
+.jungle-section {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+.jungle-img-col {
+  position: relative;
+  overflow: hidden;
+}
+.jungle-img-col .parallax-img-wrap {
+  position: absolute;
+  inset: -15% 0;
+  height: 130%;
+  will-change: transform;
+}
+.jungle-img-col img,
+.jungle-img-col .img-placeholder {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.jungle-text-col {
+  background: var(--deep-green);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10vh 4rem;
+}
+.jungle-text-col .section-title .moss-accent { color: var(--moss); }
+.jungle-quote {
+  margin-top: 2.5rem;
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--moss);
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+  color: var(--bone);
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+/* ─────────────────────────────────────────────────
+   NARROWS SECTION (full-bleed dark)
+───────────────────────────────────────────────── */
+.narrows-section {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.narrows-bg {
+  position: absolute;
+  inset: -15% 0;
+  z-index: 0;
+  will-change: transform;
+}
+.narrows-bg img,
+.narrows-bg .img-placeholder {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 40% center;
+}
+.narrows-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(
+    to right,
+    rgba(12, 9, 6, 0.0) 0%,
+    rgba(12, 9, 6, 0.0) 45%,
+    rgba(12, 9, 6, 0.75) 70%,
+    rgba(12, 9, 6, 0.95) 100%
+  );
+}
+.narrows-content {
+  position: relative; z-index: 2;
+  padding: 0 2.5rem;
+  max-width: 55%;
+}
+.narrows-content .section-title .canyon-accent { color: var(--terracotta); }
+
+/* ── Narrows title: use inner-span technique so overflow:hidden clips
+   each LINE vertically (for the reveal animation) without clipping the
+   word "NARROWS" horizontally at the container edge. ── */
+.narrows-title {
+  overflow: visible;        /* allow NARROWS to extend beyond container */
+}
+.narrows-title .line {
+  overflow: hidden;         /* each line clips its own inner span downward */
+  display: block;
+  transform: none;          /* override shared .section-title .line translateY */
+}
+.narrows-title .line-inner {
+  display: block;
+  transform: translateY(110%);  /* start below; GSAP animates to y:0 */
+}
+
+/* ─────────────────────────────────────────────────
+   CONTACT / FOOTER
+───────────────────────────────────────────────── */
+.contact {
+  min-height: 80vh;
+  background: var(--char);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10vh 2.5rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.contact-pre {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  color: var(--rust);
+  margin-bottom: 0.75rem;
+  opacity: 0; transform: translateY(12px);
+}
+.contact-headline {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(5rem, 15vw, 16rem);
+  line-height: 0.85;
+  color: var(--bone);
+  overflow: hidden;
+}
+.contact-headline .line { display: block; transform: translateY(110%); }
+.contact-email {
+  display: inline-block;
+  margin-top: 3rem;
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 1.8vw, 1.5rem);
+  color: var(--fog);
+  position: relative;
+  opacity: 0; transform: translateY(12px);
+}
+.contact-email::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 0%; height: 1px;
+  background: var(--rust);
+  transition: width 0.5s var(--ease-expo);
+}
+.contact-email:hover { color: var(--bone); }
+.contact-email:hover::after { width: 100%; }
+.contact-footer {
+  margin-top: 6rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--fog);
+  opacity: 0; transform: translateY(8px);
+}
+
+/* ─── Shared section accent overrides ─── */
+/* These are applied via class names inside .section-title */
+.arctic-accent  { color: var(--arctic) !important; }
+.canyon-accent  { color: var(--terracotta) !important; }
+.moss-accent    { color: var(--moss) !important; }
+.aurora-accent  { color: var(--aurora-g) !important; }
+
+/* ─────────────────────────────────────────────────
+   IMAGE PLACEHOLDER gradients (until real photos added)
+───────────────────────────────────────────────── */
+.ph-valley-fire {
+  background: linear-gradient(160deg,
+    #6B2A12 0%, #C04820 20%, #D88858 40%,
+    #ECC4A0 55%, #D08868 70%, #8B3818 88%, #3A1008 100%);
+}
+.ph-aurora {
+  background: radial-gradient(ellipse at 40% 85%,
+    #44EE88 0%, #1A9950 20%, #0D5530 45%,
+    #062A18 65%, #020C07 90%);
+}
+.ph-mountains {
+  background: linear-gradient(175deg,
+    #E8A8C0 0%, #C0A8CC 12%, #90A8CC 28%,
+    #B8C8E0 44%, #90B0C8 58%, #304458 75%,
+    #1A2A38 88%, #0A1420 100%);
+}
+.ph-narrows {
+  background: linear-gradient(175deg,
+    #1A0C06 0%, #2C1408 20%, #4A2010 40%,
+    #381808 60%, #281008 80%, #100804 100%);
+}
+.ph-jungle {
+  background: linear-gradient(168deg,
+    #0A1A0A 0%, #1A3A18 18%, #2D5028 38%,
+    #3A6830 55%, #507840 70%, #80A870 85%, #A8C898 100%);
+}
+
+/* ─────────────────────────────────────────────────
+   TRIP PAGE
+───────────────────────────────────────────────── */
+.trip-page {
+  position: relative;
+  background: var(--ink);
+  min-height: 100vh;
+}
+
+/* Back button */
+.back-btn {
+  position: fixed;
+  top: 1.75rem;
+  left: 2.5rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  border: none;
+  cursor: none;
+  color: var(--bone);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateX(-16px);
+  transition: color 0.3s;
+  mix-blend-mode: difference;
+}
+.back-btn:hover { color: var(--rust); }
+.back-arrow {
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 0.3s var(--ease-expo);
+}
+.back-btn:hover .back-arrow { transform: translateX(-4px); }
+
+/* Hero */
+.trip-hero {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 0;
+}
+.trip-hero-img-wrap {
+  position: absolute;
+  inset: 0;
+}
+.trip-hero-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.trip-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(12,9,6,0.1) 0%,
+    rgba(12,9,6,0.0) 35%,
+    rgba(12,9,6,0.55) 72%,
+    rgba(12,9,6,0.95) 100%
+  );
+}
+.trip-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 2.5rem 0;
+}
+.trip-coords {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--fog);
+}
+.trip-dot {
+  width: 5px; height: 5px;
+  background: var(--rust);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.trip-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(5rem, 17vw, 20rem);
+  line-height: 0.85;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+}
+.trip-title .line {
+  display: block;
+  color: var(--bone);
+  transform: translateY(110%);
+}
+
+/* Stats bar */
+.trip-stats-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  background: rgba(12,9,6,0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 1.25rem 2.5rem;
+  opacity: 0;
+  transform: translateY(20px);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.stat-label {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: var(--bone);
+}
+.stat-divider {
+  width: 1px;
+  height: 2rem;
+  background: rgba(255,255,255,0.08);
+  margin: 0 2rem;
+  flex-shrink: 0;
+}
+
+/* Story section */
+.trip-story {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 12vh 2.5rem 10vh;
+}
+.trip-story-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5rem;
+}
+.story-block {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.trip-paragraph {
+  font-family: var(--font-body);
+  font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+  line-height: 1.85;
+  color: var(--fog);
+  max-width: 65ch;
+}
+.trip-paragraph em { color: var(--bone); font-style: italic; }
+.trip-pull-quote {
+  padding-left: 2rem;
+  border-left: 2px solid var(--accent, var(--rust));
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: clamp(1.3rem, 2.2vw, 2rem);
+  line-height: 1.55;
+  color: var(--bone);
+  max-width: 50ch;
+}
+
+/* Next expedition */
+.trip-next {
+  padding: 0 2.5rem 8vh;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+.trip-next-label {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--fog);
+  margin-bottom: 1.5rem;
+}
+.trip-next-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 40vh;
+  overflow: hidden;
+  border: none;
+  background: none;
+  cursor: none;
+}
+.trip-next-img-wrap {
+  position: absolute; inset: 0;
+  transition: transform 0.6s var(--ease-expo);
+}
+.trip-next-card:hover .trip-next-img-wrap { transform: scale(1.04); }
+.trip-next-img-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.trip-next-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(12,9,6,0.7) 0%, rgba(12,9,6,0.2) 100%);
+  transition: opacity 0.4s;
+}
+.trip-next-card:hover .trip-next-overlay { opacity: 0.5; }
+.trip-next-content {
+  position: absolute; inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 3rem;
+  z-index: 1;
+}
+.trip-next-num {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  color: var(--accent, var(--rust));
+}
+.trip-next-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 5vw, 5rem);
+  line-height: 1;
+  color: var(--bone);
+}
+.trip-next-arrow {
+  font-size: 1.5rem;
+  color: var(--accent, var(--rust));
+  transition: transform 0.3s var(--ease-expo);
+  margin-left: auto;
+}
+.trip-next-card:hover .trip-next-arrow { transform: translateX(8px); }
+
+/* ─── Grain overlay ─── */
+.grain {
+  position: fixed; inset: -50%;
+  width: 200%; height: 200%;
+  pointer-events: none; z-index: 200;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  animation: grain 0.5s steps(2) infinite;
+}
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-2%, -4%); }
+  50%  { transform: translate(3%, 2%); }
+  75%  { transform: translate(-1%, 5%); }
+  100% { transform: translate(2%, -3%); }
+}
+
+/* ─── Divider ─── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);
+}
+
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — TABLET & MOBILE
+   ═══════════════════════════════════════════════════ */
+
+/* ── Cursor: hide on touch devices ── */
+@media (hover: none) and (pointer: coarse) {
+  .cursor, .cursor-ring { display: none !important; }
+  body { cursor: auto; }
+  button, a, [style*="cursor: none"] { cursor: pointer !important; }
+  .back-btn, .trip-next-card, .exp-card { cursor: pointer !important; }
+}
+
+/* ── Tablet (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .narrows-content  { max-width: 70%; }
+  .aurora-content   { max-width: 65%; }
+  .mtn-text-block   { max-width: 55%; }
+  .exp-card         { width: 70vw; }
+  .exp-card:first-child { width: 80vw; }
+}
+
+/* ── Mobile (≤ 768px) ── */
+@media (max-width: 768px) {
+
+  /* Navigation */
+  nav { padding: 1.25rem 1.25rem; }
+  .nav-links { gap: 1.5rem; }
+  .nav-links a { font-size: 0.65rem; }
+
+  /* Hero */
+  .hero-title {
+    font-size: clamp(4.5rem, 24vw, 8rem);
+  }
+  .hero-content { padding: 0 1.25rem; }
+  .hero-sub {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  .hero-sub-text { font-size: 1rem; max-width: 100%; }
+  .hero-scroll-cue { display: none; }
+
+  /* Expedition gallery — CSS snap scroll on mobile */
+  .expedition { overflow: visible; }
+  .expedition-header { padding: 1.5rem 1.25rem; top: 72px; /* clear fixed nav */ }
+  .expedition-track {
+    /* Reset GSAP horizontal layout — vertical on mobile */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: auto !important;
+    transform: none !important; /* override GSAP x */
+    overflow: visible;
+    gap: 2px;
+  }
+  .exp-card {
+    width: 100% !important;
+    height: 55vw;
+    min-height: 220px;
+  }
+  .exp-card:first-child { width: 100% !important; }
+  .exp-spacer { display: none; }
+  .exp-card-title { font-size: clamp(1.6rem, 5vw, 2.8rem); }
+  .exp-card-num, .exp-card-meta { opacity: 1 !important; transform: none !important; }
+  .exp-card-title { opacity: 1 !important; transform: none !important; }
+  .exp-card-open { display: none; } /* tap replaces hover on mobile */
+
+  /* Aurora section */
+  .aurora-content {
+    max-width: 90%;
+    padding: 0 1.25rem;
+  }
+
+  /* Narrows section */
+  .narrows-content {
+    max-width: 95%;
+    padding: 0 1.25rem;
+  }
+  .narrows-overlay {
+    /* Cover whole section on mobile so text is readable */
+    background: linear-gradient(
+      to bottom,
+      rgba(12, 9, 6, 0.3) 0%,
+      rgba(12, 9, 6, 0.7) 60%,
+      rgba(12, 9, 6, 0.95) 100%
+    );
+  }
+
+  /* Mountain section */
+  .mtn-content { justify-content: flex-start; }
+  .mtn-text-block { max-width: 90%; }
+
+  /* Jungle section — stack vertically */
+  .jungle-section {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .jungle-img-col {
+    height: 65vw;
+    min-height: 260px;
+    position: relative;
+    overflow: hidden;
+  }
+  .jungle-img-col .parallax-img-wrap {
+    /* On mobile don't over-extend for parallax */
+    inset: -5% 0;
+    height: 110%;
+  }
+  .jungle-text-col { padding: 6vh 1.5rem; }
+  .jungle-text-col .section-title { font-size: clamp(3rem, 14vw, 6rem); }
+
+  /* Section shared — full width titles on mobile */
+  .section-title { font-size: clamp(3rem, 14vw, 6rem); }
+  .section-body { max-width: 100%; font-size: 1rem; }
+  .section-eyebrow { margin-bottom: 1rem; }
+
+  /* Contact */
+  .contact { padding: 8vh 1.25rem; }
+  .contact-headline { font-size: clamp(4rem, 20vw, 8rem); }
+  .contact-footer {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-top: 3rem;
+  }
+
+  /* ── Trip page ── */
+  .back-btn {
+    left: 1.25rem;
+    top: 1.25rem;
+    font-size: 0.65rem;
+  }
+  .trip-title {
+    font-size: clamp(3.5rem, 19vw, 7rem);
+  }
+  .trip-hero-content { padding: 0 1.25rem 0; }
+  .trip-coords { font-size: 0.7rem; }
+
+  /* Stats bar — wrap to 2-column grid */
+  .trip-stats-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 0;
+    padding: 1.25rem;
+  }
+  .stat-divider { display: none; }
+  .stat:nth-child(5) { /* Duration — last lone item */
+    grid-column: 1 / -1;
+  }
+
+  /* Story */
+  .trip-story { padding: 8vh 1.25rem 6vh; }
+  .trip-paragraph { font-size: 1.05rem; }
+  .trip-pull-quote { font-size: clamp(1.15rem, 4.5vw, 1.6rem); padding-left: 1rem; }
+
+  /* Next expedition card */
+  .trip-next { padding: 0 1.25rem 6vh; }
+  .trip-next-card { height: 50vw; min-height: 200px; }
+  .trip-next-content { padding: 0 1.5rem; gap: 1rem; }
+  .trip-next-title { font-size: clamp(1.5rem, 6vw, 3rem); }
+}
+
+/* ── Small mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+  .hero-title { font-size: clamp(4rem, 26vw, 7rem); }
+  .section-title { font-size: clamp(2.8rem, 16vw, 5rem); }
+  .expedition-track { grid-template-columns: 1fr; }
+  .exp-card { height: 80vw; min-height: 280px; }
+  .trip-stats-bar { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Prefer reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .scroll-bar { animation: none; opacity: 0.5; }
+  .grain { animation: none; }
+}
+
+/* ── Additional mobile refinements ── */
+@media (max-width: 768px) {
+  /* Narrows — flip from right-align to left-align */
+  .narrows-section { justify-content: flex-start; }
+  .narrows-content { padding: 0 1.25rem; max-width: 100%; }
+  .narrows-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(12, 9, 6, 0.25) 0%,
+      rgba(12, 9, 6, 0.6) 55%,
+      rgba(12, 9, 6, 0.95) 100%
+    );
+  }
+
+  /* Mountain section — text to left */
+  .mtn-content { justify-content: flex-start; }
+  .mtn-text-block { max-width: 100%; }
+
+  /* Aurora section — full width content */
+  .aurora-content { max-width: 100%; }
+  
+  /* Section title overflow safety */
+  .section-title { overflow: hidden; }
+}
+
+/* ── Hide nav links on very small screens to avoid overflow ── */
+@media (max-width: 480px) {
+  .nav-links { display: none; }
+  /* STRATA logo acts as the only nav on tiny screens */
+}

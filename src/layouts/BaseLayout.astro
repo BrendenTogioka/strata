@@ -1,0 +1,411 @@
+---
+import { ClientRouter } from 'astro:transitions'
+import '../styles/global.css'
+import Navigation from '../components/Navigation.astro'
+
+interface Props {
+  title?:        string
+  description?:  string
+  ogImage?:      string
+  isExpedition?: boolean
+}
+
+const {
+  title        = 'STRATA — A Field Journal',
+  description  = 'Adventures written in stone, fire, ice and root. A field journal from the edges of the earth.',
+  ogImage      = '/images/valley-fire.webp',
+  isExpedition = false,
+} = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta property="og:title"       content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image"       content={ogImage} />
+    <title>{title}</title>
+
+    <!-- Preload hero image for fastest LCP -->
+    <link rel="preload" as="image" href="/images/valley-fire.webp" fetchpriority="high" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Astro client-side router (View Transitions + astro:* events) -->
+    <ClientRouter />
+  </head>
+
+  <body>
+    <!-- Film-grain overlay -->
+    <div class="grain" aria-hidden="true"></div>
+
+    <!-- Custom cursor — transition:persist keeps these elements alive across
+         page swaps so the RAF loop never needs to restart. -->
+    <div class="cursor"      id="cursor"      transition:persist aria-hidden="true"></div>
+    <div class="cursor-ring" id="cursor-ring" transition:persist aria-hidden="true"></div>
+
+    <!-- Page content -->
+    <div class="content" transition:animate="none">
+      <Navigation isExpedition={isExpedition} />
+      <slot />
+    </div>
+  </body>
+</html>
+
+<script>
+  import Lenis from 'lenis'
+  import { gsap } from 'gsap'
+  import { ScrollTrigger } from 'gsap/ScrollTrigger'
+  import { playIrisTransition } from '../utils/irisTransition'
+
+  gsap.registerPlugin(ScrollTrigger)
+
+  const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches
+
+  // ── Module-level state ─────────────────────────────────────────────────
+  let lenis:       InstanceType<typeof Lenis> | null = null
+  let lenisTicker: ((time: number) => void)   | null = null
+  let mm:          ReturnType<typeof gsap.matchMedia> | null = null
+
+  // ── Lenis smooth scroll ────────────────────────────────────────────────
+  function initLenis() {
+    if (isTouch()) return
+
+    lenis = new Lenis({
+      duration:        1.4,
+      easing:          (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      wheelMultiplier: 1.0,
+      touchMultiplier: 0,
+      smoothWheel:     true,
+      orientation:     'vertical',
+    })
+
+    lenis.on('scroll', () => ScrollTrigger.update())
+
+    lenisTicker = (time: number) => lenis!.raf(time * 1000)
+    gsap.ticker.add(lenisTicker)
+    gsap.ticker.lagSmoothing(0)
+
+    ScrollTrigger.scrollerProxy(document.documentElement, {
+      scrollTop: (value?: number) => {
+        // Guard: fall back to native scroll if lenis isn't ready yet
+        if (!lenis) return document.documentElement.scrollTop || window.scrollY
+        if (value !== undefined) lenis.scrollTo(value, { immediate: true })
+        return lenis.scroll
+      },
+      getBoundingClientRect: () => ({
+        top: 0, left: 0,
+        width:  window.innerWidth,
+        height: window.innerHeight,
+      }),
+    })
+
+    ScrollTrigger.addEventListener('refresh', () => lenis?.resize())
+    ScrollTrigger.refresh()
+  }
+
+  // ── Custom cursor ──────────────────────────────────────────────────────
+  // Runs ONCE — cursor elements have transition:persist so the RAF loop
+  // never stops and never needs to restart across page swaps.
+  function initCursor() {
+    if (isTouch()) return
+
+    const cursor = document.getElementById('cursor')
+    const ring   = document.getElementById('cursor-ring')
+    if (!cursor || !ring) return
+
+    let mx = window.innerWidth  / 2
+    let my = window.innerHeight / 2
+    let rx = mx, ry = my
+
+    window.addEventListener('mousemove', (e: MouseEvent) => {
+      mx = e.clientX
+      my = e.clientY
+    }, { passive: true })
+
+    const tick = () => {
+      rx += (mx - rx) * 0.12
+      ry += (my - ry) * 0.12
+      cursor.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`
+      ring.style.transform   = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }
+
+  // ── Page animations — called on every astro:page-load ─────────────────
+  // All section-level scripts have been removed; this single function
+  // owns every GSAP animation so it always runs regardless of which page
+  // the user first lands on.
+  function initPageAnimations() {
+
+    // ── Hero ────────────────────────────────────────────────────────────
+    const heroSection = document.querySelector<HTMLElement>('.hero')
+    const heroImgWrap = document.getElementById('hero-img-wrap')
+    if (heroSection && heroImgWrap) {
+      const tl = gsap.timeline({ delay: 0.2 })
+      tl.to('.hero-location', { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' })
+        .to('.hero-title .line', { y: 0, duration: 1.3, stagger: 0.08, ease: 'power4.out' }, '-=0.5')
+        .to('.hero-sub',         { opacity: 1, y: 0, duration: 1,   ease: 'power3.out' }, '-=0.7')
+
+      gsap.to(heroImgWrap, {
+        yPercent: 20, ease: 'none',
+        scrollTrigger: {
+          trigger: heroSection,
+          start: 'top top',
+          end:   'bottom top',
+          scrub: 1,
+        },
+      })
+    }
+
+    // ── Expedition gallery (horizontal scroll + iris) ────────────────────
+    const expSection = document.querySelector<HTMLElement>('.expedition')
+    const expTrack   = document.getElementById('expedition-track') as HTMLElement | null
+    if (expSection && expTrack) {
+      mm = gsap.matchMedia()
+
+      mm.add('(min-width: 769px)', () => {
+        const cards       = gsap.utils.toArray<HTMLElement>('.exp-card')
+        const totalScroll = expTrack.scrollWidth - window.innerWidth
+
+        const hScroll = gsap.to(expTrack, {
+          x: () => -totalScroll,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: expSection,
+            pin: true,
+            scrub: 1.2,
+            end: () => `+=${totalScroll}`,
+            invalidateOnRefresh: true,
+            anticipatePin: 1,
+          },
+        })
+
+        cards.forEach((card) => {
+          // Per-card image parallax
+          gsap.to(card.querySelector('.exp-card-img-wrap'), {
+            x: 40, ease: 'none',
+            scrollTrigger: {
+              trigger: card,
+              containerAnimation: hScroll,
+              start: 'left right',
+              end:   'right left',
+              scrub: 1,
+            },
+          })
+          // Card text stagger-in
+          gsap.to(card.querySelectorAll('.exp-card-num, .exp-card-title, .exp-card-meta'), {
+            opacity: 1, y: 0, stagger: 0.08, duration: 0.7, ease: 'power3.out',
+            scrollTrigger: {
+              trigger: card,
+              containerAnimation: hScroll,
+              start: 'left 80%',
+              toggleActions: 'play none none reverse',
+            },
+          })
+        })
+      })
+
+      // Mobile: reveal card text immediately (vertical layout)
+      mm.add('(max-width: 768px)', () => {
+        gsap.utils.toArray<HTMLElement>('.exp-card-num, .exp-card-title, .exp-card-meta')
+          .forEach(el => gsap.set(el, { opacity: 1, y: 0 }))
+      })
+
+      // Iris transition on card click
+      document.querySelectorAll<HTMLElement>('.exp-card').forEach((card) => {
+        card.addEventListener('click', (e) => {
+          e.preventDefault()
+          const src  = card.dataset.src  ?? ''
+          const href = card.dataset.href ?? card.getAttribute('href') ?? '/'
+          const img  = card.querySelector<HTMLImageElement>('.exp-card-img-wrap img')
+          if (!img || !src) { window.location.href = href; return }
+          playIrisTransition({ src, rect: img.getBoundingClientRect(), href })
+        })
+      })
+    }
+
+    // ── Narrows ──────────────────────────────────────────────────────────
+    const narrowsSection = document.querySelector<HTMLElement>('.narrows-section')
+    const narrowsBg      = document.getElementById('narrows-bg')
+    if (narrowsSection && narrowsBg) {
+      gsap.to(narrowsBg, {
+        yPercent: 15, ease: 'none',
+        scrollTrigger: { trigger: narrowsSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+      })
+      gsap.to('.narrows-section .section-eyebrow', {
+        scrollTrigger: { trigger: narrowsSection, start: 'top 75%', once: true },
+        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+      })
+      // Target .line-inner (not .line) — each .line is the clip mask,
+      // .line-inner is the animated element, so NARROWS never clips horizontally.
+      gsap.to('.narrows-section .section-title .line-inner', {
+        scrollTrigger: { trigger: narrowsSection, start: 'top 70%', once: true },
+        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
+      })
+      gsap.to('.narrows-section .section-body', {
+        scrollTrigger: { trigger: narrowsSection, start: 'top 60%', once: true },
+        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+      })
+    }
+
+    // ── Aurora ───────────────────────────────────────────────────────────
+    const auroraSection = document.querySelector<HTMLElement>('.aurora-section')
+    const auroraBg      = document.getElementById('aurora-bg')
+    if (auroraSection && auroraBg) {
+      gsap.to(auroraBg, {
+        yPercent: 18, ease: 'none',
+        scrollTrigger: { trigger: auroraSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+      })
+      gsap.to('.aurora-section .section-eyebrow', {
+        scrollTrigger: { trigger: auroraSection, start: 'top 75%', once: true },
+        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+      })
+      gsap.to('.aurora-section .section-title .line', {
+        scrollTrigger: { trigger: auroraSection, start: 'top 70%', once: true },
+        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
+      })
+      gsap.to('.aurora-section .section-body', {
+        scrollTrigger: { trigger: auroraSection, start: 'top 60%', once: true },
+        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+      })
+    }
+
+    // ── Mountain (split parallax) ─────────────────────────────────────────
+    const mountainSection = document.querySelector<HTMLElement>('.mountain-section')
+    const mtnSky          = document.getElementById('mtn-sky')
+    const mtnGround       = document.getElementById('mtn-ground')
+    if (mountainSection && mtnSky && mtnGround) {
+      gsap.fromTo(mtnSky,    { y: 0 }, {
+        y: -60, ease: 'none',
+        scrollTrigger: { trigger: mountainSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+      })
+      gsap.fromTo(mtnGround, { y: 0 }, {
+        y: 80, ease: 'none',
+        scrollTrigger: { trigger: mountainSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+      })
+      gsap.to('.mtn-section-eyebrow', {
+        scrollTrigger: { trigger: mountainSection, start: 'top 75%', once: true },
+        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+      })
+      gsap.to('.mountain-section .section-title .line', {
+        scrollTrigger: { trigger: mountainSection, start: 'top 70%', once: true },
+        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
+      })
+      gsap.to('.mountain-section .section-body', {
+        scrollTrigger: { trigger: mountainSection, start: 'top 60%', once: true },
+        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+      })
+    }
+
+    // ── Jungle ───────────────────────────────────────────────────────────
+    const jungleSection = document.querySelector<HTMLElement>('.jungle-section')
+    const jungleImgWrap = document.getElementById('jungle-img-wrap')
+    if (jungleSection && jungleImgWrap) {
+      gsap.to(jungleImgWrap, {
+        yPercent: -12, ease: 'none',
+        scrollTrigger: { trigger: jungleSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+      })
+      gsap.to('.jungle-section .section-eyebrow', {
+        scrollTrigger: { trigger: jungleSection, start: 'top 75%', once: true },
+        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+      })
+      gsap.to('.jungle-section .section-title .line', {
+        scrollTrigger: { trigger: jungleSection, start: 'top 70%', once: true },
+        y: 0, stagger: 0.08, duration: 1.2, ease: 'power4.out',
+      })
+      gsap.to('.jungle-section .section-body, .jungle-quote', {
+        scrollTrigger: { trigger: jungleSection, start: 'top 60%', once: true },
+        opacity: 1, y: 0, stagger: 0.15, duration: 0.9, ease: 'power3.out',
+      })
+    }
+
+    // ── Contact section ──────────────────────────────────────────────────
+    const contactSection = document.querySelector<HTMLElement>('.contact')
+    if (contactSection) {
+      gsap.to('.contact-pre', {
+        scrollTrigger: { trigger: '.contact', start: 'top 80%', once: true },
+        opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+      })
+      gsap.to('.contact-headline .line', {
+        scrollTrigger: { trigger: '.contact-headline', start: 'top 85%', once: true },
+        y: 0, stagger: 0.09, duration: 1.1, ease: 'power4.out',
+      })
+      gsap.to('.contact-email, .contact-footer', {
+        scrollTrigger: { trigger: '.contact-email', start: 'top 85%', once: true },
+        opacity: 1, y: 0, stagger: 0.15, duration: 0.8, ease: 'power3.out',
+      })
+    }
+
+    // ── Trip page ─────────────────────────────────────────────────────────
+    if (document.querySelector('.trip-page')) {
+      // Reset text states — hero image shows immediately (no CSS hiding it)
+      gsap.set('.trip-title .line', { y: '110%' })
+      gsap.set('.trip-stats-bar',   { opacity: 0, y: 20 })
+      gsap.set('.back-btn',         { opacity: 0, x: -16 })
+      gsap.set('.story-block',      { opacity: 0, y: 30 })
+
+      const tl = gsap.timeline({ delay: 0.1 })
+      tl.to('.trip-title .line', {
+          y: 0, duration: 1.1, stagger: 0.07, ease: 'power4.out',
+        })
+        .to('.trip-stats-bar', {
+          opacity: 1, y: 0, duration: 0.7, ease: 'power3.out',
+        }, '-=0.7')
+        .to('.back-btn', {
+          opacity: 1, x: 0, duration: 0.6, ease: 'power3.out',
+        }, '-=0.8')
+
+      gsap.utils.toArray<HTMLElement>('.story-block').forEach((block) => {
+        gsap.to(block, {
+          scrollTrigger: { trigger: block, start: 'top 82%' },
+          opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+        })
+      })
+
+      const nextCard = document.getElementById('next-trip-card')
+      if (nextCard) {
+        nextCard.addEventListener('click', () => {
+          const src  = nextCard.dataset.src  ?? ''
+          const href = nextCard.dataset.href ?? '/'
+          const img  = nextCard.querySelector<HTMLImageElement>('img')
+          if (!img || !src) { window.location.href = href; return }
+          playIrisTransition({ src, rect: img.getBoundingClientRect(), href })
+        })
+      }
+    }
+
+    // Final refresh so all triggers compute correct positions
+    ScrollTrigger.refresh()
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────
+  initLenis()
+  initCursor()
+
+  // Animations fire on every page load (covers both initial load + transitions)
+  document.addEventListener('astro:page-load', initPageAnimations)
+
+  // ── Teardown + reinit between page swaps ──────────────────────────────
+  // IMPORTANT: initLenis() must run BEFORE mm.revert() and ScrollTrigger.killAll()
+  // so the scrollerProxy has a valid lenis reference when GSAP calls scrollTop()
+  // during cleanup. Otherwise, lenis is null → proxy throws → initLenis() never runs.
+  document.addEventListener('astro:after-swap', () => {
+    if (lenisTicker) { gsap.ticker.remove(lenisTicker); lenisTicker = null }
+    if (lenis)       { lenis.destroy(); lenis = null }
+    initLenis()                                                    // ← re-create lenis first
+    if (mm)          { mm.revert(); mm = null }                    // ← now proxy is valid
+    ScrollTrigger.killAll()                                        // ← now proxy is valid
+    document.querySelectorAll('.iris-overlay').forEach(el => el.remove())
+  })
+</script>

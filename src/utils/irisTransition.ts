@@ -1,0 +1,59 @@
+import { gsap } from 'gsap'
+import { navigate } from 'astro:transitions/client'
+
+interface IrisOptions {
+  src: string
+  rect: DOMRect
+  href: string
+}
+
+/**
+ * Iris expand transition.
+ * 1. Animates the card image rect to fullscreen (visual feedback).
+ * 2. Calls Astro's navigate() — a client-side swap, not a hard reload.
+ *    The Astro swap replaces .content; the iris overlay (on body) is removed
+ *    as part of that replacement, which is fine because the destination page's
+ *    hero image + accent-color fallback appear immediately.
+ */
+export function playIrisTransition({ src, rect, href }: IrisOptions): void {
+  // Container starts at the card image's exact screen position
+  const container = document.createElement('div')
+  container.className = 'iris-overlay'
+  Object.assign(container.style, {
+    position:      'fixed',
+    top:           `${rect.top}px`,
+    left:          `${rect.left}px`,
+    width:         `${rect.width}px`,
+    height:        `${rect.height}px`,
+    overflow:      'hidden',
+    zIndex:        '9000',
+    pointerEvents: 'none',
+  })
+
+  // Inner image stays full-viewport-sized so it looks correct as the
+  // container expands — avoids a "zooming postage stamp" effect
+  const img = document.createElement('img')
+  Object.assign(img.style, {
+    position:  'absolute',
+    top:       '50%',
+    left:      '50%',
+    width:     '100vw',
+    height:    '100vh',
+    objectFit: 'cover',
+    transform: 'translate(-50%, -50%)',
+  })
+  img.src = src
+  container.appendChild(img)
+  document.body.appendChild(container)
+
+  // Expand to fullscreen, then hand off to Astro's client-side router
+  gsap.to(container, {
+    top:      0,
+    left:     0,
+    width:    '100vw',
+    height:   '100vh',
+    duration: 0.75,
+    ease:     'power3.inOut',
+    onComplete: () => navigate(href),
+  })
+}

@@ -1,0 +1,162 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { client, urlFor, sanityImgSrcset } from '../../lib/sanity'
+import { ALL_TRIPS_QUERY } from '../../lib/queries'
+
+export async function getStaticPaths() {
+  const trips = await client.fetch(ALL_TRIPS_QUERY)
+  return trips.map((trip: any) => ({
+    params: { id: trip.id },
+    props:  { trip, trips },
+  }))
+}
+
+const { trip, trips: allTrips } = Astro.props
+
+// Resolve image URLs at build time
+const heroUrl    = trip.heroImage
+  ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
+  : ''
+const heroSrcset = trip.heroImage
+  ? sanityImgSrcset(trip.heroImage, [800, 1200, 1600, 2400], 90)
+  : ''
+const ogUrl = trip.heroImage
+  ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
+  : ''
+
+const nextTrip   = allTrips[(allTrips.findIndex((t: any) => t.id === trip.id) + 1) % allTrips.length]
+const nextUrl    = nextTrip?.heroImage
+  ? urlFor(nextTrip.heroImage).width(800).quality(85).format('webp').url()
+  : ''
+const nextSrcset = nextTrip?.heroImage
+  ? sanityImgSrcset(nextTrip.heroImage, [500, 800, 1200])
+  : ''
+---
+
+<BaseLayout
+  title={`${trip.pageTitle.join(' ')} — STRATA`}
+  ogImage={ogUrl}
+  isExpedition={true}
+>
+  <div class="trip-page">
+
+    <!-- Back button -->
+    <a href="/" class="back-btn">
+      <span class="back-arrow">←</span>
+      <span>All Expeditions</span>
+    </a>
+
+    <!-- Hero -->
+    <section class="trip-hero">
+      <div class="trip-hero-img-wrap" style={`background-color:${trip.accentColor}`}>
+        <img
+          class="trip-hero-img"
+          src={heroUrl}
+          srcset={heroSrcset}
+          sizes="100vw"
+          alt={trip.heroImage?.alt ?? trip.location}
+          loading="eager"
+          decoding="sync"
+          fetchpriority="high"
+        />
+        <div class="trip-hero-overlay"></div>
+      </div>
+
+      <div class="trip-hero-content">
+        <div class="trip-coords">
+          <span class="trip-dot"></span>
+          <span>{trip.coords}</span>
+        </div>
+
+        <h1 class="trip-title">
+          {trip.pageTitle.map((line: string, i: number) => (
+            <span class="line" style={i === 1 ? `color:${trip.accentColor}` : ''}>
+              {line}
+            </span>
+          ))}
+        </h1>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="trip-stats-bar">
+        <div class="stat">
+          <span class="stat-label">Location</span>
+          <span class="stat-value">{trip.location}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-label">Date</span>
+          <span class="stat-value">{trip.date}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-label">Distance</span>
+          <span class="stat-value">{trip.distance}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-label">Elevation</span>
+          <span class="stat-value">{trip.elevation}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-label">Duration</span>
+          <span class="stat-value">{trip.duration}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Story -->
+    <section class="trip-story">
+      <div class="trip-story-inner">
+        {trip.story.map((block: { type: string; content: string }, i: number) =>
+          block.type === 'quote' ? (
+            <blockquote
+              class="story-block trip-pull-quote"
+              style={`--accent:${trip.accentColor}`}
+            >
+              {block.content}
+            </blockquote>
+          ) : (
+            <p class="story-block trip-paragraph">
+              {block.content}
+            </p>
+          )
+        )}
+      </div>
+    </section>
+
+    <!-- Next expedition -->
+    {nextTrip && (
+      <section class="trip-next">
+        <div class="trip-next-label">Next Expedition</div>
+        <button
+          class="trip-next-card"
+          id="next-trip-card"
+          data-src={nextUrl}
+          data-href={`/expedition/${nextTrip.id}`}
+          style={`--accent:${nextTrip.accentColor}`}
+        >
+          <div class="trip-next-img-wrap">
+            <img
+              src={nextUrl}
+              srcset={nextSrcset}
+              sizes="(max-width: 768px) 100vw, 600px"
+              alt={nextTrip.heroImage?.alt ?? nextTrip.location}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div class="trip-next-overlay"></div>
+          <div class="trip-next-content">
+            <span class="trip-next-num">{nextTrip.num}</span>
+            <span class="trip-next-title">{nextTrip.cardTitle.replace('\n', ' ')}</span>
+            <span class="trip-next-arrow">→</span>
+          </div>
+        </button>
+      </section>
+    )}
+
+  </div>
+</BaseLayout>
+

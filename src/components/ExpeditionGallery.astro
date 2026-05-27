@@ -1,0 +1,56 @@
+---
+interface Expedition {
+  num:       string
+  title:     string
+  location:  string
+  year:      string
+  img:       string
+  imgSrcset: string
+  alt:       string
+  id:        string
+}
+
+interface Props {
+  expeditions: Expedition[]
+}
+
+const { expeditions } = Astro.props
+---
+
+<section class="expedition" id="expedition">
+  <div class="expedition-header">
+    <span class="expedition-label">EXPEDITION LOG</span>
+    <span class="expedition-count">{expeditions.length} ENTRIES</span>
+  </div>
+
+  <div class="expedition-track" id="expedition-track">
+    {expeditions.map((exp, i) => (
+      <a
+        href={`/expedition/${exp.id}`}
+        class="exp-card"
+        data-src={exp.img}
+        data-href={`/expedition/${exp.id}`}
+      >
+        <div class="exp-card-img-wrap">
+          <img
+            src={exp.img}
+            srcset={exp.imgSrcset}
+            sizes="(max-width: 768px) 100vw, 480px"
+            alt={exp.alt}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+          />
+        </div>
+        <div class="exp-card-overlay"></div>
+        <div class="exp-card-content">
+          <div class="exp-card-num">{exp.num} / {exp.year} · {exp.location}</div>
+          <h2 class="exp-card-title" style="white-space:pre-line">{exp.title}</h2>
+          <p class="exp-card-meta">{exp.location}</p>
+        </div>
+        <div class="exp-card-open">OPEN →</div>
+      </a>
+    ))}
+    <div class="exp-spacer"></div>
+  </div>
+</section>
+

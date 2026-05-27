@@ -1,0 +1,18 @@
+---
+interface Props {
+  isExpedition?: boolean
+}
+const { isExpedition = false } = Astro.props
+
+// On trip pages the back button (inside TripPage) replaces the nav
+if (isExpedition) return
+---
+
+<nav>
+  <a href="/" class="nav-logo">STRATA</a>
+  <ul class="nav-links">
+    <li><a href="/#expedition">Journal</a></li>
+    <li><a href="/#aurora">Aurora</a></li>
+    <li><a href="/#contact">Contact</a></li>
+  </ul>
+</nav>

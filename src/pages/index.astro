@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import HeroSection from '../components/HeroSection.astro'
+import ExpeditionGallery from '../components/ExpeditionGallery.astro'
+import NarrowsSection from '../components/NarrowsSection.astro'
+import MountainSection from '../components/MountainSection.astro'
+import AuroraSection from '../components/AuroraSection.astro'
+import JungleSection from '../components/JungleSection.astro'
+import ContactSection from '../components/ContactSection.astro'
+import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
+import { ALL_TRIPS_QUERY } from '../lib/queries'
+
+const trips = await client.fetch(ALL_TRIPS_QUERY)
+
+// Shape Sanity trip documents for the gallery component
+const expeditions = trips.map((trip: any) => ({
+  num:        trip.num,
+  title:      trip.cardTitle,
+  location:   trip.location,
+  year:       trip.date?.split(' ').pop() ?? '',
+  // Mid-res fallback + full-quality URL for iris overlay transition
+  img:        trip.heroImage
+                ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
+                : '',
+  // Responsive srcset: 600→mobile, 900→tablet, 1200→desktop, 1800→retina desktop
+  imgSrcset:  trip.heroImage
+                ? sanityImgSrcset(trip.heroImage, [600, 900, 1200, 1800])
+                : '',
+  alt:        trip.heroImage?.alt ?? trip.location,
+  id:         trip.id,
+}))
+---
+
+<BaseLayout>
+  <HeroSection />
+  <ExpeditionGallery expeditions={expeditions} />
+  <NarrowsSection />
+  <AuroraSection />
+  <MountainSection />
+  <JungleSection />
+  <ContactSection />
+</BaseLayout>
