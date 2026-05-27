@@ -2,9 +2,10 @@ import { gsap } from 'gsap'
 import { navigate } from 'astro:transitions/client'
 
 interface IrisOptions {
-  src: string
-  rect: DOMRect
-  href: string
+  src:      string
+  rect:     DOMRect
+  href:     string
+  heroSrc?: string  // full-res destination hero — preloaded during the animation
 }
 
 /**
@@ -15,7 +16,16 @@ interface IrisOptions {
  *    as part of that replacement, which is fine because the destination page's
  *    hero image + accent-color fallback appear immediately.
  */
-export function playIrisTransition({ src, rect, href }: IrisOptions): void {
+export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): void {
+  // Kick off a preload for the destination's full-res hero immediately —
+  // the 0.75s animation gives the browser a head start before the page swap.
+  if (heroSrc && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroSrc)}"]`)) {
+    const preload = document.createElement('link')
+    preload.rel  = 'preload'
+    preload.as   = 'image'
+    preload.href = heroSrc
+    document.head.appendChild(preload)
+  }
   // Container starts at the card image's exact screen position
   const container = document.createElement('div')
   container.className = 'iris-overlay'

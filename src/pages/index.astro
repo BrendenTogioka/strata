@@ -26,6 +26,10 @@ const expeditions = trips.map((trip: any) => ({
   imgSrcset:  trip.heroImage
                 ? sanityImgSrcset(trip.heroImage, [600, 900, 1200, 1800])
                 : '',
+  // Full-res hero URL — used for hover/click preloading before iris transition
+  heroUrl:    trip.heroImage
+                ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
+                : '',
   alt:        trip.heroImage?.alt ?? trip.location,
   id:         trip.id,
 }))

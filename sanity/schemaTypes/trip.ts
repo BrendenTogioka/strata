@@ -11,10 +11,9 @@ export default defineType({
       name: 'id',
       title: 'URL slug',
       type: 'slug',
-      description: 'Used in the URL: /expedition/[slug]. Auto-generated from the title.',
+      description: 'Used in the URL: /expedition/[slug]. Auto-generated from the card title.',
       options: {
-        source: (doc: { pageTitle?: string[] }) =>
-          Array.isArray(doc.pageTitle) ? doc.pageTitle.join('-') : '',
+        source: 'cardTitle',
         slugify: (input: string) =>
           input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
       },

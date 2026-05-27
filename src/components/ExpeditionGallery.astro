@@ -6,6 +6,7 @@ interface Expedition {
   year:      string
   img:       string
   imgSrcset: string
+  heroUrl:   string
   alt:       string
   id:        string
 }
@@ -30,6 +31,7 @@ const { expeditions } = Astro.props
         class="exp-card"
         data-src={exp.img}
         data-href={`/expedition/${exp.id}`}
+        data-hero-url={exp.heroUrl}
       >
         <div class="exp-card-img-wrap">
           <img

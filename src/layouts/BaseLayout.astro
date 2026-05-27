@@ -8,6 +8,7 @@ interface Props {
   description?:  string
   ogImage?:      string
   isExpedition?: boolean
+  preloadImage?: string
 }
 
 const {
@@ -15,6 +16,7 @@ const {
   description  = 'Adventures written in stone, fire, ice and root. A field journal from the edges of the earth.',
   ogImage      = '/images/valley-fire.webp',
   isExpedition = false,
+  preloadImage,
 } = Astro.props
 ---
 
@@ -31,6 +33,9 @@ const {
 
     <!-- Preload hero image for fastest LCP -->
     <link rel="preload" as="image" href="/images/valley-fire.webp" fetchpriority="high" />
+    {preloadImage && (
+      <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />
+    )}
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -148,6 +153,24 @@ const {
   // the user first lands on.
   function initPageAnimations() {
 
+    // ── Iris overlay handoff ────────────────────────────────────────────
+    // The overlay from the previous page's iris transition is kept alive
+    // until the destination hero image is ready, then faded out.
+    const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
+    if (irisOverlay) {
+      const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
+      const fadeOutIris = () => gsap.to(irisOverlay, {
+        opacity: 0, duration: 0.45, ease: 'power2.in',
+        onComplete: () => irisOverlay.remove(),
+      })
+      if (tripHero) {
+        if (tripHero.complete) fadeOutIris()
+        else tripHero.addEventListener('load', fadeOutIris, { once: true })
+      } else {
+        irisOverlay.remove()
+      }
+    }
+
     // ── Hero ────────────────────────────────────────────────────────────
     const heroSection = document.querySelector<HTMLElement>('.hero')
     const heroImgWrap = document.getElementById('hero-img-wrap')
@@ -224,13 +247,26 @@ const {
 
       // Iris transition on card click
       document.querySelectorAll<HTMLElement>('.exp-card').forEach((card) => {
+        const preloadCardHero = () => {
+          const heroUrl = card.dataset.heroUrl
+          if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
+            const link = document.createElement('link')
+            link.rel  = 'preload'
+            link.as   = 'image'
+            link.href = heroUrl
+            document.head.appendChild(link)
+          }
+        }
+        card.addEventListener('mouseenter', preloadCardHero, { once: true })
+
         card.addEventListener('click', (e) => {
           e.preventDefault()
-          const src  = card.dataset.src  ?? ''
-          const href = card.dataset.href ?? card.getAttribute('href') ?? '/'
-          const img  = card.querySelector<HTMLImageElement>('.exp-card-img-wrap img')
+          const src     = card.dataset.src     ?? ''
+          const href    = card.dataset.href    ?? card.getAttribute('href') ?? '/'
+          const heroSrc = card.dataset.heroUrl ?? ''
+          const img     = card.querySelector<HTMLImageElement>('.exp-card-img-wrap img')
           if (!img || !src) { window.location.href = href; return }
-          playIrisTransition({ src, rect: img.getBoundingClientRect(), href })
+          playIrisTransition({ src, rect: img.getBoundingClientRect(), href, heroSrc })
         })
       })
     }
@@ -375,12 +411,26 @@ const {
 
       const nextCard = document.getElementById('next-trip-card')
       if (nextCard) {
+        // Preload the destination's full-res hero on hover — gives the iris
+        // animation (0.75s) a head start so the image is cached on arrival.
+        nextCard.addEventListener('mouseenter', () => {
+          const heroUrl = nextCard.dataset.heroUrl
+          if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
+            const link = document.createElement('link')
+            link.rel = 'preload'
+            link.as  = 'image'
+            link.href = heroUrl
+            document.head.appendChild(link)
+          }
+        }, { once: true })
+
         nextCard.addEventListener('click', () => {
-          const src  = nextCard.dataset.src  ?? ''
-          const href = nextCard.dataset.href ?? '/'
-          const img  = nextCard.querySelector<HTMLImageElement>('img')
+          const src     = nextCard.dataset.src     ?? ''
+          const href    = nextCard.dataset.href    ?? '/'
+          const heroSrc = nextCard.dataset.heroUrl ?? ''
+          const img     = nextCard.querySelector<HTMLImageElement>('img')
           if (!img || !src) { window.location.href = href; return }
-          playIrisTransition({ src, rect: img.getBoundingClientRect(), href })
+          playIrisTransition({ src, rect: img.getBoundingClientRect(), href, heroSrc })
         })
       }
     }
@@ -406,6 +456,8 @@ const {
     initLenis()                                                    // ← re-create lenis first
     if (mm)          { mm.revert(); mm = null }                    // ← now proxy is valid
     ScrollTrigger.killAll()                                        // ← now proxy is valid
-    document.querySelectorAll('.iris-overlay').forEach(el => el.remove())
+    // Iris overlays are intentionally kept alive here — initPageAnimations
+    // fades them out after the destination hero image has loaded, which
+    // prevents the flash of unstyled background between navigation events.
   })
 </script>

@@ -24,12 +24,17 @@ const ogUrl = trip.heroImage
   ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
   : ''
 
-const nextTrip   = allTrips[(allTrips.findIndex((t: any) => t.id === trip.id) + 1) % allTrips.length]
-const nextUrl    = nextTrip?.heroImage
+const nextTrip    = allTrips[(allTrips.findIndex((t: any) => t.id === trip.id) + 1) % allTrips.length]
+const nextUrl     = nextTrip?.heroImage
   ? urlFor(nextTrip.heroImage).width(800).quality(85).format('webp').url()
   : ''
-const nextSrcset = nextTrip?.heroImage
+const nextSrcset  = nextTrip?.heroImage
   ? sanityImgSrcset(nextTrip.heroImage, [500, 800, 1200])
+  : ''
+// Full-res hero URL for the next trip — stored as data attribute so the
+// hover preloader can inject a <link rel="preload"> before the iris transition fires.
+const nextHeroUrl = nextTrip?.heroImage
+  ? urlFor(nextTrip.heroImage).width(1600).quality(90).format('webp').url()
   : ''
 ---
 
@@ -37,6 +42,7 @@ const nextSrcset = nextTrip?.heroImage
   title={`${trip.pageTitle.join(' ')} — STRATA`}
   ogImage={ogUrl}
   isExpedition={true}
+  preloadImage={heroUrl}
 >
   <div class="trip-page">
 
@@ -135,6 +141,7 @@ const nextSrcset = nextTrip?.heroImage
           id="next-trip-card"
           data-src={nextUrl}
           data-href={`/expedition/${nextTrip.id}`}
+          data-hero-url={nextHeroUrl}
           style={`--accent:${nextTrip.accentColor}`}
         >
           <div class="trip-next-img-wrap">
