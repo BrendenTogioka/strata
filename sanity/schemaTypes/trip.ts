@@ -161,7 +161,7 @@ export default defineType({
       name: 'accentColor',
       title: 'Accent colour',
       type: 'string',
-      description: 'CSS hex value, e.g. "#C04820". Used for the second title line.',
+      description: 'Optional override (hex, e.g. "#C04820"). Leave blank to auto-use the main colour pulled from the hero image. Tints the second title line, links and the colour-block feature.',
       validation: Rule =>
         Rule.regex(/^#[0-9A-Fa-f]{6}$/, {
           name: 'hex colour',

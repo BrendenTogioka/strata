@@ -190,7 +190,12 @@ const {
     const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
     if (irisOverlay) {
       const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
-      const removeIris = () => requestAnimationFrame(() => irisOverlay.remove())
+      // Two rAFs after decode: the first lets the browser commit the hero into
+      // the frame, the second guarantees it has actually painted before we drop
+      // the overlay — otherwise a single frame of the accent-colour background
+      // behind the hero shows through (the short flash).
+      const removeIris = () =>
+        requestAnimationFrame(() => requestAnimationFrame(() => irisOverlay.remove()))
       if (tripHero) {
         // decode() resolves only when the image is fully decoded and ready to
         // paint — more reliable than .complete or the load event alone.

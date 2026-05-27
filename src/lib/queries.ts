@@ -12,7 +12,12 @@ const TRIP_FIELDS = `
   category,
   tags,
   heroImage { ..., "alt": alt },
-  accentColor,
+  "accentColor": coalesce(
+    accentColor,
+    heroImage.asset->metadata.palette.vibrant.background,
+    heroImage.asset->metadata.palette.dominant.background,
+    "#C04820"
+  ),
   featured,
   featureLayout,
   "featureBlurb": coalesce(featureBlurb, description),

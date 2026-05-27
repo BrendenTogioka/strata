@@ -28,6 +28,11 @@ export async function getStaticPaths() {
 
 const { trip, trips: allTrips } = Astro.props
 
+// SEO: the descriptive "Trip title" (storyTitle) is the page H1 when present;
+// the big stacked hero title then becomes a non-heading display element. With
+// no storyTitle, the hero title is the H1 — so there's always exactly one.
+const HeroTitleTag = trip.storyTitle ? 'p' : 'h1'
+
 // Position in the date-sorted array → display number
 const tripIndex   = allTrips.findIndex((t: any) => t.id === trip.id)
 const nextIndex   = (tripIndex + 1) % allTrips.length
@@ -100,13 +105,13 @@ function getEmbedUrl(url: string): string {
           <span>{trip.coords}</span>
         </div>
 
-        <h1 class="trip-title">
+        <HeroTitleTag class="trip-title">
           {trip.pageTitle.map((line: string, i: number) => (
             <span class="line" style={i === 1 ? `color:${trip.accentColor}` : ''}>
               {line}
             </span>
           ))}
-        </h1>
+        </HeroTitleTag>
       </div>
 
       <!-- Stats bar -->
@@ -143,7 +148,7 @@ function getEmbedUrl(url: string): string {
     <!-- Story -->
     <section class="trip-story">
       {trip.storyTitle && (
-        <h2 class="trip-story-title">{trip.storyTitle}</h2>
+        <h1 class="trip-story-title">{trip.storyTitle}</h1>
       )}
       <div class="trip-story-inner">
         {trip.story.map((block: { type: string; content?: string; richText?: any[]; image?: any; images?: any[]; url?: string }) =>
