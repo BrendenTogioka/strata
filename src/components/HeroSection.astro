@@ -4,14 +4,13 @@ interface Props {
 }
 const { heroVideoUrl = '' } = Astro.props
 
-// Highest-quality delivery: mp4 served as the source upload (no re-encode);
-// webm is a max-quality VP9 alternate for browsers that prefer it. Note: this
-// trades scroll-scrub smoothness for fidelity — larger files + full framerate
-// mean per-seek decode is heavier; jitter may return on slower hardware.
-const heroVideoWebm = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/vc_vp9,q_100/').replace(/\.mp4$/, '.webm')
-  : ''
+// Scroll-scrub friendly delivery: H.264 only (drop VP9 — its seek performance
+// is noticeably worse than H.264 in every browser). Cap width to 1600 and use
+// q_80 so per-seek decode work is small; 60 fps preserves the interpolated
+// source from Premiere Optical Flow.
 const heroVideoMp4 = heroVideoUrl
+  ? heroVideoUrl.replace('/upload/', '/upload/vc_h264,q_80,c_limit,w_1600,fps_60/')
+  : ''
 ---
 
 <section class="hero" id="hero">
@@ -33,8 +32,7 @@ const heroVideoMp4 = heroVideoUrl
         preload="auto"
         aria-hidden="true"
       >
-        <source src={heroVideoWebm} type="video/webm" />
-        <source src={heroVideoMp4}  type="video/mp4" />
+        <source src={heroVideoMp4} type="video/mp4" />
       </video>
     )}
   </div>

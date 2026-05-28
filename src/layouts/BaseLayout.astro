@@ -317,8 +317,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             pinSpacing: true,
             // Numeric scrub = GSAP smooths scroll → progress over N seconds,
             // so onUpdate fires uniformly via rAF instead of every wheel tick.
-            // This is the single biggest fix for scrub-video stutter.
-            scrub: 0.5,
+            // 0.3 balances smooth seek pacing with responsiveness (lower feels
+            // snappier but exposes more decoder jitter; raise for smoother).
+            scrub: 0.3,
             onUpdate: self => scrub(self.progress),
           })
           return () => { heroVideo.pause() }
