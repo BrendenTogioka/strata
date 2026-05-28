@@ -4,12 +4,12 @@ interface Props {
 }
 const { heroVideoUrl = '' } = Astro.props
 
-// Scroll-scrub friendly delivery: H.264 only (drop VP9 — its seek performance
-// is noticeably worse than H.264 in every browser). Cap width to 1600 and use
-// q_80 so per-seek decode work is small; 60 fps preserves the interpolated
-// source from Premiere Optical Flow.
+// H.264 for the fastest scrub seeks; q_auto:best is Cloudinary's "lowest
+// compression that's visually indistinguishable from source" — close to the
+// uploaded quality at a fraction of q_100's file size. w_1920 caps at full
+// HD (only downscales if larger), keeping retina-sharp on most viewports.
 const heroVideoMp4 = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/vc_h264,q_80,c_limit,w_1600,fps_60/')
+  ? heroVideoUrl.replace('/upload/', '/upload/vc_h264,q_auto:best,c_limit,w_1920,fps_60/')
   : ''
 ---
 

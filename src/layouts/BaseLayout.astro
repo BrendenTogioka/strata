@@ -36,6 +36,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0C0906" />
     <title>{title}</title>
+
+    <!-- Always land at the top on reload. With the pinned hero, browser
+         scroll-restoration would otherwise drop the user mid-pin. -->
+    <script is:inline>
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+    </script>
     <link rel="canonical" href={canonical} />
 
     <!-- Open Graph -->
