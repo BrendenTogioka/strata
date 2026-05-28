@@ -11,7 +11,7 @@ const TRIP_FIELDS = `
   duration,
   category,
   tags,
-  heroImage { ..., "alt": alt },
+  heroImage { ..., "alt": alt, "dims": asset->metadata.dimensions },
   "accentColor": coalesce(
     accentColor,
     heroImage.asset->metadata.palette.vibrant.background,

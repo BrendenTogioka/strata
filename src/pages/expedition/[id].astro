@@ -49,6 +49,43 @@ const ogUrl = trip.heroImage
   ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
   : ''
 
+// og:image dimensions — scale hero to 1200px wide preserving aspect ratio
+const ogImageWidth  = trip.heroImage?.dims ? 1200 : undefined
+const ogImageHeight = trip.heroImage?.dims
+  ? Math.round(1200 / trip.heroImage.dims.width * trip.heroImage.dims.height)
+  : undefined
+
+// JSON-LD structured data
+const siteUrl   = 'https://strata.journal'
+const pageUrl   = `${siteUrl}/expedition/${trip.id}`
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type':         'Article',
+      headline:        trip.storyTitle || trip.pageTitle.join(' '),
+      description:     trip.description,
+      image:           ogUrl,
+      datePublished:   trip.tripDate,
+      url:             pageUrl,
+      author:    { '@type': 'Organization', name: 'STRATA' },
+      publisher: {
+        '@type': 'Organization',
+        name:    'STRATA — A Field Journal',
+        url:     siteUrl,
+      },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home',        item: `${siteUrl}/`            },
+        { '@type': 'ListItem', position: 2, name: 'Expeditions', item: `${siteUrl}/expeditions` },
+        { '@type': 'ListItem', position: 3, name: trip.pageTitle.join(' '), item: pageUrl },
+      ],
+    },
+  ],
+})
+
 const nextUrl     = nextTrip?.heroImage
   ? urlFor(nextTrip.heroImage).width(800).quality(85).format('webp').url()
   : ''
@@ -167,9 +204,15 @@ for (const block of (trip.story ?? [])) {
   title={`${trip.pageTitle.join(' ')} — STRATA`}
   description={trip.description}
   ogImage={ogUrl}
+  ogImageWidth={ogImageWidth}
+  ogImageHeight={ogImageHeight}
+  ogType="article"
   isExpedition={true}
   preloadImage={heroUrl}
 >
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={jsonLd} />
+  </Fragment>
   <div class="trip-page">
 
     <!-- Back button -->

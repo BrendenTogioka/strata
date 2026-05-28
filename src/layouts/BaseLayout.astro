@@ -4,20 +4,28 @@ import '../styles/global.css'
 import Navigation from '../components/Navigation.astro'
 
 interface Props {
-  title?:        string
-  description?:  string
-  ogImage?:      string
-  isExpedition?: boolean
-  preloadImage?: string
+  title?:         string
+  description?:   string
+  ogImage?:       string
+  ogImageWidth?:  number
+  ogImageHeight?: number
+  ogType?:        'website' | 'article'
+  isExpedition?:  boolean
+  preloadImage?:  string
 }
 
 const {
-  title        = 'STRATA — A Field Journal',
-  description  = 'Adventures written in stone, fire, ice and root. A field journal from the edges of the earth.',
-  ogImage      = 'https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779938972/strata/videos/Sequence_04_6_iojrgo.jpg',
-  isExpedition = false,
+  title          = 'STRATA — A Field Journal',
+  description    = 'Adventures written in stone, fire, ice and root. A field journal from the edges of the earth.',
+  ogImage        = 'https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779938972/strata/videos/Sequence_04_6_iojrgo.jpg',
+  ogImageWidth,
+  ogImageHeight,
+  ogType         = 'website',
+  isExpedition   = false,
   preloadImage,
 } = Astro.props
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href
 ---
 
 <!doctype html>
@@ -26,10 +34,25 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#0C0906" />
+    <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content={ogType} />
+    <meta property="og:site_name"   content="STRATA" />
+    <meta property="og:url"         content={canonical} />
     <meta property="og:title"       content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image"       content={ogImage} />
-    <title>{title}</title>
+    {ogImageWidth  && <meta property="og:image:width"  content={String(ogImageWidth)} />}
+    {ogImageHeight && <meta property="og:image:height" content={String(ogImageHeight)} />}
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image"       content={ogImage} />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -49,6 +72,9 @@ const {
 
     <!-- Astro client-side router (View Transitions + astro:* events) -->
     <ClientRouter />
+
+    <!-- Per-page head extras (e.g. JSON-LD structured data) -->
+    <slot name="head" />
   </head>
 
   <body>
