@@ -40,6 +40,14 @@ const heroVideoUrl = 'https://res.cloudinary.com/dlle6kl4n/video/upload/v1779987
 <BaseLayout preloadImage="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779987514/OurRoamingReels/hero-bg.jpg">
   <HeroSection heroVideoUrl={heroVideoUrl} />
   <ExpeditionGallery expeditions={expeditions} />
+
+  <!-- Horizon line #1 — draws left→right on scroll between gallery and about -->
+  <div class="horizon-line-wrap" aria-hidden="true">
+    <svg class="horizon-line-svg" viewBox="0 0 1200 1" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <line class="horizon-line" x1="0" y1="0.5" x2="1200" y2="0.5" stroke="rgba(240,226,206,0.14)" stroke-width="1"/>
+    </svg>
+  </div>
+
   <AboutSection />
   {featured.map((feature: any, i: number) => (
     <FeaturedSection feature={feature} index={i} />

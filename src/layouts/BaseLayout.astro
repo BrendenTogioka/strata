@@ -288,7 +288,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         '.end-cap-rule', '.end-cap-eyebrow', '.end-cap-heading', '.end-cap-arrow-wrap',
         '.trip-intro-eyebrow', '.trip-journal-eyebrow', '.trip-map-eyebrow',
         '.expeditions-eyebrow', '.expeditions-title', '.expeditions-count',
-        '.gear-eyebrow', '.gear-title', '.gear-count',
+        '.expeditions-bar', '.gear-eyebrow', '.gear-title', '.gear-count', '.gear-bar',
+        '.exp-grid-card', '.gear-card',
       ], { opacity: 1, x: 0, y: 0 })
       gsap.set([
         '.hero-title .line', '.section-title .line', '.section-title .line-inner',
@@ -346,18 +347,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       } else {
         setTimeout(() => requestAnimationFrame(() => irisOverlay.remove()), 250)
       }
-    }
-
-    // ── Curtain overlay handoff ─────────────────────────────────────────
-    // Ink curtain from /expeditions navigation: slide it off the top to reveal.
-    const curtain = document.querySelector<HTMLElement>('.curtain-overlay')
-    if (curtain) {
-      gsap.to(curtain, {
-        y:        '-100%',
-        duration: 0.55,
-        ease:     'power3.inOut',
-        onComplete: () => curtain.remove(),
-      })
     }
 
     // ── Hero ────────────────────────────────────────────────────────────
@@ -636,45 +625,51 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     }
 
     // ── Expedition archive grid stagger reveal (/expeditions) ────────────
-    // Header and cards stagger in, pairing with the ink-curtain reveal so the
-    // user lands on a quietly composing page rather than a finished one.
+    // Header → filter bar → cards stagger in, timed after the curtain lifts.
     const expGrid = document.getElementById('expeditions-grid')
     if (expGrid) {
-      // Header — eyebrow/title/count reveal timed to match the curtain lift (0.55s)
+      // Header eyebrow/title/count, then filter bar, then pills
       const tl = gsap.timeline({ delay: 0.25 })
       tl.to('.expeditions-eyebrow', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
         .to('.expeditions-title',   { opacity: 1, y: 0, duration: 0.9, ease: 'power4.out' }, '-=0.35')
         .to('.expeditions-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
+        .to('.expeditions-bar',     { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.1')
 
-      // Cards stagger up — delayed so the header lines (~1.4s total) get a
-      // beat to settle before the grid fires. gsap.from's immediateRender
-      // hides cards at script init, so they stay invisible during the wait.
-      gsap.from('.exp-grid-card', {
-        opacity:  0,
-        y:        24,
+      // Cards use CSS initial state (opacity: 0, translateY) + gsap.to to reveal.
+      // gsap.to reads the current CSS state as the start, so no immediateRender quirk.
+      gsap.to('.exp-grid-card', {
+        opacity:  1,
+        y:        0,
         duration: 0.9,
         stagger:  0.05,
-        delay:    1.0,
+        delay:    1.1,
         ease:     'power3.out',
         scrollTrigger: { trigger: expGrid, start: 'top 85%', once: true },
       })
+
+      // Progress trail SVG fades in after the header settles
+      const expTrail = document.querySelector<HTMLElement>('.exp-progress-trail')
+      if (expTrail) {
+        gsap.to(expTrail, { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.1 })
+      }
     }
 
     // ── Gear page reveal (/gear) ──────────────────────────────────────────
     const gearGrid = document.getElementById('gear-grid')
     if (document.querySelector('.gear-page')) {
-      // Header stagger matches the curtain lift timing
+      // Header → filter bar stagger matched to curtain lift timing
       const gearTl = gsap.timeline({ delay: 0.25 })
       gearTl
         .to('.gear-eyebrow', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
         .to('.gear-title',   { opacity: 1, y: 0, duration: 0.9, ease: 'power4.out' }, '-=0.35')
         .to('.gear-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
+        .to('.gear-bar',     { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.1')
 
-      // Cards stagger up — delayed so the title finishes revealing first.
+      // Cards use CSS initial state (opacity: 0, translateY) + gsap.to to reveal.
       if (gearGrid) {
-        gsap.from('.gear-card', {
-          opacity:  0,
-          y:        20,
+        gsap.to('.gear-card', {
+          opacity:  1,
+          y:        0,
           duration: 0.7,
           stagger:  0.04,
           delay:    1.0,
@@ -1170,8 +1165,87 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       }
     }
 
+    // ── SVG #1 Horizon line draw ─────────────────────────────────────────
+    document.querySelectorAll<SVGLineElement>('.horizon-line').forEach(line => {
+      const wrap = line.closest<HTMLElement>('.horizon-line-wrap')
+      if (!wrap) return
+      ScrollTrigger.create({
+        trigger: wrap,
+        start: 'top 92%',
+        once: true,
+        onEnter: () => {
+          gsap.to(line, { strokeDashoffset: 0, duration: 1.8, ease: 'power2.inOut' })
+        },
+      })
+    })
+
+    // ── SVG #2 About topo rings ──────────────────────────────────────────
+    const aboutTopo = document.querySelector<SVGSVGElement>('.about-topo')
+    if (aboutTopo) {
+      ScrollTrigger.create({
+        trigger: '.about',
+        start: 'top 68%',
+        once: true,
+        onEnter: () => {
+          gsap.to(aboutTopo, { opacity: 1, duration: 2.5, ease: 'power2.out', delay: 0.2 })
+        },
+      })
+    }
+
+    // ── SVG #5 Compass needle (trip hero) ────────────────────────────────
+    const compassNeedleN = document.querySelector<SVGPolygonElement>('.compass-needle-n')
+    const compassEl      = document.querySelector<HTMLElement>('.trip-compass')
+    if (compassEl && compassNeedleN) {
+      gsap.to(compassEl, { opacity: 1, duration: 0.8, ease: 'power2.out', delay: 0.6 })
+      // Needle spins in and settles on north
+      gsap.from(compassNeedleN, { rotate: -340, duration: 2.2, ease: 'power4.out', delay: 0.7 })
+    }
+
+    // ── SVG #7 Signal rings (contact) ────────────────────────────────────
+    const signalRings = document.querySelector<HTMLElement>('.signal-rings')
+    if (signalRings) {
+      ScrollTrigger.create({
+        trigger: '.contact',
+        start: 'top 80%',
+        once: true,
+        onEnter: () => {
+          gsap.to(signalRings, { opacity: 1, duration: 1.5, ease: 'power2.out' })
+        },
+      })
+    }
+
+    // ── SVG #9 Altitude lines (featured sections) ────────────────────────
+    document.querySelectorAll<SVGLineElement>('.altitude-line').forEach(line => {
+      const wrap  = line.closest<HTMLElement>('.altitude-line-wrap')
+      const label = wrap?.querySelector<HTMLElement>('.altitude-label')
+      ScrollTrigger.create({
+        trigger: line.closest<HTMLElement>('.feature') ?? wrap,
+        start: 'top 60%',
+        once: true,
+        onEnter: () => {
+          gsap.to(line,  { strokeDashoffset: 0, duration: 1.2, ease: 'power2.inOut' })
+          if (label) gsap.to(label, { opacity: 1, duration: 0.8, ease: 'power2.out', delay: 0.9 })
+        },
+      })
+    })
+
     // Final refresh so all triggers compute correct positions
     ScrollTrigger.refresh()
+
+    // ── Curtain overlay handoff ──────────────────────────────────────────
+    // Lifted AFTER ScrollTrigger.refresh() so pin spacers are already inserted
+    // and no layout shift occurs mid-lift (which caused the "dark rectangle"
+    // flicker on the home page hero).
+    const curtain = document.querySelector<HTMLElement>('.curtain-overlay')
+    if (curtain) {
+      gsap.to(curtain, {
+        y:        '-100%',
+        duration: 0.55,
+        delay:    0.05,
+        ease:     'power3.inOut',
+        onComplete: () => curtain.remove(),
+      })
+    }
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────

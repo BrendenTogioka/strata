@@ -5,6 +5,15 @@ body { overflow-x: hidden; }
 img, video { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 
+/* ─── Disable Astro View Transitions default crossfade ───────────────────────
+   Our custom curtain & iris transitions fully replace Astro's default fade.
+   Without this, the browser briefly composites old/new root snapshots during
+   the curtain lift — visible as a white flash on nav items and cards. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
 /* ─── Design Tokens ─── */
 :root {
   /* Core palette — drawn from the photos */
@@ -738,6 +747,8 @@ body::before {
   justify-content: center;
   padding: 10vh 5vw 10vh 4vw;
   background: var(--ink);
+  position: relative;
+  overflow: hidden;
 }
 .about-eyebrow {
   font-family: var(--font-body);
@@ -898,6 +909,8 @@ body::before {
   justify-content: center;
   padding: 10vh 2.5rem;
   border-top: 1px solid rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
 }
 .contact-pre {
   font-family: var(--font-body);
@@ -1219,6 +1232,7 @@ body::before {
   width: 100%;
   max-width: 860px;
   margin: 0;
+  position: relative;
 }
 .story-img img {
   width: 100%;
@@ -1230,6 +1244,8 @@ body::before {
 /* Lightbox-openable images */
 .lb-trigger {
   cursor: zoom-in;
+  position: relative;
+  display: block;
 }
 .lb-trigger img {
   transition: opacity 0.5s ease, transform 0.3s ease, filter 0.3s ease;
@@ -1237,6 +1253,39 @@ body::before {
 .lb-trigger:hover img {
   transform: scale(1.015);
   filter: brightness(1.05);
+}
+
+/* ── Film frame corner brackets ───────────────────────────────────────────────
+   L-shaped brackets that slide inward on hover — a cinematic framing device.
+   Applied to both standalone story images and lightbox-trigger wrappers. */
+.story-img::before, .story-img::after,
+.lb-trigger::before, .lb-trigger::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.45s var(--ease-expo);
+  pointer-events: none;
+  z-index: 4;
+}
+.story-img::before,
+.lb-trigger::before {
+  top: 10px; left: 10px;
+  border-top: 1px solid rgba(240,226,206,0.75);
+  border-left: 1px solid rgba(240,226,206,0.75);
+  transform: translate(-6px, -6px);
+}
+.story-img::after,
+.lb-trigger::after {
+  bottom: 10px; right: 10px;
+  border-bottom: 1px solid rgba(240,226,206,0.75);
+  border-right: 1px solid rgba(240,226,206,0.75);
+  transform: translate(6px, 6px);
+}
+.story-img:hover::before, .story-img:hover::after,
+.lb-trigger:hover::before, .lb-trigger:hover::after {
+  opacity: 1;
+  transform: translate(0, 0);
 }
 
 /* Story images — lazy-load fade-in + subtle scale reveal */
@@ -1311,7 +1360,7 @@ body::before {
   max-width: 1400px;
   margin: 0 auto;
 }
-.expeditions-header { margin-bottom: 3.5rem; }
+.expeditions-header { margin-bottom: 3.5rem; position: relative; }
 .expeditions-eyebrow {
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -1347,6 +1396,8 @@ body::before {
   margin-bottom: 3rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(240,226,206,0.08);
+  opacity: 0;
+  transform: translateY(12px);
 }
 .filter-group { display: flex; flex-direction: column; gap: 0.6rem; }
 .filter-label {
@@ -1395,6 +1446,8 @@ body::before {
   aspect-ratio: 3 / 4;
   overflow: hidden;
   cursor: none;
+  opacity: 0;
+  transform: translateY(20px);
 }
 .exp-grid-img-wrap {
   position: absolute; inset: 0;
@@ -1464,6 +1517,24 @@ body::before {
 }
 @media (max-width: 768px) {
   .expeditions-page { padding: 12vh 1.25rem 6rem; }
+
+  /* Mobile expedition header — compact label+count on one row, big title below */
+  .expeditions-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem 0.85rem;
+    margin-bottom: 2rem;
+  }
+  .expeditions-eyebrow { order: 1; margin-bottom: 0; flex-shrink: 0; }
+  .expeditions-count   { order: 2; flex-shrink: 0; }
+  .expeditions-title   {
+    order: 3;
+    width: 100%;
+    font-size: clamp(2.8rem, 14vw, 5rem);
+    margin-top: 0.2rem;
+  }
+
   .expeditions-bar { gap: 1rem; }
   .filter-group--sort { margin-left: 0; }
   .expeditions-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
@@ -2337,6 +2408,8 @@ body::before {
   margin-bottom: 3rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(240,226,206,0.08);
+  opacity: 0;
+  transform: translateY(12px);
 }
 
 /* Grid — 3 columns desktop, 2 tablet, 1 mobile */
@@ -2358,6 +2431,8 @@ body::before {
   gap: 0;
   position: relative;
   transition: background 0.3s var(--ease-expo);
+  opacity: 0;
+  transform: translateY(16px);
 }
 .gear-card:hover { background: var(--char); }
 .gear-card--featured::before {
@@ -2655,3 +2730,163 @@ body::before {
   .nav-links { display: none; }
   /* Brand logo acts as the only nav on tiny screens */
 }
+
+/* ─────────────────────────────────────────────────
+   SVG DECORATIVE ANIMATIONS
+   #1 Horizon line · #2 Topo rings · #3 Film brackets
+   #5 Compass · #7 Signal rings · #9 Altitude line
+   #10 Progress trail
+───────────────────────────────────────────────── */
+
+/* ── #1 Horizon line draw ── */
+.horizon-line-wrap {
+  position: relative;
+  width: 100%;
+  height: 1px;
+  z-index: 2;
+  pointer-events: none;
+}
+.horizon-line-svg {
+  display: block;
+  width: 100%;
+  height: 1px;
+  overflow: visible;
+}
+.horizon-line {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+}
+
+/* ── #2 Topo contour rings (About section) ── */
+.about-topo {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140%; height: 140%;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+  z-index: 0;
+}
+/* Ensure text sits above the rings */
+.about-text-col > *:not(.about-topo) { position: relative; z-index: 1; }
+.about-topo-ring {
+  animation: about-topo-breathe 9s ease-in-out infinite;
+}
+.about-topo-ring:nth-child(2) { animation-delay: -1.8s; }
+.about-topo-ring:nth-child(3) { animation-delay: -3.6s; }
+.about-topo-ring:nth-child(4) { animation-delay: -5.4s; }
+.about-topo-ring:nth-child(5) { animation-delay: -7.2s; }
+@keyframes about-topo-breathe {
+  0%, 100% { stroke-opacity: 0.35; }
+  50%       { stroke-opacity: 0.9;  }
+}
+
+/* ── #5 Compass needle (trip hero) ── */
+.trip-compass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  flex-shrink: 0;
+  opacity: 0;
+}
+.compass-svg { width: 100%; height: 100%; overflow: visible; }
+.compass-needle-n,
+.compass-needle-s {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+@media (max-width: 768px) { .trip-compass { width: 30px; height: 30px; } }
+
+/* ── #7 Signal rings (Contact section) ── */
+.signal-rings {
+  position: absolute;
+  bottom: -10%; right: -4%;
+  width: clamp(160px, 28vw, 260px);
+  height: clamp(160px, 28vw, 260px);
+  pointer-events: none;
+  opacity: 0;
+}
+.signal-svg { width: 100%; height: 100%; }
+.signal-ring {
+  animation: signal-expand 5s ease-out infinite;
+}
+.signal-ring:nth-child(1) { animation-delay: 0s; }
+.signal-ring:nth-child(2) { animation-delay: 1s; }
+.signal-ring:nth-child(3) { animation-delay: 2s; }
+.signal-ring:nth-child(4) { animation-delay: 3s; }
+.signal-ring:nth-child(5) { animation-delay: 4s; }
+@keyframes signal-expand {
+  0%   { opacity: 0.65; }
+  60%  { opacity: 0.15; }
+  100% { opacity: 0; }
+}
+@media (max-width: 768px) { .signal-rings { display: none; } }
+
+/* ── #9 Altitude line (Featured sections) ── */
+.altitude-line-wrap {
+  position: absolute;
+  right: 2vw;
+  top: 50%;
+  transform: translateY(-50%);
+  height: clamp(80px, 18vh, 150px);
+  width: 24px;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.altitude-svg {
+  flex: 1;
+  width: 100%;
+  display: block;
+  min-height: 0;
+}
+.altitude-line {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+}
+.altitude-label {
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  letter-spacing: 0.18em;
+  color: var(--rust);
+  text-transform: uppercase;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  opacity: 0;
+  white-space: nowrap;
+}
+@media (max-width: 900px) { .altitude-line-wrap { display: none; } }
+
+/* ── #10 Progress trail (Expeditions archive header) ── */
+.exp-progress-trail {
+  position: absolute;
+  right: 0; bottom: -1rem;
+  width: clamp(120px, 22vw, 200px);
+  height: auto;
+  pointer-events: none;
+  opacity: 0;
+  overflow: visible;
+}
+.progress-trail-path {
+  stroke-dasharray: 6 8;
+  animation: trail-march 3s linear infinite;
+}
+@keyframes trail-march {
+  from { stroke-dashoffset: 28; }
+  to   { stroke-dashoffset: 0; }
+}
+.progress-trail-dot {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: trail-dot-pulse 1.8s ease-in-out infinite;
+}
+@keyframes trail-dot-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 1; }
+}
+@media (max-width: 768px) { .exp-progress-trail { display: none; } }

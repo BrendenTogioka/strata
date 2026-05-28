@@ -71,6 +71,19 @@ const cards = trips.map((trip: any, i: number) => ({
       <p class="expeditions-eyebrow">EXPEDITION LOG</p>
       <h1 class="expeditions-title">ALL EXPEDITIONS</h1>
       <p class="expeditions-count">{trips.length} entries</p>
+
+      <!-- Progress trail — dashed SVG path, marching-ants animation, JS fades in -->
+      <svg class="exp-progress-trail" viewBox="0 0 200 70" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path
+          class="progress-trail-path"
+          d="M 0,55 C 30,55 40,15 70,20 S 110,50 140,35 S 175,10 200,18"
+          fill="none"
+          stroke="rgba(192,72,32,0.45)"
+          stroke-width="1"
+          stroke-dasharray="6 8"
+        />
+        <circle class="progress-trail-dot" cx="200" cy="18" r="2.5" fill="var(--rust)" opacity="0.7"/>
+      </svg>
     </header>
 
     <!-- Filter + sort bar -->

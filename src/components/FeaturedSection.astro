@@ -43,6 +43,16 @@ const sizes = isColor ? '(max-width: 900px) 100vw, 50vw' : '100vw'
 
   {!isColor && <div class="feature-overlay"></div>}
 
+  <!-- Altitude line — vertical SVG that draws upward on scroll, desktop only -->
+  {!isColor && (
+    <div class="altitude-line-wrap" aria-hidden="true">
+      <svg class="altitude-svg" viewBox="0 0 4 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <line class="altitude-line" x1="2" y1="200" x2="2" y2="0" stroke="rgba(192,72,32,0.55)" stroke-width="0.6"/>
+      </svg>
+      <span class="altitude-label">ELEV</span>
+    </div>
+  )}
+
   <div class={isColor ? 'feature-text-col' : 'feature-content'}>
     <div class="section-eyebrow">
       <span class="eyebrow-num">{num}</span>
