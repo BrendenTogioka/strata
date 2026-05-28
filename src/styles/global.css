@@ -5,13 +5,19 @@ body { overflow-x: hidden; }
 img, video { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 
-/* ─── Disable Astro View Transitions default crossfade ───────────────────────
-   Our custom curtain & iris transitions fully replace Astro's default fade.
-   Without this, the browser briefly composites old/new root snapshots during
-   the curtain lift — visible as a white flash on nav items and cards. */
-::view-transition-old(root),
-::view-transition-new(root) {
+/* ─── Suppress ALL View Transitions snapshots ────────────────────────────────
+   The ::view-transition layer renders ABOVE everything, including position:fixed
+   overlays (the curtain is z-index:9500 but ::view-transition is above that).
+   With animation:none alone, both old/new pseudo-elements default to opacity:1
+   and are composited simultaneously — producing a double-exposure flash visible
+   through the curtain. Setting opacity:0 on ALL snapshots (*) prevents this for
+   both the root AND any named element transitions (e.g. the .content div's
+   auto-generated view-transition-name). Our curtain & iris overlays handle all
+   visual cover; the browser snapshot system must stay invisible throughout. */
+::view-transition-old(*),
+::view-transition-new(*) {
   animation: none;
+  opacity: 0;
 }
 
 /* ─── Design Tokens ─── */

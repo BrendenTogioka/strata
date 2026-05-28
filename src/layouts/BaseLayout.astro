@@ -102,8 +102,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     <div class="cursor"      id="cursor"      transition:persist aria-hidden="true"></div>
     <div class="cursor-ring" id="cursor-ring" transition:persist aria-hidden="true"></div>
 
-    <!-- Page content -->
-    <div class="content" transition:animate="none">
+    <!-- Page content — no transition:animate directive so this div is captured
+         as part of the root snapshot, not a separate named view-transition layer.
+         Named layers render above position:fixed overlays (curtain/iris) and
+         cause visible flashes; without the directive the root opacity:0 rule
+         in global.css suppresses the snapshot entirely. -->
+    <div class="content">
       <Navigation isExpedition={isExpedition} />
       <main id="main" tabindex="-1">
         <slot />
