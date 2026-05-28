@@ -1689,11 +1689,13 @@ nav {
   .trip-field-intel { position: static; }
   .trip-journal { grid-template-columns: 1fr; gap: 3rem; }
   .journal-sidebar { position: static; }
+  /* sidebar is gone — map should be full width of its wrap */
+  .trip-map-section { width: 100%; }
 }
 @media (max-width: 640px) {
   .trip-wide-wrap { padding: 0 1.5rem; }
-  .story-strip { grid-template-columns: 1fr 1fr; }
-  .story-strip-item:last-of-type { display: none; }
+  /* Stack strip vertically — shows all images, no hidden item */
+  .story-strip { grid-template-columns: 1fr; gap: 0.5rem; }
 }
 
 /* Next expedition */

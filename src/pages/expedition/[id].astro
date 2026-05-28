@@ -819,10 +819,14 @@ for (const block of storyProcessed) {
           current = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
           lb.hidden = false
           document.body.style.overflow = 'hidden'
+          inactiveImg.style.opacity = '0'
+          // Keep hidden until loaded — prevents blank overlay on slow connections
+          activeImg.style.opacity = '0'
           activeImg.src = lightboxImages[current].src
           activeImg.alt = lightboxImages[current].alt
-          activeImg.style.opacity = '1'
-          inactiveImg.style.opacity = '0'
+          const showActive = () => { activeImg.style.opacity = '1' }
+          if (activeImg.complete && activeImg.naturalWidth > 0) showActive()
+          else activeImg.onload = showActive
           updateMeta()
           lb.focus()
           document.addEventListener('keydown', onKey)
@@ -847,19 +851,24 @@ for (const block of storyProcessed) {
             return
           }
 
+          // Cancel any in-flight load from a previous rapid navigation
+          inactiveImg.onload = null
           inactiveImg.src = img.src
           inactiveImg.alt = img.alt
           inactiveImg.style.opacity = '0'
-          inactiveImg.onload = () => {
+
+          const doSwap = () => {
             inactiveImg.style.opacity = '1'
             activeImg.style.opacity   = '0'
+            // After the CSS transition completes, swap slot references.
+            // Do NOT touch src or opacity here — that was causing the flash.
             setTimeout(() => {
-              activeImg.src   = img.src
-              activeImg.style.opacity = '1'
-              inactiveImg.style.opacity = '0'
               ;[activeImg, inactiveImg] = [inactiveImg, activeImg]
-            }, 220)
+            }, 250)
           }
+
+          if (inactiveImg.complete && inactiveImg.naturalWidth > 0) doSwap()
+          else inactiveImg.onload = doSwap
           updateMeta()
         }
 
