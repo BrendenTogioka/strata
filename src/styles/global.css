@@ -140,9 +140,13 @@ nav {
 /* parallax image container — taller than viewport so it can move */
 .hero-img-wrap {
   position: absolute;
-  inset: -15% 0;
+  inset: -15% 0;             /* image-parallax case: extra height to scroll into */
   z-index: 0;
 }
+/* When the hero has a scroll-scrub video there's no parallax — pin the wrap
+   to exact viewport bounds so the video renders at native pixel size instead
+   of being scaled to fit the otherwise-oversized 130% wrap. */
+.hero-img-wrap--fill { inset: 0; }
 .hero-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover; object-position: center 60%;
