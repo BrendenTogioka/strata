@@ -49,7 +49,11 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
   })
 
   // Inner image stays full-viewport-sized so it looks correct as the
-  // container expands — avoids a "zooming postage stamp" effect
+  // container expands — avoids a "zooming postage stamp" effect. The
+  // scale(1.16) translateY(-8%) matches the destination trip-hero's initial
+  // parallax state (set by gsap.fromTo on .trip-hero-img in BaseLayout) —
+  // without this, the handoff has a 16% size jump that reads as a flash.
+  // If the parallax baseline changes, mirror it here.
   const img = document.createElement('img')
   Object.assign(img.style, {
     position:  'absolute',
@@ -58,7 +62,7 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
     width:     '100vw',
     height:    '100vh',
     objectFit: 'cover',
-    transform: 'translate(-50%, -50%)',
+    transform: 'translate(-50%, -50%) scale(1.16) translateY(-8%)',
   })
   img.src = src
   container.appendChild(img)

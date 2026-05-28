@@ -1428,6 +1428,65 @@ nav {
   transform-box: fill-box;
   transform-origin: center center;
 }
+/* Start dot — gentle pulsing halo. Uses two stacked techniques: the dot's
+   stroke-width animates (visible glow) and a separate filter could be added
+   later. Single keyframe block, infinite loop. */
+.map-route-dot--start {
+  animation: route-start-pulse 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center center;
+}
+@keyframes route-start-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%      { transform: scale(1.25); opacity: 0.85; }
+}
+
+/* Topo rings — slow synchronized breathing. Each ring offsets its phase
+   slightly via nth-of-type so they don't pulse in lockstep. */
+.map-topo-ring {
+  animation: topo-pulse 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center center;
+}
+.map-topo-ring:nth-of-type(2) { animation-delay: -1.2s; }
+.map-topo-ring:nth-of-type(3) { animation-delay: -2.4s; }
+.map-topo-ring:nth-of-type(4) { animation-delay: -3.6s; }
+.map-topo-ring:nth-of-type(5) { animation-delay: -4.8s; }
+@keyframes topo-pulse {
+  0%, 100% { stroke-opacity: 0.4; }
+  50%      { stroke-opacity: 1;   }
+}
+
+/* Progress path — solid rust overlay that fills up to the cursor's
+   projected point on the route. JS controls strokeDasharray. */
+.map-route-progress {
+  stroke-dasharray: 0 99999;
+  transition: stroke-dasharray 0.12s ease-out;
+}
+.map-route-progress.is-tracking {
+  transition: none;  /* live tracking — instant response */
+}
+
+/* Tracker dot + halo — follow the cursor along the path */
+.map-tracker-dot,
+.map-tracker-halo {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  transform-box: fill-box;
+  transform-origin: center center;
+}
+.trip-map-placeholder:hover .map-tracker-dot,
+.trip-map-placeholder:hover .map-tracker-halo {
+  opacity: 1;
+}
+.map-tracker-halo {
+  animation: tracker-halo-pulse 1.6s ease-out infinite;
+}
+@keyframes tracker-halo-pulse {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0;   }
+}
 .trip-map-coords {
   position: absolute;
   bottom: 1rem;

@@ -286,20 +286,22 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
     if (irisOverlay) {
       const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
-      // Wait for both the image decode AND a minimum 140ms — on cached or
+      // Wait for both the image decode AND a minimum 200ms — on cached or
       // fast connections decode() resolves synchronously, but the browser
-      // still needs a paint cycle to composite the hero before the overlay is
-      // safe to remove. Without the floor, a single-frame flash of the
-      // accent-colour background can appear between overlay removal and first paint.
+      // still needs a paint cycle to composite the hero (with its parallax
+      // transform applied) before the overlay is safe to remove. The iris's
+      // inner img already matches the hero's scale(1.16) translateY(-8%)
+      // baseline (see irisTransition.ts), so as long as the hero has
+      // painted by removal time, the handoff is visually identical.
       const removeIris = () =>
         requestAnimationFrame(() => requestAnimationFrame(() => irisOverlay.remove()))
       if (tripHero) {
         Promise.all([
           tripHero.decode().catch(() => {}),
-          new Promise<void>(r => setTimeout(r, 140)),
+          new Promise<void>(r => setTimeout(r, 200)),
         ]).then(removeIris)
       } else {
-        setTimeout(() => requestAnimationFrame(() => irisOverlay.remove()), 80)
+        setTimeout(() => requestAnimationFrame(() => irisOverlay.remove()), 120)
       }
     }
 
@@ -800,6 +802,90 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             }
           },
         })
+
+        // ── Mouse-driven route progress ────────────────────────────────
+        // As the cursor moves over the map, find the closest point on the
+        // route path and fill the progress overlay up to that length. The
+        // tracker dot snaps to the same projected point. This makes the
+        // map feel like an interactive scrubber rather than a static SVG.
+        const mapWrap     = mapSection.querySelector<HTMLElement>('.trip-map-placeholder')
+        const mapSvg      = mapSection.querySelector<SVGSVGElement>('.trip-map-svg')
+        const progressEl  = mapSection.querySelector<SVGPathElement>('.map-route-progress')
+        const trackerDot  = mapSection.querySelector<SVGCircleElement>('.map-tracker-dot')
+        const trackerHalo = mapSection.querySelector<SVGCircleElement>('.map-tracker-halo')
+
+        if (mapWrap && mapSvg && progressEl && routePath && trackerDot && trackerHalo && !isTouch()) {
+          // Sample N points along the path once — used to find the closest
+          // point under the cursor without doing a binary search each frame.
+          // Recomputed lazily because the path length isn't reliable until
+          // first paint on a fresh client-side navigation.
+          let samples: Array<{ x: number; y: number; len: number }> = []
+          let totalLen = 0
+
+          const buildSamples = () => {
+            totalLen = routePath.getTotalLength()
+            if (totalLen === 0) return false
+            samples = []
+            const N = 120
+            for (let i = 0; i <= N; i++) {
+              const len = (i / N) * totalLen
+              const pt  = routePath.getPointAtLength(len)
+              samples.push({ x: pt.x, y: pt.y, len })
+            }
+            return true
+          }
+
+          const findClosest = (mx: number, my: number) => {
+            let best = samples[0]
+            let bestDist = Infinity
+            for (const s of samples) {
+              const dx = s.x - mx, dy = s.y - my
+              const d  = dx * dx + dy * dy
+              if (d < bestDist) { bestDist = d; best = s }
+            }
+            return best
+          }
+
+          // Convert clientX/Y → SVG viewBox coords via the SVG's CTM
+          const svgPt = mapSvg.createSVGPoint()
+          const toSvgCoords = (clientX: number, clientY: number) => {
+            svgPt.x = clientX
+            svgPt.y = clientY
+            const ctm = mapSvg.getScreenCTM()
+            if (!ctm) return { x: 0, y: 0 }
+            const p = svgPt.matrixTransform(ctm.inverse())
+            return { x: p.x, y: p.y }
+          }
+
+          let rafQueued = false
+          let pendingX = 0, pendingY = 0
+          const onMove = (e: MouseEvent) => {
+            pendingX = e.clientX
+            pendingY = e.clientY
+            if (rafQueued) return
+            rafQueued = true
+            requestAnimationFrame(() => {
+              rafQueued = false
+              if (samples.length === 0 && !buildSamples()) return
+              const { x: sx, y: sy } = toSvgCoords(pendingX, pendingY)
+              const hit = findClosest(sx, sy)
+              progressEl.style.strokeDasharray = `${hit.len} ${totalLen - hit.len}`
+              progressEl.classList.add('is-tracking')
+              trackerDot.setAttribute('cx',  hit.x.toFixed(1))
+              trackerDot.setAttribute('cy',  hit.y.toFixed(1))
+              trackerHalo.setAttribute('cx', hit.x.toFixed(1))
+              trackerHalo.setAttribute('cy', hit.y.toFixed(1))
+            })
+          }
+
+          const onLeave = () => {
+            progressEl.classList.remove('is-tracking')
+            progressEl.style.strokeDasharray = `0 99999`
+          }
+
+          mapWrap.addEventListener('mousemove', onMove, { passive: true })
+          mapWrap.addEventListener('mouseleave', onLeave)
+        }
       }
 
       const nextCard = document.getElementById('next-trip-card')

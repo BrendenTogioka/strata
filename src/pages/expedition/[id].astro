@@ -442,8 +442,17 @@ for (const block of storyProcessed) {
                   stroke-dasharray="6 4"
                   stroke-linecap="round"
                 />
+                <!-- Progress overlay — JS fills this as the cursor moves -->
+                <path
+                  class="map-route-progress"
+                  d={routeSvgPath}
+                  fill="none"
+                  stroke="var(--rust)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                />
                 {routeStartPt && (
-                  <circle class="map-route-dot" cx={routeStartPt.x} cy={routeStartPt.y} r="5" fill="var(--rust)" />
+                  <circle class="map-route-dot map-route-dot--start" cx={routeStartPt.x} cy={routeStartPt.y} r="5" fill="var(--rust)" />
                 )}
                 {routeEndPt && (
                   <circle class="map-route-dot" cx={routeEndPt.x} cy={routeEndPt.y} r="5" fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
@@ -466,12 +475,23 @@ for (const block of storyProcessed) {
                   stroke-dasharray="6 4"
                   stroke-linecap="round"
                 />
-                <circle class="map-route-dot" cx="100" cy="420" r="5"  fill="var(--rust)" />
+                <path
+                  class="map-route-progress"
+                  d="M 100 420 C 160 400, 200 350, 265 324 S 370 296, 430 304 S 550 288, 610 264 S 710 240, 750 250"
+                  fill="none"
+                  stroke="var(--rust)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                />
+                <circle class="map-route-dot map-route-dot--start" cx="100" cy="420" r="5" fill="var(--rust)" />
                 <circle class="map-route-dot" cx="750" cy="250" r="5"  fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
                 <circle class="map-route-dot" cx="380" cy="300" r="3.5" fill="rgba(192,72,32,0.7)" />
                 <circle class="map-route-dot" cx="615" cy="268" r="3.5" fill="rgba(192,72,32,0.7)" />
               </>
             )}
+            <!-- Tracker dot — follows cursor, projected onto the route path -->
+            <circle class="map-tracker-dot" cx="0" cy="0" r="6" fill="var(--rust)" />
+            <circle class="map-tracker-halo" cx="0" cy="0" r="14" fill="none" stroke="var(--rust)" stroke-width="1" opacity="0.4" />
           </svg>
 
           <div class="trip-map-coords">
