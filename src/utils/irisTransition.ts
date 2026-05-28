@@ -62,6 +62,19 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
   })
   img.src = src
   container.appendChild(img)
+
+  // Match the destination trip-hero's gradient so the bottom darkening doesn't
+  // "snap in" the instant the overlay is removed — that flicker reads as a flash.
+  // (Mirrors .trip-hero-overlay in global.css; if you change one, change both.)
+  const gradient = document.createElement('div')
+  Object.assign(gradient.style, {
+    position:      'absolute',
+    inset:         '0',
+    pointerEvents: 'none',
+    background:    'linear-gradient(to bottom, rgba(12,9,6,0.1) 0%, rgba(12,9,6,0.0) 35%, rgba(12,9,6,0.55) 72%, rgba(12,9,6,0.95) 100%)',
+  })
+  container.appendChild(gradient)
+
   // Append to <html>, not <body> — see note above. A body child would be
   // destroyed by Astro's swap before the destination hero is ready.
   document.documentElement.appendChild(container)
