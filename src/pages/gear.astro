@@ -43,6 +43,24 @@ function groupOf(cat: string) {
       <p class="gear-eyebrow">FIELD KIT</p>
       <h1 class="gear-title">THE GEAR</h1>
       <p class="gear-count">{gear.length} items</p>
+
+      <!-- Viewfinder reticle — draws in as the header fades, JS fades the SVG in -->
+      <svg class="gear-reticle" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Outer dashed ring — marching ants -->
+        <circle class="reticle-ring" cx="35" cy="35" r="30"/>
+        <!-- Corner brackets — draw in sequentially -->
+        <path class="reticle-bracket" d="M 4,18 L 4,4 L 18,4"/>
+        <path class="reticle-bracket" d="M 52,4 L 66,4 L 66,18"/>
+        <path class="reticle-bracket" d="M 66,52 L 66,66 L 52,66"/>
+        <path class="reticle-bracket" d="M 18,66 L 4,66 L 4,52"/>
+        <!-- Crosshair arms with center gap -->
+        <line class="reticle-cross" x1="35" y1="18" x2="35" y2="29"/>
+        <line class="reticle-cross" x1="35" y1="41" x2="35" y2="52"/>
+        <line class="reticle-cross" x1="18" y1="35" x2="29" y2="35"/>
+        <line class="reticle-cross" x1="41" y1="35" x2="52" y2="35"/>
+        <!-- Center dot -->
+        <circle class="reticle-dot" cx="35" cy="35" r="2.5" fill="var(--rust)"/>
+      </svg>
     </header>
 
     <!-- Filter bar -->

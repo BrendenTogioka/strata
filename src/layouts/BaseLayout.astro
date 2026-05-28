@@ -690,6 +690,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           duration: 0.65, stagger: 0.04, ease: 'power3.out',
         }, '+=0.2')
       }
+
+      // Reticle fades in with the filter bar
+      const gearReticle = document.querySelector<HTMLElement>('.gear-reticle')
+      if (gearReticle) {
+        gsap.to(gearReticle, { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.2 })
+      }
     }
 
     // ── Featured sections (curated homepage trips) ────────────────────────

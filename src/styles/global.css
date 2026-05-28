@@ -2381,7 +2381,7 @@ body::before {
 }
 
 /* Header */
-.gear-header { margin-bottom: 3.5rem; }
+.gear-header { margin-bottom: 3.5rem; position: relative; }
 .gear-eyebrow {
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -2903,3 +2903,73 @@ body::before {
   50%       { opacity: 1; }
 }
 @media (max-width: 768px) { .exp-progress-trail { display: none; } }
+
+/* ── #11 Viewfinder reticle (Gear page header) ── */
+.gear-reticle {
+  position: absolute;
+  right: 0; bottom: -0.5rem;
+  width: clamp(80px, 13vw, 120px);
+  height: auto;
+  pointer-events: none;
+  opacity: 0;
+  overflow: visible;
+}
+
+/* Outer dashed ring — continuously marching */
+.reticle-ring {
+  fill: none;
+  stroke: rgba(192,72,32,0.28);
+  stroke-width: 0.7;
+  stroke-dasharray: 4 8;
+  animation: reticle-ring-march 7s linear infinite;
+}
+@keyframes reticle-ring-march {
+  from { stroke-dashoffset: 36; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* Corner brackets — draw in once, staggered, timed to appear as SVG fades in */
+.reticle-bracket {
+  fill: none;
+  stroke: rgba(192,72,32,0.55);
+  stroke-width: 1.3;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: reticle-bracket-draw 0.4s ease-out 1.3s both;
+}
+.reticle-bracket:nth-child(3) { animation-delay: 1.4s; }
+.reticle-bracket:nth-child(4) { animation-delay: 1.5s; }
+.reticle-bracket:nth-child(5) { animation-delay: 1.6s; }
+@keyframes reticle-bracket-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Crosshair arms — draw in after brackets */
+.reticle-cross {
+  stroke: rgba(192,72,32,0.38);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  stroke-dasharray: 11;
+  stroke-dashoffset: 11;
+  animation: reticle-cross-draw 0.3s ease-out 1.75s both;
+}
+@keyframes reticle-cross-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Center dot — appear then pulse continuously */
+.reticle-dot {
+  opacity: 0;
+  animation: reticle-dot-life 1.8s ease-in-out 1.9s infinite both;
+}
+@keyframes reticle-dot-life {
+  0%   { opacity: 0; }
+  12%  { opacity: 0.85; }
+  50%  { opacity: 1; }
+  88%  { opacity: 0.85; }
+  100% { opacity: 0.85; }
+}
+
+@media (max-width: 768px) { .gear-reticle { display: none; } }
