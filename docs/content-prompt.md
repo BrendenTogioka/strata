@@ -146,7 +146,7 @@ that section.
 | **Callout** | Dot-separated field note. Format: `Day 3 · Summit Ridge · −18°C`. | 0–3 per post. |
 | **Image** | Single image with alt text (required) + caption (optional). | As many as the story needs. |
 | **Gallery** | 2–4 images. Layout `grid` (default) or `strip` (3-up full-bleed). | 1–3 per post. |
-| **Video** | YouTube or Vimeo URL. | 0–1 per post. |
+| **Video** | YouTube or Vimeo URL. **Default placement: end of Final Thoughts**, after the closing paragraph and before the optional Hindsight block. Reader finishes the story, then watches the journey. For short B-roll clips (≤30s) tied to a specific moment, inline within the relevant Day section instead. | 0–2 per post. |
 | **Divider** | A ✦ between major beats. No text. | Use for breath, not as filler. |
 | **Hindsight** | Closing block. "What we'd do differently" — 1–2 sentences of *practical* takeaway. | At most one, at the very end, only when there's a real lesson. |
 
@@ -230,6 +230,8 @@ DIVIDER
 PARAGRAPH:
 <120–200 words of reflection. What sticks. What you took away.>
 
+VIDEO: <YouTube or Vimeo URL — only if you have one for this trip>
+
 HINDSIGHT:
 <Optional. 1–2 sentences of practical takeaway. Concrete advice, not
 vibes. "Start the Confluence day at 4 AM, not 7 — climbing out by
@@ -264,6 +266,7 @@ TRIP NOTES
 - Day N: <...>
 - Conditions: <temp range, sky, water, anything notable>
 - Photos: <list of key shots — what was the hero? what's in the gallery?>
+- YouTube video (optional): <full URL — will be embedded at the end of Final Thoughts>
 - Memorable: <the moments that stuck, the lessons, the surprises>
 - Hindsight (optional): <what you'd do differently>
 ```
