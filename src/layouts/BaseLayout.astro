@@ -283,7 +283,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       }
 
       // ── Hero scroll-scrub video ─────────────────────────────────────────
+      // Pin the hero and stretch the scrub over 200% of viewport-height of scroll
+      // (≈ 2× the time the video stays in view). Tweak HERO_PIN_SCROLL to taste:
+      // '+=150%' = ~1.5×, '+=250%' = ~2.5×.
       if (heroVideo && !reduceMotion()) {
+        const HERO_PIN_SCROLL = '+=200%'
         heroVideo.pause()
         const scrub = (progress: number) => {
           if (heroVideo.readyState >= 2 && heroVideo.duration) {
@@ -293,7 +297,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         ScrollTrigger.create({
           trigger: heroSection,
           start: 'top top',
-          end:   'bottom top',
+          end:   HERO_PIN_SCROLL,
+          pin:   true,
+          pinSpacing: true,
           scrub: true,
           onUpdate: self => scrub(self.progress),
         })
