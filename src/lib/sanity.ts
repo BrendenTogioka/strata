@@ -6,7 +6,9 @@ export const client = createClient({
   projectId:  import.meta.env.PUBLIC_SANITY_PROJECT_ID,
   dataset:    import.meta.env.PUBLIC_SANITY_DATASET ?? 'production',
   apiVersion: '2024-01-01',  // pin — never use 'latest'
-  useCdn:     true,          // fine for static build-time fetches
+  useCdn:     false,         // hit the authoritative API at build time so
+                             // freshly-published content never gets baked
+                             // into HTML behind the ~60s Sanity CDN lag
 })
 
 const builder = createImageUrlBuilder(client)
