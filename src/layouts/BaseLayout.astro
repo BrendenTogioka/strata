@@ -137,6 +137,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   let lenis:       InstanceType<typeof Lenis> | null = null
   let lenisTicker: ((time: number) => void)   | null = null
   let mm:          ReturnType<typeof gsap.matchMedia> | null = null
+  let mmHero:      ReturnType<typeof gsap.matchMedia> | null = null
 
   // ── Lenis smooth scroll ────────────────────────────────────────────────
   function initLenis() {
@@ -282,33 +283,50 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         })
       }
 
-      // ── Hero scroll-scrub video ─────────────────────────────────────────
-      // Pin the hero and stretch the scrub over 200% of viewport-height of scroll
-      // (≈ 2× the time the video stays in view). Tweak HERO_PIN_SCROLL to taste:
-      // '+=150%' = ~1.5×, '+=250%' = ~2.5×.
+      // ── Hero video ──────────────────────────────────────────────────────
+      // Desktop (≥769px): pin the hero and stretch the scrub over 200% of
+      //   viewport-height of scroll — video stays in view ~2× longer.
+      // Mobile  (≤768px):  pinning + frame scrubbing on touch feels stuck and
+      //   chews battery, so just autoplay the same video as a smooth loop.
+      // Reduced motion: skips both — the static poster image remains.
+      // Tweak HERO_PIN_SCROLL to taste: '+=150%' ≈ 1.5×, '+=250%' ≈ 2.5×.
       if (heroVideo && !reduceMotion()) {
         const HERO_PIN_SCROLL = '+=200%'
-        heroVideo.pause()
-        const scrub = (progress: number) => {
-          if (heroVideo.readyState >= 2 && heroVideo.duration) {
-            heroVideo.currentTime = progress * heroVideo.duration
-          }
-        }
-        ScrollTrigger.create({
-          trigger: heroSection,
-          start: 'top top',
-          end:   HERO_PIN_SCROLL,
-          pin:   true,
-          pinSpacing: true,
-          scrub: true,
-          onUpdate: self => scrub(self.progress),
-        })
+        // Fade the video in once it can play (shared by both desktop and mobile)
         const showHeroVideo = () => { heroVideo.style.opacity = '1' }
-        if (heroVideo.readyState >= 2) {
-          showHeroVideo()
-        } else {
-          heroVideo.addEventListener('canplay', showHeroVideo, { once: true })
-        }
+        if (heroVideo.readyState >= 2) showHeroVideo()
+        else heroVideo.addEventListener('canplay', showHeroVideo, { once: true })
+
+        mmHero = gsap.matchMedia()
+
+        mmHero.add('(min-width: 769px)', () => {
+          heroVideo.pause()
+          const scrub = (progress: number) => {
+            if (heroVideo.readyState >= 2 && heroVideo.duration) {
+              heroVideo.currentTime = progress * heroVideo.duration
+            }
+          }
+          ScrollTrigger.create({
+            trigger: heroSection,
+            start: 'top top',
+            end:   HERO_PIN_SCROLL,
+            pin:   true,
+            pinSpacing: true,
+            scrub: true,
+            onUpdate: self => scrub(self.progress),
+          })
+          return () => { heroVideo.pause() }
+        })
+
+        mmHero.add('(max-width: 768px)', () => {
+          // Element already has muted/loop/playsinline attrs (HeroSection.astro),
+          // so .play() is allowed under autoplay policies.
+          heroVideo.play().catch(() => {})
+          return () => {
+            heroVideo.pause()
+            heroVideo.currentTime = 0
+          }
+        })
       }
     }
 
@@ -618,6 +636,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     if (lenis)       { lenis.destroy(); lenis = null }
     initLenis()                                                    // ← re-create lenis first
     if (mm)          { mm.revert(); mm = null }                    // ← now proxy is valid
+    if (mmHero)      { mmHero.revert(); mmHero = null }
     ScrollTrigger.killAll()                                        // ← now proxy is valid
     // Iris overlays are intentionally kept alive here — initPageAnimations
     // fades them out after the destination hero image has loaded, which
