@@ -38,13 +38,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     <title>{title}</title>
 
     <!-- Always land at the top on (re)load. With the pinned hero, browser
-         scroll-restoration would otherwise drop the user mid-pin. Manual mode
-         + an explicit scrollTo on pageshow (which also covers bfcache restore)
-         is the most robust combination. Skip when a #hash is present so
-         anchor jumps still work. -->
+         scroll-restoration would otherwise drop the user mid-pin. We force
+         scrollTo(0,0) at parse, on pageshow (covers bfcache), and on load
+         (after the browser would have restored). Skip when a #hash is present
+         so anchor jumps still work. -->
     <script is:inline>
       if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-      addEventListener('pageshow', () => { if (!location.hash) scrollTo(0, 0) })
+      const __toTop = () => { if (!location.hash) scrollTo(0, 0) }
+      __toTop()
+      addEventListener('pageshow', __toTop)
+      addEventListener('load',     __toTop)
     </script>
     <link rel="canonical" href={canonical} />
 
@@ -184,6 +187,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
     ScrollTrigger.addEventListener('refresh', () => lenis?.resize())
     ScrollTrigger.refresh()
+
+    // If something restored window.scrollY before Lenis read it, Lenis is now
+    // out of sync — force both to 0 (unless an #anchor is targeted).
+    if (!location.hash) {
+      window.scrollTo(0, 0)
+      lenis.scrollTo(0, { immediate: true })
+    }
   }
 
   // ── Custom cursor ──────────────────────────────────────────────────────
@@ -351,6 +361,21 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     const expSection = document.querySelector<HTMLElement>('.expedition')
     const expTrack   = document.getElementById('expedition-track') as HTMLElement | null
     if (expSection && expTrack) {
+      // Cards fade in (0 → 1) as the gallery section enters the viewport.
+      // Fully opaque by the time the section's top crosses ~40% from the
+      // viewport bottom (i.e. the user has scrolled it into the lower half).
+      gsap.set('.exp-card, .exp-end-cap', { opacity: 0 })
+      gsap.to('.exp-card, .exp-end-cap', {
+        opacity: 1,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: expSection,
+          start: 'top bottom',  // section top hits viewport bottom
+          end:   'top 60%',     // section top reaches ~40% from viewport bottom
+          scrub: 0.5,
+        },
+      })
+
       mm = gsap.matchMedia()
 
       mm.add('(min-width: 769px)', () => {
