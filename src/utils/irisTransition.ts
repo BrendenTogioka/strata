@@ -20,6 +20,12 @@ interface IrisOptions {
  *    handoff is what prevents the dark flash between navigations.
  */
 export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): void {
+  // Re-entry guard: pointer-events:none on the overlay means clicks pass
+  // through to the card beneath, so a double-click would otherwise stack two
+  // overlays and leak one onto the destination page. Bail if one is already
+  // animating — the first click wins.
+  if (document.querySelector('.iris-overlay')) return
+
   // Reduced motion: skip the expand animation, just navigate.
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     navigate(href)

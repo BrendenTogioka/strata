@@ -16,6 +16,10 @@ interface CurtainOptions {
  * Skips entirely under prefers-reduced-motion.
  */
 export function playCurtainTransition({ href }: CurtainOptions): void {
+  // Same re-entry guard as iris: a rapid double-click could otherwise stack
+  // two curtains and leave one on the destination page. First click wins.
+  if (document.querySelector('.curtain-overlay')) return
+
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     navigate(href)
     return
