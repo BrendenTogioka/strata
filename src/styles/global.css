@@ -1625,6 +1625,7 @@ nav {
 }
 .story-strip-item img {
   width: 100%;
+  height: auto;          /* explicit auto so aspect-ratio overrides HTML height attr */
   aspect-ratio: 3 / 2;
   object-fit: cover;
   display: block;
@@ -1782,16 +1783,18 @@ nav {
   transition: background 0.7s ease;
 }
 .lightbox-figure {
-  position: relative;
+  /* Fill the full lightbox so both images always center against
+     the viewport — eliminates off-center on aspect-ratio change */
+  position: absolute;
+  inset: 0;
   z-index: 1;
   margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  max-height: 85vh;
-  max-width: 88vw;
 }
 .lightbox-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   max-height: 85vh;
   max-width: 88vw;
   width: auto;
@@ -1801,9 +1804,7 @@ nav {
   transition: opacity 0.22s ease;
 }
 .lightbox-img-b {
-  position: absolute;
-  inset: 0;
-  margin: auto;
+  /* Inherits position/centering from .lightbox-img */
   opacity: 0;
 }
 .lightbox-close {
