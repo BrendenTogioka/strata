@@ -1347,11 +1347,18 @@ nav {
 }
 
 /* ── Route map ── */
+/* Always left-aligns to the same x as the expedition-text column and the
+   field-journal column (which both start at the wrap's padding edge). Width
+   matches the journal-entries column (1fr of .trip-journal's 1fr/240px grid);
+   when the page has no day-entry sidebar, it falls back to a 48rem max so it
+   doesn't sprawl across the wider trip-wide-wrap. Never auto-centered. */
 .trip-map-section {
-  margin-bottom: 5rem;
+  margin: 0 0 5rem;
+  width: calc(100% - 5rem - 240px);
+}
+.trip-map-section--no-sidebar {
+  width: 100%;
   max-width: 48rem;
-  margin-left: auto;
-  margin-right: auto;
 }
 .trip-map-eyebrow {
   font-family: var(--font-body);
@@ -1372,7 +1379,7 @@ nav {
 }
 .trip-map-placeholder {
   position: relative;
-  height: 260px;
+  height: 520px;
   border: 1px solid rgba(240,226,206,0.08);
   background:
     radial-gradient(ellipse at 38% 58%, rgba(168,191,201,0.05) 0%, transparent 55%),
@@ -1457,8 +1464,13 @@ nav {
   background: rgba(240,226,206,0.1);
 }
 
-/* Day entry header */
-.day-entry { margin-bottom: 1rem; }
+/* Section header (Day entry or custom-labelled). The scroll-margin-top
+   gives anchor-link jumps from the TOC breathing room so the heading doesn't
+   land flush against the viewport edge. */
+.day-entry {
+  margin-bottom: 1rem;
+  scroll-margin-top: 6rem;
+}
 .day-header {
   display: flex;
   align-items: flex-end;
@@ -1478,7 +1490,7 @@ nav {
 .day-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
   padding-bottom: 0.2rem;
 }
 .day-label {
@@ -1492,9 +1504,9 @@ nav {
   font-family: var(--font-body);
   font-weight: 400;
   font-style: italic;
-  font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+  font-size: clamp(1.85rem, 2.6vw, 2.4rem);
   color: var(--bone);
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 /* Hindsight block */
@@ -1564,7 +1576,7 @@ nav {
 }
 .toc-item {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.75rem;
   padding: 0.55rem 0;
   font-family: var(--font-body);
@@ -1574,6 +1586,10 @@ nav {
   text-decoration: none;
   border-bottom: 1px solid rgba(240,226,206,0.06);
   transition: color 0.2s;
+}
+.toc-text {
+  flex: 1;
+  line-height: 1.4;
 }
 .toc-item:last-child { border-bottom: none; }
 .toc-item:hover { color: var(--bone); }

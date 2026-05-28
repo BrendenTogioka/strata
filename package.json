@@ -15,6 +15,7 @@
     "migrate:featured": "node scripts/migrate-featured.mjs",
     "migrate:copy": "node scripts/migrate-copy.mjs",
     "migrate:orderrank": "node scripts/migrate-orderrank.mjs",
+    "migrate:fieldintel": "node scripts/backfill-field-intel-conditions.mjs",
     "studio": "sanity dev"
   },
   "dependencies": {

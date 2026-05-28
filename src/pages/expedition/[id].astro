@@ -172,7 +172,7 @@ async function parseGpxRoute(gpxUrl: string): Promise<{lat: number; lon: number}
   }
 }
 
-const mapW = 800, mapH = 260, mapPad = 32
+const mapW = 800, mapH = 520, mapPad = 48
 let routeSvgPath  = ''
 let routeStartPt: {x: number; y: number} | null = null
 let routeEndPt:   {x: number; y: number} | null = null
@@ -199,12 +199,27 @@ if (trip.routeGpxUrl) {
 }
 
 // ── Story pre-processing ─────────────────────────────────────────────────────
-// Assign day numbers to dayEntry blocks; collect TOC list
-let dayCounter = 0
+// Section blocks (type=dayEntry) come in two flavours:
+//   • Day mode   → auto-numbered "Day 01", "Day 02" (count up across the story)
+//   • Custom mode→ author-supplied eyebrow like "Overview" or "Aftermath"
+// Existing data without an eyebrowKind defaults to Day mode for backwards compat.
+let dayCounter   = 0
+let sectionCounter = 0
 const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
   if (block.type === 'dayEntry') {
-    dayCounter++
-    return { ...block, _dayNum: dayCounter }
+    sectionCounter++
+    const kind = block.eyebrowKind ?? 'day'
+    if (kind === 'day') dayCounter++
+    return {
+      ...block,
+      _kind:    kind,
+      _dayNum:  kind === 'day' ? dayCounter : null,
+      _idx:     sectionCounter,
+      _eyebrow: kind === 'day'
+        ? `Day ${String(dayCounter).padStart(2, '0')}`
+        : (block.customEyebrow ?? 'Section'),
+      _anchor:  kind === 'day' ? `day-${dayCounter}` : `section-${sectionCounter}`,
+    }
   }
   return block
 })
@@ -212,9 +227,10 @@ const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
 const dayEntries = storyProcessed
   .filter(b => b.type === 'dayEntry')
   .map(b => ({
-    num:   String(b._dayNum).padStart(2, '0'),
-    title: b.dayTitle ?? `Day ${b._dayNum}`,
-    id:    `day-${b._dayNum}`,
+    num:     String(b._idx).padStart(2, '0'),
+    eyebrow: b._eyebrow,
+    title:   b.dayTitle ?? b._eyebrow,
+    id:      b._anchor,
   }))
 
 const hasFieldIntel = trip.fieldIntel?.length > 0
@@ -392,7 +408,7 @@ for (const block of storyProcessed) {
       )}
 
       <!-- ── Route map ─────────────────────────────────────────────────── -->
-      <div class="trip-map-section story-block">
+      <div class={`trip-map-section story-block${hasSidebar ? '' : ' trip-map-section--no-sidebar'}`}>
         <div class="trip-map-eyebrow">Route</div>
         <div class="trip-map-placeholder">
           <svg
@@ -423,25 +439,25 @@ for (const block of storyProcessed) {
               </>
             ) : (
               <>
-                <!-- Stylised topo placeholder -->
-                <ellipse class="map-topo-ring" cx="280" cy="140" rx="210" ry="95"  fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
-                <ellipse class="map-topo-ring" cx="280" cy="140" rx="165" ry="72"  fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
-                <ellipse class="map-topo-ring" cx="280" cy="140" rx="122" ry="52"  fill="none" stroke="rgba(168,191,201,0.04)" stroke-width="1"/>
-                <ellipse class="map-topo-ring" cx="600" cy="130" rx="185" ry="85"  fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
-                <ellipse class="map-topo-ring" cx="600" cy="130" rx="140" ry="62"  fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
+                <!-- Stylised topo placeholder — laid out for 800×520 canvas -->
+                <ellipse class="map-topo-ring" cx="280" cy="280" rx="240" ry="180" fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="280" cy="280" rx="190" ry="140" fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="280" cy="280" rx="140" ry="100" fill="none" stroke="rgba(168,191,201,0.04)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="600" cy="260" rx="210" ry="160" fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="600" cy="260" rx="160" ry="120" fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
                 <path
                   class="map-route-path"
-                  d="M 100 210 C 160 200, 200 175, 265 162 S 370 148, 430 152 S 550 144, 610 132 S 710 120, 750 125"
+                  d="M 100 420 C 160 400, 200 350, 265 324 S 370 296, 430 304 S 550 288, 610 264 S 710 240, 750 250"
                   fill="none"
                   stroke="rgba(192,72,32,0.6)"
                   stroke-width="2"
                   stroke-dasharray="6 4"
                   stroke-linecap="round"
                 />
-                <circle class="map-route-dot" cx="100"  cy="210" r="5"  fill="var(--rust)" />
-                <circle class="map-route-dot" cx="750"  cy="125" r="5"  fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
-                <circle class="map-route-dot" cx="380"  cy="150" r="3.5" fill="rgba(192,72,32,0.7)" />
-                <circle class="map-route-dot" cx="615"  cy="134" r="3.5" fill="rgba(192,72,32,0.7)" />
+                <circle class="map-route-dot" cx="100" cy="420" r="5"  fill="var(--rust)" />
+                <circle class="map-route-dot" cx="750" cy="250" r="5"  fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
+                <circle class="map-route-dot" cx="380" cy="300" r="3.5" fill="rgba(192,72,32,0.7)" />
+                <circle class="map-route-dot" cx="615" cy="268" r="3.5" fill="rgba(192,72,32,0.7)" />
               </>
             )}
           </svg>
@@ -462,13 +478,13 @@ for (const block of storyProcessed) {
 
             {storyProcessed.map((block: any) => {
 
-              // ── Day Entry header ──────────────────────────────────────
+              // ── Section header (Day or Custom) ────────────────────────
               if (block.type === 'dayEntry') return (
-                <div class="story-block day-entry" id={`day-${block._dayNum}`}>
+                <div class="story-block day-entry" id={block._anchor}>
                   <div class="day-header">
-                    <div class="day-number">{String(block._dayNum).padStart(2, '0')}</div>
+                    <div class="day-number">{String(block._idx).padStart(2, '0')}</div>
                     <div class="day-meta">
-                      <span class="day-label">Day {block._dayNum}</span>
+                      <span class="day-label">{block._eyebrow}</span>
                       <span class="day-entry-title">{block.dayTitle}</span>
                     </div>
                   </div>
@@ -607,7 +623,7 @@ for (const block of storyProcessed) {
               {dayEntries.map(d => (
                 <a href={`#${d.id}`} class="toc-item">
                   <span class="toc-num">{d.num}</span>
-                  {d.title}
+                  <span class="toc-text">{d.title}</span>
                 </a>
               ))}
             </div>

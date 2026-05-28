@@ -1,5 +1,58 @@
 import { defineField, defineType } from 'sanity'
 import { orderRankField, orderRankOrdering } from '@sanity/orderable-document-list'
+import { UppercaseInput } from '../components/UppercaseInput'
+import { createPresetInput } from '../components/PresetInput'
+
+// Curated preset lists — fieldIntel keys, conditions labels, conditions icons.
+// Editors get autocomplete suggestions but can still type custom values.
+const FIELD_INTEL_PRESETS = [
+  'Permit',
+  'Difficulty',
+  'Best Window',
+  'Water Source',
+  'Cell Service',
+  'Crowds',
+  'Trailhead Access',
+  'Camping',
+  'Wildlife',
+  'Hazards',
+  'Fee',
+  'Reservations',
+  'Reservation Window',
+  'Resupply',
+  'Bears',
+  'River Crossings',
+  'Navigation',
+  'Bailout Options',
+  'Insurance',
+  'Vehicle',
+]
+
+const CONDITION_LABEL_PRESETS = [
+  'Temperature',
+  'Sky',
+  'Wind',
+  'Humidity',
+  'Water Temp',
+  'Visibility',
+  'Snowpack',
+  'Tide',
+  'Sun Hours',
+  'Moon Phase',
+  'Air Quality',
+  'River Flow',
+  'Trail Surface',
+  'Wildfire Risk',
+]
+
+const CONDITION_ICON_PRESETS = [
+  '🌡', '☀️', '⛅', '☁️', '🌧', '⛈', '❄️', '🌫', '💨', '🌊', '🌅', '🌙',
+  '🔥', '🏔', '🌲', '🌵',
+]
+
+const FieldIntelKeyInput     = createPresetInput(FIELD_INTEL_PRESETS)
+const ConditionLabelInput    = createPresetInput(CONDITION_LABEL_PRESETS)
+const ConditionIconInput     = createPresetInput(CONDITION_ICON_PRESETS)
 
 export default defineType({
   name: 'trip',
@@ -9,6 +62,28 @@ export default defineType({
   fields: [
     // Hidden rank used by the orderable Featured list (drag to reorder)
     orderRankField({ type: 'trip' }),
+
+    // ── Titles ──────────────────────────────────────────────────────────
+    // Story title first (the descriptive headline editors actually craft per
+    // post), then the stylised page-title lines used by the hero + slug.
+    defineField({
+      name: 'storyTitle',
+      title: 'Trip title',
+      type: 'string',
+      description: 'The italic headline shown under the stats bar, directly above the story copy. Used as the OG/social headline.',
+    }),
+
+    defineField({
+      name: 'pageTitle',
+      title: 'Page title lines',
+      type: 'array',
+      of: [{
+        type: 'string',
+        components: { input: UppercaseInput },
+      }],
+      description: 'The big hero title, one line per entry, e.g. ["VALLEY", "OF FIRE"]. Auto-uppercases. Drives the <title> tag, URL slug, and gallery card title — keep it short and location-driven for SEO.',
+      validation: Rule => Rule.required().min(1).max(3),
+    }),
 
     // ── Identity ────────────────────────────────────────────────────────
     defineField({
@@ -31,16 +106,6 @@ export default defineType({
       type: 'date',
       description: 'Used for gallery ordering (newest first) and the expeditions archive.',
       validation: Rule => Rule.required(),
-    }),
-
-    // ── Titles ──────────────────────────────────────────────────────────
-    defineField({
-      name: 'pageTitle',
-      title: 'Page title lines',
-      type: 'array',
-      of: [{ type: 'string' }],
-      description: 'The hero title, one line per entry, e.g. ["VALLEY", "OF FIRE"]. These lines also stack to form the gallery card title.',
-      validation: Rule => Rule.required().min(1).max(3),
     }),
 
     defineField({
@@ -123,7 +188,14 @@ export default defineType({
         name: 'intelRow',
         title: 'Row',
         fields: [
-          defineField({ name: 'key',   title: 'Label', type: 'string', validation: Rule => Rule.required() }),
+          defineField({
+            name: 'key',
+            title: 'Label',
+            type: 'string',
+            description: 'Pick a recommended label or type a custom one. Consistent labels across trips make the panel easier to scan.',
+            components: { input: FieldIntelKeyInput },
+            validation: Rule => Rule.required(),
+          }),
           defineField({ name: 'value', title: 'Value', type: 'string', validation: Rule => Rule.required() }),
           defineField({
             name: 'status',
@@ -161,8 +233,21 @@ export default defineType({
         name: 'conditionItem',
         title: 'Condition',
         fields: [
-          defineField({ name: 'icon',    title: 'Icon (emoji)', type: 'string', description: 'e.g. 🌡 ☁️ ☀️ ❄️' }),
-          defineField({ name: 'label',   title: 'Label',        type: 'string', description: 'e.g. Temperature', validation: Rule => Rule.required() }),
+          defineField({
+            name: 'icon',
+            title: 'Icon (emoji)',
+            type: 'string',
+            description: 'Pick a suggested emoji or paste your own.',
+            components: { input: ConditionIconInput },
+          }),
+          defineField({
+            name: 'label',
+            title: 'Label',
+            type: 'string',
+            description: 'Pick a recommended label or type a custom one (e.g. Temperature).',
+            components: { input: ConditionLabelInput },
+            validation: Rule => Rule.required(),
+          }),
           defineField({ name: 'value',   title: 'Value',        type: 'string', description: 'e.g. -25C',        validation: Rule => Rule.required() }),
           defineField({ name: 'subtext', title: 'Sub-label',    type: 'string', description: 'e.g. avg daytime low' }),
         ],
@@ -312,13 +397,6 @@ export default defineType({
 
     // ── Story ───────────────────────────────────────────────────────────
     defineField({
-      name: 'storyTitle',
-      title: 'Trip title (above story)',
-      type: 'string',
-      description: 'Optional headline shown under the stats bar, directly above the story copy.',
-    }),
-
-    defineField({
       name: 'story',
       title: 'Story',
       type: 'array',
@@ -342,7 +420,7 @@ export default defineType({
                   { title: 'Gallery',    value: 'gallery'   },
                   { title: 'Video',      value: 'video'     },
                   { title: 'Divider',    value: 'divider'   },
-                  { title: 'Day Entry',  value: 'dayEntry'  },
+                  { title: 'Section',    value: 'dayEntry'  },
                   { title: 'Hindsight',  value: 'hindsight' },
                 ],
                 layout: 'radio',
@@ -350,12 +428,43 @@ export default defineType({
               validation: Rule => Rule.required(),
             }),
 
-            // Day entry title
+            // ── Section block ────────────────────────────────────────────
+            // Eyebrow can be auto-numbered ("Day 01", "Day 02") or custom
+            // ("Overview", "Aftermath", "Field Notes"). Day-mode numbers are
+            // computed at render time by counting day-mode sections in order.
+            defineField({
+              name: 'eyebrowKind',
+              title: 'Section label',
+              type: 'string',
+              description: 'Day = auto-numbered "Day 01", "Day 02" (numbers count up across the story). Custom = your own label, e.g. "Overview".',
+              options: {
+                list: [
+                  { title: 'Day (auto-numbered)', value: 'day'    },
+                  { title: 'Custom label',         value: 'custom' },
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'day',
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'dayEntry',
+            }),
+            defineField({
+              name: 'customEyebrow',
+              title: 'Custom label',
+              type: 'string',
+              description: 'Small text shown above the heading, e.g. "Overview", "Aftermath".',
+              hidden: ({ parent }: { parent?: { type?: string; eyebrowKind?: string } }) =>
+                parent?.type !== 'dayEntry' || parent?.eyebrowKind !== 'custom',
+              validation: Rule => Rule.custom((val, ctx) => {
+                const parent = ctx.parent as { type?: string; eyebrowKind?: string } | undefined
+                if (parent?.type === 'dayEntry' && parent?.eyebrowKind === 'custom' && !val) return 'Required'
+                return true
+              }),
+            }),
             defineField({
               name: 'dayTitle',
-              title: 'Day title',
+              title: 'Section title',
               type: 'string',
-              description: 'e.g. "The Approach" or "Summit Ridge"',
+              description: 'The big heading for this section, e.g. "The Approach" or "Summit Ridge".',
               hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'dayEntry',
               validation: Rule => Rule.custom((val, ctx) => {
                 const type = (ctx.parent as { type?: string } | undefined)?.type
@@ -484,8 +593,19 @@ export default defineType({
           ],
 
           preview: {
-            select: { type: 'type', content: 'content', richText: 'richText', media: 'image', dayTitle: 'dayTitle' },
-            prepare({ type, content, richText, media, dayTitle }: { type: string; content: string; richText?: any[]; media: unknown; dayTitle?: string }) {
+            select: {
+              type:          'type',
+              content:       'content',
+              richText:      'richText',
+              media:         'image',
+              dayTitle:      'dayTitle',
+              eyebrowKind:   'eyebrowKind',
+              customEyebrow: 'customEyebrow',
+            },
+            prepare({ type, content, richText, media, dayTitle, eyebrowKind, customEyebrow }: {
+              type: string; content: string; richText?: any[]; media: unknown;
+              dayTitle?: string; eyebrowKind?: string; customEyebrow?: string;
+            }) {
               const labels: Record<string, string> = {
                 text: '¶', quote: '❝', callout: '◆', image: '🖼', gallery: '▦', video: '▶', divider: '—',
                 dayEntry: '▷', hindsight: '↺',
@@ -494,7 +614,10 @@ export default defineType({
               if (type === 'gallery')  return { title: '▦ Gallery' }
               if (type === 'video')    return { title: '▶ Video' }
               if (type === 'divider')  return { title: '— Divider' }
-              if (type === 'dayEntry') return { title: `▷ ${dayTitle ?? 'Day Entry'}` }
+              if (type === 'dayEntry') {
+                const eyebrow = eyebrowKind === 'custom' ? (customEyebrow ?? 'Section') : 'Day'
+                return { title: `▷ ${eyebrow} · ${dayTitle ?? '—'}` }
+              }
               if (type === 'hindsight') return { title: `↺ What We'd Do Differently` }
               const fromRichText = richText
                 ?.find(b => b._type === 'block')

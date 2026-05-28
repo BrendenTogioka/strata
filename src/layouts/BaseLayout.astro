@@ -558,12 +558,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .to('.expeditions-title',   { opacity: 1, y: 0, duration: 0.9, ease: 'power4.out' }, '-=0.35')
         .to('.expeditions-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
 
-      // Cards stagger up once the grid enters the viewport
+      // Cards stagger up — delayed so the header lines (~1.4s total) get a
+      // beat to settle before the grid fires. gsap.from's immediateRender
+      // hides cards at script init, so they stay invisible during the wait.
       gsap.from('.exp-grid-card', {
         opacity:  0,
         y:        24,
         duration: 0.9,
         stagger:  0.05,
+        delay:    1.0,
         ease:     'power3.out',
         scrollTrigger: { trigger: expGrid, start: 'top 85%', once: true },
       })
@@ -579,13 +582,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .to('.gear-title',   { opacity: 1, y: 0, duration: 0.9, ease: 'power4.out' }, '-=0.35')
         .to('.gear-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
 
-      // Cards stagger up from below
+      // Cards stagger up — delayed so the title finishes revealing first.
       if (gearGrid) {
         gsap.from('.gear-card', {
           opacity:  0,
           y:        20,
           duration: 0.7,
           stagger:  0.04,
+          delay:    1.0,
           ease:     'power3.out',
           scrollTrigger: { trigger: gearGrid, start: 'top 88%', once: true },
         })
@@ -749,56 +753,48 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       })
 
       // ── Route map motion ────────────────────────────────────────────────
-      // The map section is excluded from the generic story-block animation so
-      // we can chain: section fade → path draw-on → topo ring stagger.
-      // Using direct style manipulation for stroke-dasharray/offset avoids
-      // GSAP's SVG property-name translation edge cases in some browsers.
+      // Chain on scroll: section fade → path draw-on → topo rings stagger.
+      // Path length is recomputed inside onEnter because Chrome occasionally
+      // returns 0 from getTotalLength() before first paint after a client-side
+      // route swap. Triggers are also slightly more forgiving (top 90% vs 82%)
+      // and the path's stroke styles are set in onEnter, so a glitch in the
+      // ScrollTrigger never leaves the path locked in its "fully hidden" state.
       const mapSection = document.querySelector<HTMLElement>('.trip-map-section')
       if (mapSection) {
-        // Subtle parallax — SVG drifts upward as the section scrolls past
         gsap.to('.trip-map-svg', {
           yPercent: -6, ease: 'none',
           scrollTrigger: { trigger: mapSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
         })
 
         const routePath = document.querySelector<SVGPathElement>('.map-route-path')
-        const pathLen   = routePath ? routePath.getTotalLength() : 0
-
-        // Set the path invisible immediately so it draws on scroll, not on load
-        if (routePath && pathLen > 0) {
-          routePath.style.strokeDasharray  = `${pathLen}`
-          routePath.style.strokeDashoffset = `${pathLen}`
-        }
-
-        // Topo rings — hide for stagger (placeholder mode only)
-        const rings = gsap.utils.toArray<Element>('.map-topo-ring')
+        const rings     = gsap.utils.toArray<Element>('.map-topo-ring')
         if (rings.length) gsap.set(rings, { opacity: 0 })
 
         ScrollTrigger.create({
           trigger: mapSection,
-          start:   'top 82%',
+          start:   'top 90%',
           once:    true,
           onEnter: () => {
-            // 1. Fade section in
             gsap.to(mapSection, { opacity: 1, duration: 0.8, ease: 'power3.out' })
 
-            // 2. Path draw-on starts 0.35s later (section is visible by then)
-            if (routePath && pathLen > 0) {
-              gsap.to(routePath, {
-                strokeDashoffset: 0,
-                ease:    'power2.inOut',
-                duration: 2,
-                delay:    0.35,
-                onComplete: () => {
-                  // Remove inline styles so the SVG attribute (stroke-dasharray="6 4")
-                  // snaps back in, restoring the dashed appearance
-                  routePath.style.strokeDasharray  = ''
-                  routePath.style.strokeDashoffset = ''
-                },
-              })
+            if (routePath) {
+              const pathLen = routePath.getTotalLength()
+              if (pathLen > 0) {
+                routePath.style.strokeDasharray  = `${pathLen}`
+                routePath.style.strokeDashoffset = `${pathLen}`
+                gsap.to(routePath, {
+                  strokeDashoffset: 0,
+                  ease:    'power2.inOut',
+                  duration: 2,
+                  delay:    0.35,
+                  onComplete: () => {
+                    routePath.style.strokeDasharray  = ''
+                    routePath.style.strokeDashoffset = ''
+                  },
+                })
+              }
             }
 
-            // 3. Topo rings stagger in (placeholder mode)
             if (rings.length) {
               gsap.to(rings, { opacity: 1, stagger: 0.12, duration: 0.8, ease: 'power2.out', delay: 0.4 })
             }
@@ -832,6 +828,29 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           playIrisTransition({ src, rect: img.getBoundingClientRect(), href, heroSrc })
         })
       }
+
+      // ── TOC smooth-scroll with offset ───────────────────────────────────
+      // Native anchor-link jumps bypass Lenis (which owns the scroll position)
+      // AND drop the target flush against the viewport top, squishing the
+      // section heading. We intercept clicks, then use Lenis (or a native
+      // fallback) to glide to the target with breathing room above it.
+      const TOC_OFFSET = 96  // px — keeps the heading clear of the nav
+      document.querySelectorAll<HTMLAnchorElement>('.toc-item').forEach(link => {
+        link.addEventListener('click', (e) => {
+          const id = link.getAttribute('href')?.replace(/^#/, '')
+          if (!id) return
+          const target = document.getElementById(id)
+          if (!target) return
+          e.preventDefault()
+          if (lenis) {
+            lenis.scrollTo(target, { offset: -TOC_OFFSET, duration: 1.2 })
+          } else {
+            const top = target.getBoundingClientRect().top + window.scrollY - TOC_OFFSET
+            window.scrollTo({ top, behavior: 'smooth' })
+          }
+          history.replaceState(null, '', `#${id}`)
+        })
+      })
     }
 
     // ── Elevation profile scroll driver ──────────────────────────────────

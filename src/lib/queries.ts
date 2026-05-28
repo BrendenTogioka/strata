@@ -36,6 +36,8 @@ const TRIP_FIELDS = `
     richText,
     url,
     dayTitle,
+    eyebrowKind,
+    customEyebrow,
     layout,
     image {
       ..., alt, caption,
