@@ -64,7 +64,21 @@ const { expeditions } = Astro.props
         <div class="exp-card-open">OPEN →</div>
       </a>
     ))}
+    <a class="exp-end-cap" href="/expeditions" aria-label="View all expeditions">
+      <div class="end-cap-inner">
+        <div class="end-cap-rule"></div>
+        <p class="end-cap-eyebrow">Expedition Log</p>
+        <h2 class="end-cap-heading">ALL<br />EXPEDITIONS</h2>
+        <div class="end-cap-arrow-wrap">
+          <span class="end-cap-arrow">→</span>
+        </div>
+      </div>
+    </a>
     <div class="exp-spacer"></div>
   </div>
+
+  <a class="exp-view-all" href="/expeditions">
+    All Expeditions <span aria-hidden="true">→</span>
+  </a>
 </section>
 

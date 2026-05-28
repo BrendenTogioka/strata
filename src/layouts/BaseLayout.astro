@@ -219,6 +219,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         '.feature-quote', '.feature-link', '.contact-pre', '.contact-email',
         '.contact-footer', '.trip-stats-bar', '.back-btn', '.story-block',
         '.exp-card-num', '.exp-card-title', '.exp-card-meta',
+        '.end-cap-rule', '.end-cap-eyebrow', '.end-cap-heading', '.end-cap-arrow-wrap',
       ], { opacity: 1, x: 0, y: 0 })
       gsap.set([
         '.hero-title .line', '.section-title .line', '.section-title .line-inner',
@@ -351,6 +352,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             },
           })
         })
+
+        // End-cap stagger-in
+        const endCap = document.querySelector<HTMLElement>('.exp-end-cap')
+        if (endCap) {
+          gsap.to(endCap.querySelectorAll('.end-cap-rule, .end-cap-eyebrow, .end-cap-heading, .end-cap-arrow-wrap'), {
+            opacity: 1, y: 0, stagger: 0.1, duration: 0.8, ease: 'power3.out',
+            scrollTrigger: {
+              trigger: endCap,
+              containerAnimation: hScroll,
+              start: 'left 85%',
+              toggleActions: 'play none none reverse',
+            },
+          })
+        }
       })
 
       // Mobile: reveal card text immediately (vertical layout)
