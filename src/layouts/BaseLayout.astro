@@ -358,6 +358,26 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       // Tweak HERO_PIN_SCROLL to taste: '+=150%' ≈ 1.5×, '+=250%' ≈ 2.5×.
       if (heroVideo && !reduceMotion()) {
         const HERO_PIN_SCROLL = '+=200%'
+
+        // preload="none" means no network activity until we call load().
+        // Kick it off as soon as the hero is visible — for a pinned hero
+        // this always fires immediately, but IO keeps the logic correct for
+        // any future layout changes and avoids a naked load() on pages that
+        // don't have a hero video.
+        let videoLoadStarted = false
+        const startVideoLoad = () => {
+          if (videoLoadStarted) return
+          videoLoadStarted = true
+          heroVideo.load()
+        }
+        const heroLoadIO = new IntersectionObserver(
+          (entries) => { if (entries[0].isIntersecting) { startVideoLoad(); heroLoadIO.disconnect() } },
+          // Positive bottom margin expands detection downward so the load
+          // fires 200px before the section would enter the viewport.
+          { rootMargin: '0px 0px 200px 0px' }
+        )
+        heroLoadIO.observe(heroSection)
+
         // Fade the video in once it can play (shared by both desktop and mobile)
         const showHeroVideo = () => { heroVideo.style.opacity = '1' }
         if (heroVideo.readyState >= 2) showHeroVideo()
@@ -367,13 +387,28 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
         mmHero.add('(min-width: 769px)', () => {
           heroVideo.pause()
-          // Only seek once we have enough buffered data to render the next
-          // frame instantly — readyState 3 (HAVE_FUTURE_DATA) avoids the
-          // "scrub a buffering video" jitter that plagues scrub-video setups.
-          const scrub = (progress: number) => {
-            if (heroVideo.readyState >= 3 && heroVideo.duration) {
-              heroVideo.currentTime = progress * heroVideo.duration
+
+          // If the video is already seeking, stacking another currentTime
+          // assignment forces the decoder to abandon the in-flight decode and
+          // start over — the main cause of scrub jitter on full-res video.
+          // Instead, park the target time and apply it once the seek lands.
+          let pendingSeekTime: number | null = null
+          const onSeeked = () => {
+            if (pendingSeekTime !== null) {
+              heroVideo.currentTime = pendingSeekTime
+              pendingSeekTime = null
             }
+          }
+          heroVideo.addEventListener('seeked', onSeeked)
+
+          // readyState 3 (HAVE_FUTURE_DATA) = enough buffered to render next
+          // frame instantly; guards against seeking into unbuffered territory.
+          const scrub = (progress: number) => {
+            if (!heroVideo.duration || heroVideo.readyState < 3) return
+            const t = progress * heroVideo.duration
+            if (heroVideo.seeking) { pendingSeekTime = t; return }
+            pendingSeekTime = null
+            heroVideo.currentTime = t
           }
           ScrollTrigger.create({
             trigger: heroSection,
@@ -381,20 +416,26 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             end:   HERO_PIN_SCROLL,
             pin:   true,
             pinSpacing: true,
-            // Numeric scrub = GSAP smooths scroll → progress over N seconds,
-            // so onUpdate fires uniformly via rAF instead of every wheel tick.
-            // 0.3 balances smooth seek pacing with responsiveness (lower feels
-            // snappier but exposes more decoder jitter; raise for smoother).
-            scrub: 0.3,
+            // scrub: true = zero GSAP lag; Lenis already provides easing so
+            // adding a numeric scrub value just stacks a second delay on top.
+            scrub: true,
             onUpdate: self => scrub(self.progress),
           })
-          return () => { heroVideo.pause() }
+          return () => {
+            heroVideo.pause()
+            heroVideo.removeEventListener('seeked', onSeeked)
+          }
         })
 
         mmHero.add('(max-width: 768px)', () => {
-          // Element already has muted/loop/playsinline attrs (HeroSection.astro),
-          // so .play() is allowed under autoplay policies.
-          heroVideo.play().catch(() => {})
+          // Ensure load() has been called (IO may not have fired yet on mobile
+          // if the browser deferred intersection checks).
+          startVideoLoad()
+          // Wait for canplay so the first frame is decoded before play() —
+          // avoids the one-frame black flash on slower mobile connections.
+          const doPlay = () => heroVideo.play().catch(() => {})
+          if (heroVideo.readyState >= 2) doPlay()
+          else heroVideo.addEventListener('canplay', doPlay, { once: true })
           return () => {
             heroVideo.pause()
             heroVideo.currentTime = 0
