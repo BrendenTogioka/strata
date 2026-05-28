@@ -71,3 +71,20 @@ export const FEATURED_TRIPS_QUERY = `
     ${TRIP_FIELDS}
   }
 `
+
+// All gear — sorted by category then name. Featured items float to top within each group.
+export const GEAR_QUERY = `
+  *[_type == "gear"] | order(featured desc, category asc, name asc) {
+    _id,
+    name,
+    brand,
+    category,
+    description,
+    featured,
+    image {
+      ...,
+      "alt": alt,
+      "dims": asset->metadata.dimensions,
+    },
+  }
+`

@@ -1,0 +1,136 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { client, urlFor } from '../lib/sanity'
+import { GEAR_QUERY } from '../lib/queries'
+
+const gear = await client.fetch(GEAR_QUERY)
+
+// ── Category metadata ──────────────────────────────────────────────────────
+const CATEGORY_LABELS: Record<string, string> = {
+  camera:      'Camera Body',
+  lens:        'Lens',
+  tripod:      'Tripod & Support',
+  filter:      'Filters & Glass',
+  audio:       'Audio',
+  accessories: 'Accessories',
+  pack:        'Pack & Carry',
+  shelter:     'Shelter & Sleep',
+  navigation:  'Navigation',
+  clothing:    'Clothing',
+  nutrition:   'Food & Water',
+  safety:      'Safety',
+}
+
+// Map fine-grained categories → top-level filter group
+const CAMERA_CATS      = new Set(['camera', 'lens', 'tripod', 'filter', 'audio', 'accessories'])
+const BACKPACKING_CATS = new Set(['pack', 'shelter', 'navigation', 'clothing', 'nutrition', 'safety'])
+
+function groupOf(cat: string) {
+  if (CAMERA_CATS.has(cat))      return 'camera'
+  if (BACKPACKING_CATS.has(cat)) return 'backpacking'
+  return 'other'
+}
+---
+
+<BaseLayout
+  title="Gear — STRATA"
+  description="The camera and backpacking kit I carry into the field. Every piece earns its weight."
+>
+  <div class="gear-page">
+
+    <header class="gear-header">
+      <p class="gear-eyebrow">FIELD KIT</p>
+      <h1 class="gear-title">THE GEAR</h1>
+      <p class="gear-count">{gear.length} items</p>
+    </header>
+
+    <!-- Filter bar -->
+    <div class="gear-bar">
+      <div class="filter-group">
+        <div class="filter-pills" id="gear-filters">
+          <button class="filter-pill active" data-group="">All</button>
+          <button class="filter-pill" data-group="camera">Camera</button>
+          <button class="filter-pill" data-group="backpacking">Backpacking</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    {gear.length > 0 ? (
+      <ul class="gear-grid" id="gear-grid">
+        {gear.map((item: any) => {
+          const group   = groupOf(item.category)
+          const catLabel = CATEGORY_LABELS[item.category] ?? item.category
+          const imgUrl = item.image
+            ? urlFor(item.image).width(600).quality(85).format('webp').url()
+            : null
+
+          return (
+            <li
+              class={`gear-card${item.featured ? ' gear-card--featured' : ''}`}
+              data-group={group}
+            >
+              {imgUrl && (
+                <div class="gear-card-img-wrap">
+                  <img
+                    src={imgUrl}
+                    alt={item.image?.alt ?? item.name}
+                    loading="lazy"
+                    decoding="async"
+                    width={item.image?.dims?.width}
+                    height={item.image?.dims?.height}
+                  />
+                </div>
+              )}
+              <div class="gear-card-body">
+                <span class="gear-card-cat">{catLabel}</span>
+                <p class="gear-card-name">{item.name}</p>
+                {item.brand && (
+                  <p class="gear-card-brand">{item.brand}</p>
+                )}
+                {item.description && (
+                  <p class="gear-card-desc">{item.description}</p>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    ) : (
+      <div class="gear-empty">
+        <p class="gear-empty-msg">Gear list coming soon.</p>
+        <p class="gear-empty-sub">Add items in the Studio to populate this page.</p>
+      </div>
+    )}
+
+  </div>
+</BaseLayout>
+
+<script>
+  function initGear() {
+    const grid    = document.getElementById('gear-grid')
+    const pills   = document.querySelectorAll<HTMLButtonElement>('#gear-filters .filter-pill')
+    if (!pills.length) return
+
+    let activeGroup = ''
+
+    function applyFilter() {
+      if (!grid) return
+      grid.querySelectorAll<HTMLElement>('.gear-card').forEach(card => {
+        const g = card.dataset.group ?? ''
+        card.style.display = (!activeGroup || g === activeGroup) ? '' : 'none'
+      })
+    }
+
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        pills.forEach(p => p.classList.remove('active'))
+        pill.classList.add('active')
+        activeGroup = pill.dataset.group ?? ''
+        applyFilter()
+      })
+    })
+  }
+
+  document.addEventListener('astro:page-load', initGear)
+</script>

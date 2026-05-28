@@ -40,6 +40,20 @@ export default defineConfig({
               S,
               context,
             }),
+            S.divider(),
+            S.listItem()
+              .title('Gear')
+              .schemaType('gear')
+              .child(
+                S.documentList()
+                  .title('All gear')
+                  .schemaType('gear')
+                  .filter('_type == "gear"')
+                  .defaultOrdering([
+                    { field: 'category', direction: 'asc' },
+                    { field: 'name',     direction: 'asc' },
+                  ])
+              ),
           ]),
     }),
     // Vision: GROQ query sandbox — remove in production if desired
