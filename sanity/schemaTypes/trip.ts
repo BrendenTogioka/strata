@@ -2,6 +2,7 @@ import { defineField, defineType } from 'sanity'
 import { orderRankField } from '@sanity/orderable-document-list'
 import { UppercaseInput } from '../components/UppercaseInput'
 import { createPresetInput } from '../components/PresetInput'
+import { CoordsLookupInput } from '../components/CoordsLookupInput'
 
 // Curated preset lists — fieldIntel keys, conditions labels, conditions icons.
 // Editors get autocomplete suggestions but can still type custom values.
@@ -130,7 +131,8 @@ export default defineType({
       name: 'coords',
       title: 'GPS coordinates',
       type: 'string',
-      description: 'e.g. "36°26′N 114°31′W"',
+      description: 'Fill Location above first, then click Lookup to auto-generate. Or type manually, e.g. "36°26′N 114°31′W".',
+      components: { input: CoordsLookupInput },
     }),
 
     defineField({

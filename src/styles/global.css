@@ -2157,6 +2157,15 @@ nav {
   .exp-card:first-child { width: 80vw; }
 }
 
+/* ── Stats bar — below ~1050px the sidebar right-pad reservation causes the
+   stats to wrap to a second row; drop it and center full-width instead ── */
+@media (max-width: 1050px) {
+  .trip-stats-inner {
+    padding-right: 2.5rem;
+    justify-content: center;
+  }
+}
+
 /* ── Mobile (≤ 768px) ── */
 @media (max-width: 768px) {
 
