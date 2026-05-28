@@ -4,12 +4,14 @@ interface Props {
 }
 const { heroVideoUrl = '' } = Astro.props
 
-// Derive quality-bumped + format-optimised URLs from the base MP4 upload URL
+// Scrub-friendly transformations: cap width 1600 + 30 fps so seek decodes are
+// roughly half the work of the original 60 fps source, and VP9 (webm) scrubs
+// more smoothly than H.264 in modern browsers.
 const heroVideoWebm = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/vc_vp9,q_85/').replace(/\.mp4$/, '.webm')
+  ? heroVideoUrl.replace('/upload/', '/upload/vc_vp9,q_85,c_limit,w_1600,fps_30/').replace(/\.mp4$/, '.webm')
   : ''
 const heroVideoMp4 = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/q_85/')
+  ? heroVideoUrl.replace('/upload/', '/upload/q_85,c_limit,w_1600,fps_30/')
   : ''
 ---
 

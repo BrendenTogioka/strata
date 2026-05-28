@@ -301,8 +301,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
         mmHero.add('(min-width: 769px)', () => {
           heroVideo.pause()
+          // Only seek once we have enough buffered data to render the next
+          // frame instantly — readyState 3 (HAVE_FUTURE_DATA) avoids the
+          // "scrub a buffering video" jitter that plagues scrub-video setups.
           const scrub = (progress: number) => {
-            if (heroVideo.readyState >= 2 && heroVideo.duration) {
+            if (heroVideo.readyState >= 3 && heroVideo.duration) {
               heroVideo.currentTime = progress * heroVideo.duration
             }
           }
@@ -312,7 +315,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             end:   HERO_PIN_SCROLL,
             pin:   true,
             pinSpacing: true,
-            scrub: true,
+            // Numeric scrub = GSAP smooths scroll → progress over N seconds,
+            // so onUpdate fires uniformly via rAF instead of every wheel tick.
+            // This is the single biggest fix for scrub-video stutter.
+            scrub: 0.5,
             onUpdate: self => scrub(self.progress),
           })
           return () => { heroVideo.pause() }
