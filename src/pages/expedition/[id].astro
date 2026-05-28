@@ -815,30 +815,60 @@ for (const block of storyProcessed) {
         let activeImg = imgA
         let inactiveImg = imgB
 
+        // Shared helper — combine centering translate with an optional
+        // scale and x-offset so all transforms stay in one declaration.
+        const setTransform = (img, { scale = 1, x = 0 } = {}) => {
+          img.style.transform = `translate(calc(-50% + ${x}px), -50%) scale(${scale})`
+        }
+        const resetTransform = img => setTransform(img)
+
         function open(idx) {
           current = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
           lb.hidden = false
           document.body.style.overflow = 'hidden'
           inactiveImg.style.opacity = '0'
-          // Keep hidden until loaded — prevents blank overlay on slow connections
           activeImg.style.opacity = '0'
           activeImg.src = lightboxImages[current].src
           activeImg.alt = lightboxImages[current].alt
-          const showActive = () => { activeImg.style.opacity = '1' }
+
+          if (!prefersReducedMotion) setTransform(activeImg, { scale: 1.06 })
+
+          const showActive = () => {
+            // Force reflow so the start-state transform is painted before
+            // the transition begins — without this the scale jump is skipped.
+            activeImg.offsetHeight
+            activeImg.style.opacity = '1'
+            if (!prefersReducedMotion) resetTransform(activeImg)
+          }
           if (activeImg.complete && activeImg.naturalWidth > 0) showActive()
           else activeImg.onload = showActive
+
           updateMeta()
           lb.focus()
           document.addEventListener('keydown', onKey)
         }
 
         function close() {
-          lb.hidden = true
-          document.body.style.overflow = ''
-          document.removeEventListener('keydown', onKey)
+          if (prefersReducedMotion) {
+            lb.hidden = true
+            document.body.style.overflow = ''
+            document.removeEventListener('keydown', onKey)
+            return
+          }
+          // Image scales slightly out as it fades — feels like releasing
+          activeImg.style.opacity = '0'
+          setTransform(activeImg, { scale: 1.04 })
+          setTimeout(() => {
+            lb.hidden = true
+            document.body.style.overflow = ''
+            resetTransform(activeImg)
+            resetTransform(inactiveImg)
+            document.removeEventListener('keydown', onKey)
+          }, 230)
         }
 
-        function goTo(idx) {
+        // dir: 1 = forward (next), -1 = backward (prev)
+        function goTo(idx, dir = 1) {
           const next = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
           if (next === current) return
           current = next
@@ -856,15 +886,22 @@ for (const block of storyProcessed) {
           inactiveImg.src = img.src
           inactiveImg.alt = img.alt
           inactiveImg.style.opacity = '0'
+          // New image starts offset in the direction of travel
+          setTransform(inactiveImg, { x: dir * 22, scale: 0.97 })
 
           const doSwap = () => {
+            inactiveImg.offsetHeight  // force reflow before transition
+            // New image slides to centre; old image exits the opposite side
             inactiveImg.style.opacity = '1'
-            activeImg.style.opacity   = '0'
-            // After the CSS transition completes, swap slot references.
-            // Do NOT touch src or opacity here — that was causing the flash.
+            resetTransform(inactiveImg)
+            activeImg.style.opacity = '0'
+            setTransform(activeImg, { x: dir * -22, scale: 0.97 })
             setTimeout(() => {
               ;[activeImg, inactiveImg] = [inactiveImg, activeImg]
-            }, 250)
+              // Reset the newly-inactive slot for the next navigation
+              inactiveImg.style.opacity = '0'
+              resetTransform(inactiveImg)
+            }, 260)
           }
 
           if (inactiveImg.complete && inactiveImg.naturalWidth > 0) doSwap()
@@ -894,15 +931,15 @@ for (const block of storyProcessed) {
 
         function onKey(e) {
           if (e.key === 'Escape')     { close(); return }
-          if (e.key === 'ArrowRight') goTo(current + 1)
-          if (e.key === 'ArrowLeft')  goTo(current - 1)
+          if (e.key === 'ArrowRight') goTo(current + 1,  1)
+          if (e.key === 'ArrowLeft')  goTo(current - 1, -1)
         }
 
         let touchStartX = 0
         lb.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX }, { passive: true })
         lb.addEventListener('touchend', e => {
           const dx = e.changedTouches[0].clientX - touchStartX
-          if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1)
+          if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1, 1) : goTo(current - 1, -1)
         }, { passive: true })
 
         document.querySelectorAll('.lb-trigger').forEach(el => {
@@ -913,8 +950,8 @@ for (const block of storyProcessed) {
         })
 
         closeBtn?.addEventListener('click', close)
-        prevBtn?.addEventListener('click', () => goTo(current - 1))
-        nextBtn?.addEventListener('click', () => goTo(current + 1))
+        prevBtn?.addEventListener('click', () => goTo(current - 1, -1))
+        nextBtn?.addEventListener('click', () => goTo(current + 1,  1))
 
         lb.addEventListener('click', e => {
           if (e.target === lb || e.target === bg) close()

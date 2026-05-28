@@ -1802,7 +1802,8 @@ nav {
   object-fit: contain;
   display: block;
   pointer-events: auto;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .lightbox-img-b {
   /* Inherits position/centering from .lightbox-img */
@@ -1875,8 +1876,8 @@ nav {
   .lightbox-close { top: 1rem; right: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lightbox-img  { transition: none; }
-  .lightbox-bg   { transition: none; }
+  .lightbox-img { transition: none; }
+  .lightbox-bg  { transition: none; }
 }
 
 /* ─── Elevation profile sidebar ─── */
