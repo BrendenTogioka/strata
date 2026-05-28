@@ -392,6 +392,7 @@ nav {
   align-items: center;
   justify-content: flex-start;
   padding-left: 4vw;
+  padding-right: 4vw;
   border-left: 1px solid rgba(240, 226, 206, 0.06);
   transition: background 0.4s var(--ease-expo);
 }
