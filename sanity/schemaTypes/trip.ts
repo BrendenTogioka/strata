@@ -393,15 +393,25 @@ export default defineType({
 
   preview: {
     select: {
-      pageTitle: 'pageTitle',
-      tripDate:  'tripDate',
-      media:     'heroImage',
+      pageTitle:     'pageTitle',
+      tripDate:      'tripDate',
+      featured:      'featured',
+      featureOrder:  'featureOrder',
+      featureLayout: 'featureLayout',
+      media:         'heroImage',
     },
-    prepare({ pageTitle, tripDate, media }: { pageTitle?: string[]; tripDate: string; media: unknown }) {
+    prepare({ pageTitle, tripDate, featured, featureOrder, featureLayout, media }: {
+      pageTitle?: string[]; tripDate: string;
+      featured?: boolean; featureOrder?: number; featureLayout?: string;
+      media: unknown;
+    }) {
       const year = tripDate ? new Date(tripDate).getFullYear() : '—'
+      const tag  = featured
+        ? `★ feat #${featureOrder ?? '—'} · ${featureLayout ?? '—'}`
+        : ''
       return {
         title:    Array.isArray(pageTitle) ? pageTitle.join(' ') : '—',
-        subtitle: String(year),
+        subtitle: tag ? `${year} · ${tag}` : String(year),
         media,
       }
     },

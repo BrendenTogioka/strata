@@ -30,6 +30,18 @@ export default defineConfig({
                   .filter('_type == "trip"')
                   .defaultOrdering([{ field: 'tripDate', direction: 'desc' }])
               ),
+            // Curated homepage features — shows current home-page order at a glance
+            S.listItem()
+              .title('Featured (homepage order)')
+              .icon(() => '★')
+              .schemaType('trip')
+              .child(
+                S.documentList()
+                  .title('Featured trips')
+                  .schemaType('trip')
+                  .filter('_type == "trip" && featured == true')
+                  .defaultOrdering([{ field: 'featureOrder', direction: 'asc' }])
+              ),
           ]),
     }),
     // Vision: GROQ query sandbox — remove in production if desired
