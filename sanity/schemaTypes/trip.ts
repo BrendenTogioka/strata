@@ -112,6 +112,69 @@ export default defineType({
       description: 'Auto-derived from GPX when present. Override here for trips without GPS data. Values in feet, 10–20 points.',
     }),
 
+    // ── Field Intelligence & Conditions ────────────────────────────────────
+    defineField({
+      name: 'fieldIntel',
+      title: 'Field Intelligence',
+      type: 'array',
+      description: 'Key-value rows shown in the Field Intelligence panel (permit status, difficulty, water source, etc.).',
+      of: [{
+        type: 'object',
+        name: 'intelRow',
+        title: 'Row',
+        fields: [
+          defineField({ name: 'key',   title: 'Label', type: 'string', validation: Rule => Rule.required() }),
+          defineField({ name: 'value', title: 'Value', type: 'string', validation: Rule => Rule.required() }),
+          defineField({
+            name: 'status',
+            title: 'Status colour',
+            type: 'string',
+            description: 'Optional colour applied to the value',
+            options: {
+              list: [
+                { title: 'Neutral',         value: ''     },
+                { title: 'Good (green)',     value: 'good' },
+                { title: 'Warning (orange)', value: 'warn' },
+              ],
+              layout: 'radio',
+            },
+            initialValue: '',
+          }),
+        ],
+        preview: {
+          select: { key: 'key', value: 'value', status: 'status' },
+          prepare({ key, value, status }: { key: string; value: string; status: string }) {
+            const dot = status === 'good' ? '● ' : status === 'warn' ? '⚠ ' : '· '
+            return { title: `${dot}${key}: ${value}` }
+          },
+        },
+      }],
+    }),
+
+    defineField({
+      name: 'conditions',
+      title: 'Conditions at time of visit',
+      type: 'array',
+      description: 'Items in the conditions strip shown below the intro (temperature, weather, snowpack, etc.).',
+      of: [{
+        type: 'object',
+        name: 'conditionItem',
+        title: 'Condition',
+        fields: [
+          defineField({ name: 'icon',    title: 'Icon (emoji)', type: 'string', description: 'e.g. 🌡 ☁️ ☀️ ❄️' }),
+          defineField({ name: 'label',   title: 'Label',        type: 'string', description: 'e.g. Temperature', validation: Rule => Rule.required() }),
+          defineField({ name: 'value',   title: 'Value',        type: 'string', description: 'e.g. -25C',        validation: Rule => Rule.required() }),
+          defineField({ name: 'subtext', title: 'Sub-label',    type: 'string', description: 'e.g. avg daytime low' }),
+        ],
+        preview: {
+          select: { label: 'label', value: 'value', icon: 'icon' },
+          prepare({ label, value, icon }: { label: string; value: string; icon: string }) {
+            return { title: `${icon ?? ''} ${label}: ${value}`.trim() }
+          },
+        },
+      }],
+    }),
+
     // ── Classification ──────────────────────────────────────────────────
     defineField({
       name: 'category',
@@ -272,17 +335,33 @@ export default defineType({
               type: 'string',
               options: {
                 list: [
-                  { title: 'Paragraph',  value: 'text'     },
-                  { title: 'Pull quote', value: 'quote'    },
-                  { title: 'Callout',    value: 'callout'  },
-                  { title: 'Image',      value: 'image'    },
-                  { title: 'Gallery',    value: 'gallery'  },
-                  { title: 'Video',      value: 'video'    },
-                  { title: 'Divider',    value: 'divider'  },
+                  { title: 'Paragraph',  value: 'text'      },
+                  { title: 'Pull quote', value: 'quote'     },
+                  { title: 'Callout',    value: 'callout'   },
+                  { title: 'Image',      value: 'image'     },
+                  { title: 'Gallery',    value: 'gallery'   },
+                  { title: 'Video',      value: 'video'     },
+                  { title: 'Divider',    value: 'divider'   },
+                  { title: 'Day Entry',  value: 'dayEntry'  },
+                  { title: 'Hindsight',  value: 'hindsight' },
                 ],
                 layout: 'radio',
               },
               validation: Rule => Rule.required(),
+            }),
+
+            // Day entry title
+            defineField({
+              name: 'dayTitle',
+              title: 'Day title',
+              type: 'string',
+              description: 'e.g. "The Approach" or "Summit Ridge"',
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'dayEntry',
+              validation: Rule => Rule.custom((val, ctx) => {
+                const type = (ctx.parent as { type?: string } | undefined)?.type
+                if (type === 'dayEntry' && !val) return 'Required'
+                return true
+              }),
             }),
 
             // Rich text — paragraph blocks (Portable Text)
@@ -290,10 +369,10 @@ export default defineType({
               name: 'richText',
               title: 'Text',
               type: 'array',
-              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'text',
+              hidden: ({ parent }: { parent?: { type?: string } }) => !['text', 'hindsight'].includes(parent?.type ?? ''),
               validation: Rule => Rule.custom((val, ctx) => {
                 const type = (ctx.parent as { type?: string } | undefined)?.type
-                if (type === 'text' && (!val || (Array.isArray(val) && val.length === 0))) return 'Required'
+                if (['text', 'hindsight'].includes(type ?? '') && (!val || (Array.isArray(val) && val.length === 0))) return 'Required'
                 return true
               }),
               of: [
@@ -362,12 +441,12 @@ export default defineType({
               ],
             }),
 
-            // Gallery — 2–4 images shown in a grid row
+            // Gallery — 2–4 images shown in a grid row or full-bleed strip
             defineField({
               name: 'images',
               title: 'Images',
               type: 'array',
-              description: '2–4 images render as a grid row',
+              description: '2–4 images for grid; 3 images recommended for strip',
               of: [{
                 type: 'image',
                 options: { hotspot: true },
@@ -376,6 +455,21 @@ export default defineType({
                   defineField({ name: 'caption', title: 'Caption',  type: 'string' }),
                 ],
               }],
+              hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'gallery',
+            }),
+
+            defineField({
+              name: 'layout',
+              title: 'Gallery layout',
+              type: 'string',
+              options: {
+                list: [
+                  { title: 'Grid (default)',             value: 'grid'  },
+                  { title: 'Strip (full-width, 3-up)',   value: 'strip' },
+                ],
+                layout: 'radio',
+              },
+              initialValue: 'grid',
               hidden: ({ parent }: { parent?: { type?: string } }) => parent?.type !== 'gallery',
             }),
 
@@ -390,16 +484,18 @@ export default defineType({
           ],
 
           preview: {
-            select: { type: 'type', content: 'content', richText: 'richText', media: 'image' },
-            prepare({ type, content, richText, media }: { type: string; content: string; richText?: any[]; media: unknown }) {
+            select: { type: 'type', content: 'content', richText: 'richText', media: 'image', dayTitle: 'dayTitle' },
+            prepare({ type, content, richText, media, dayTitle }: { type: string; content: string; richText?: any[]; media: unknown; dayTitle?: string }) {
               const labels: Record<string, string> = {
                 text: '¶', quote: '❝', callout: '◆', image: '🖼', gallery: '▦', video: '▶', divider: '—',
+                dayEntry: '▷', hindsight: '↺',
               }
-              if (type === 'image')   return { title: '🖼 Image', media }
-              if (type === 'gallery') return { title: '▦ Gallery' }
-              if (type === 'video')   return { title: '▶ Video' }
-              if (type === 'divider') return { title: '— Divider' }
-              // Paragraphs store Portable Text — pull the first block's plain text
+              if (type === 'image')    return { title: '🖼 Image', media }
+              if (type === 'gallery')  return { title: '▦ Gallery' }
+              if (type === 'video')    return { title: '▶ Video' }
+              if (type === 'divider')  return { title: '— Divider' }
+              if (type === 'dayEntry') return { title: `▷ ${dayTitle ?? 'Day Entry'}` }
+              if (type === 'hindsight') return { title: `↺ What We'd Do Differently` }
               const fromRichText = richText
                 ?.find(b => b._type === 'block')
                 ?.children?.map((c: any) => c.text).join('') ?? ''

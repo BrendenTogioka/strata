@@ -21,6 +21,8 @@ const TRIP_FIELDS = `
   "cardVideoUrl":  cardVideo.secure_url,
   "routeGpxUrl":   routeGpx.asset->url,
   elevationPoints,
+  fieldIntel[] { key, value, status },
+  conditions[] { icon, label, value, subtext },
   featured,
   featureLayout,
   "featureBlurb": coalesce(featureBlurb, description),
@@ -28,10 +30,13 @@ const TRIP_FIELDS = `
   orderRank,
   storyTitle,
   story[] {
+    _key,
     type,
     content,
     richText,
     url,
+    dayTitle,
+    layout,
     image {
       ..., alt, caption,
       "dims": asset->metadata.dimensions,

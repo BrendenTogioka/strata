@@ -4,8 +4,6 @@ import { toHTML } from '@portabletext/to-html'
 import { client, urlFor, sanityImgSrcset } from '../../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../../lib/queries'
 
-// Portable Text → HTML for story paragraphs. Defaults cover h2/h3/blockquote,
-// bullet/numbered lists, bold/italic/code; we add underline, strike, and links.
 const ptComponents = {
   marks: {
     underline:       ({ children }: any) => `<span class="pt-u">${children}</span>`,
@@ -28,17 +26,13 @@ export async function getStaticPaths() {
 
 const { trip, trips: allTrips } = Astro.props
 
-// SEO: the descriptive "Trip title" (storyTitle) is the page H1 when present;
-// the big stacked hero title then becomes a non-heading display element. With
-// no storyTitle, the hero title is the H1 — so there's always exactly one.
 const HeroTitleTag = trip.storyTitle ? 'p' : 'h1'
 
-// Position in the date-sorted array → display number
 const tripIndex   = allTrips.findIndex((t: any) => t.id === trip.id)
 const nextIndex   = (tripIndex + 1) % allTrips.length
 const nextTrip    = allTrips[nextIndex]
 
-// Resolve image URLs at build time
+// Hero image URLs
 const heroUrl    = trip.heroImage
   ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
   : ''
@@ -48,8 +42,6 @@ const heroSrcset = trip.heroImage
 const ogUrl = trip.heroImage
   ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
   : ''
-
-// og:image dimensions — scale hero to 1200px wide preserving aspect ratio
 const ogImageWidth  = trip.heroImage?.dims ? 1200 : undefined
 const ogImageHeight = trip.heroImage?.dims
   ? Math.round(1200 / trip.heroImage.dims.width * trip.heroImage.dims.height)
@@ -86,6 +78,7 @@ const jsonLd = JSON.stringify({
   ],
 })
 
+// Next expedition
 const nextUrl     = nextTrip?.heroImage
   ? urlFor(nextTrip.heroImage).width(800).quality(85).format('webp').url()
   : ''
@@ -118,7 +111,6 @@ function placeholderElevation(seed: string, points = 14, base = 1000): number[] 
   return Array.from({ length: points }, () => Math.round(base + base * 0.05 * (rand() * 2 - 1)))
 }
 
-// Resolve elevation points: GPX → manual → seeded placeholder
 let elevPoints: number[] = []
 if (trip.routeGpxUrl) {
   elevPoints = await parseGpxElevation(trip.routeGpxUrl)
@@ -130,32 +122,105 @@ if (elevPoints.length < 2) {
   elevPoints = placeholderElevation(trip.id)
 }
 
-// Normalise to SVG coords — viewBox="0 0 36 160"
-// Y axis = reading progress (top → article start, bottom → end)
-// X axis = elevation deflection (left=low, right=high)
 const elMin   = Math.min(...elevPoints)
 const elMax   = Math.max(...elevPoints)
 const elRange = elMax - elMin || 1
-const svgXPad = 4    // left/right padding within the 36px width
-const svgXW   = 28   // usable width for elevation deflection
-const svgYPad = 8    // top/bottom padding
-const svgYH   = 144  // usable height = 160 - 2*8
+const svgXPad = 4
+const svgXW   = 28
+const svgYPad = 8
+const svgYH   = 144
 
 const svgPoints = elevPoints.map((e, i) => {
   const x = svgXPad + ((e - elMin) / elRange) * svgXW
   const y = svgYPad + (i / (elevPoints.length - 1)) * svgYH
   return { x: parseFloat(x.toFixed(1)), y: parseFloat(y.toFixed(1)) }
 })
-const pointsStr = svgPoints.map(p => `${p.x},${p.y}`).join(' ')
-
-// Fill polygon: polyline + close down to the right edge
-const fillPoints = pointsStr
-  + ` ${svgXPad},${svgYPad + svgYH} ${svgXPad},${svgYPad}`
-
-// Starting dot sits at the first point
+const pointsStr  = svgPoints.map(p => `${p.x},${p.y}`).join(' ')
+const fillPoints = pointsStr + ` ${svgXPad},${svgYPad + svgYH} ${svgXPad},${svgYPad}`
 const firstX = svgPoints[0].x
 const firstY = svgPoints[0].y
 
+// ── Horizontal elevation strip (mobile bottom bar) ───────────────────────────
+// X-axis = reading progress (left → right), Y-axis = elevation (top = high)
+const stripW = 400, stripH = 40
+const stripXPad = 8, stripYPad = 5
+const stripXUsable = stripW - 2 * stripXPad
+const stripYUsable = stripH - 2 * stripYPad
+
+const svgStripPoints = elevPoints.map((e, i) => ({
+  x: parseFloat((stripXPad + (i / (elevPoints.length - 1)) * stripXUsable).toFixed(1)),
+  y: parseFloat((stripYPad + (1 - (e - elMin) / elRange) * stripYUsable).toFixed(1)),
+}))
+const stripPointsStr  = svgStripPoints.map(p => `${p.x},${p.y}`).join(' ')
+const stripFillPoints = stripPointsStr + ` ${stripXPad + stripXUsable},${stripH - stripYPad} ${stripXPad},${stripH - stripYPad}`
+const stripFirstX = svgStripPoints[0].x
+const stripFirstY = svgStripPoints[0].y
+
+// ── Route map SVG (from GPX lat/lon or placeholder) ──────────────────────────
+async function parseGpxRoute(gpxUrl: string): Promise<{lat: number; lon: number}[]> {
+  try {
+    const xml = await fetch(gpxUrl).then(r => r.text())
+    const matches = [...xml.matchAll(/<trkpt[^>]+lat="([\d.-]+)"[^>]+lon="([\d.-]+)"/g)]
+    if (matches.length === 0) return []
+    const step = Math.max(1, Math.floor(matches.length / 40))
+    return matches
+      .filter((_, i) => i % step === 0)
+      .slice(0, 40)
+      .map(m => ({ lat: parseFloat(m[1]), lon: parseFloat(m[2]) }))
+  } catch {
+    return []
+  }
+}
+
+const mapW = 800, mapH = 260, mapPad = 32
+let routeSvgPath  = ''
+let routeStartPt: {x: number; y: number} | null = null
+let routeEndPt:   {x: number; y: number} | null = null
+
+if (trip.routeGpxUrl) {
+  const routePoints = await parseGpxRoute(trip.routeGpxUrl)
+  if (routePoints.length >= 2) {
+    const lats = routePoints.map(p => p.lat)
+    const lons = routePoints.map(p => p.lon)
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats)
+    const minLon = Math.min(...lons), maxLon = Math.max(...lons)
+    const lonRange = maxLon - minLon || 0.001
+    const latRange = maxLat - minLat || 0.001
+    const usableW  = mapW - 2 * mapPad
+    const usableH  = mapH - 2 * mapPad
+    const pts = routePoints.map(p => ({
+      x: mapPad + ((p.lon - minLon) / lonRange) * usableW,
+      y: mapPad + ((maxLat - p.lat) / latRange) * usableH,
+    }))
+    routeSvgPath = 'M ' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')
+    routeStartPt = pts[0]
+    routeEndPt   = pts[pts.length - 1]
+  }
+}
+
+// ── Story pre-processing ─────────────────────────────────────────────────────
+// Assign day numbers to dayEntry blocks; collect TOC list
+let dayCounter = 0
+const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
+  if (block.type === 'dayEntry') {
+    dayCounter++
+    return { ...block, _dayNum: dayCounter }
+  }
+  return block
+})
+
+const dayEntries = storyProcessed
+  .filter(b => b.type === 'dayEntry')
+  .map(b => ({
+    num:   String(b._dayNum).padStart(2, '0'),
+    title: b.dayTitle ?? `Day ${b._dayNum}`,
+    id:    `day-${b._dayNum}`,
+  }))
+
+const hasFieldIntel = trip.fieldIntel?.length > 0
+const hasSidebar    = dayEntries.length > 0
+
+// ── Video embed helper ───────────────────────────────────────────────────────
 function getEmbedUrl(url: string): string {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
   if (yt) return `https://www.youtube.com/embed/${yt[1]}`
@@ -164,20 +229,18 @@ function getEmbedUrl(url: string): string {
   return url
 }
 
-// ── Lightbox image list ─────────────────────────────────────────────────────
-// Collect all story images in order so the lightbox can navigate the full set.
+// ── Lightbox image list ──────────────────────────────────────────────────────
 interface LightboxImage {
-  src:     string   // full-res URL for lightbox display
+  src:     string
   alt:     string
   caption: string
-  palette: string   // dominant colour for ambient background tint
+  palette: string
 }
 
 const lightboxImages: LightboxImage[] = []
-// Map from Sanity _key → lightbox index, used to set data-lightbox-idx in the template
 const lbByKey = new Map<string, number>()
 
-for (const block of (trip.story ?? [])) {
+for (const block of storyProcessed) {
   if (block.type === 'image' && block.image) {
     lbByKey.set(block._key, lightboxImages.length)
     lightboxImages.push({
@@ -186,7 +249,7 @@ for (const block of (trip.story ?? [])) {
       caption: block.image.caption ?? '',
       palette: block.image.palette?.vibrant?.background ?? '',
     })
-  } else if (block.type === 'gallery' && block.images?.length) {
+  } else if ((block.type === 'gallery' || block.type === 'strip') && block.images?.length) {
     for (const img of block.images) {
       lbByKey.set(img._key, lightboxImages.length)
       lightboxImages.push({
@@ -221,7 +284,7 @@ for (const block of (trip.story ?? [])) {
       <span>All Expeditions</span>
     </a>
 
-    <!-- Hero -->
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
     <section class="trip-hero">
       <div class="trip-hero-img-wrap" style={`background-color:${trip.accentColor}`}>
         <img
@@ -283,83 +346,278 @@ for (const block of (trip.story ?? [])) {
       </div>
     </section>
 
-    <!-- Story -->
-    <section class="trip-story">
-      {trip.storyTitle && (
-        <h1 class="trip-story-title">{trip.storyTitle}</h1>
+    <!-- ── Intro + Field Intelligence ───────────────────────────────────── -->
+    <div class="trip-wide-wrap">
+      <section class={`trip-intro${hasFieldIntel ? '' : ' trip-intro--full'}`}>
+
+        <div class="trip-intro-text story-block">
+          <div class="trip-intro-eyebrow">The Expedition</div>
+          {trip.storyTitle
+            ? <h1 class="trip-intro-heading">{trip.storyTitle}</h1>
+            : null
+          }
+          {trip.description && (
+            <p class="trip-intro-body">{trip.description}</p>
+          )}
+        </div>
+
+        {hasFieldIntel && (
+          <aside class="trip-field-intel story-block">
+            <div class="field-intel-title">Field Intelligence</div>
+
+            {(trip.fieldIntel ?? []).map((row: any) => (
+              <div class="intel-row">
+                <span class="intel-key">{row.key}</span>
+                <span class={`intel-val${row.status ? ` intel-val--${row.status}` : ''}`}>
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </aside>
+        )}
+      </section>
+
+      <!-- ── Conditions strip ──────────────────────────────────────────── -->
+      {trip.conditions?.length > 0 && (
+        <div class="trip-conditions story-block">
+          {trip.conditions.map((c: any) => (
+            <div class="condition-item">
+              {c.icon && <div class="condition-icon">{c.icon}</div>}
+              <div class="condition-label">{c.label}</div>
+              <div class="condition-value">{c.value}</div>
+              {c.subtext && <div class="condition-sub">{c.subtext}</div>}
+            </div>
+          ))}
+        </div>
       )}
-      <div class="trip-story-inner">
-        {trip.story.map((block: { type: string; content?: string; richText?: any[]; image?: any; images?: any[]; url?: string }) =>
-          block.type === 'divider' ? (
-            <div class="story-block story-divider" role="separator">
-              <span class="story-divider-mark">✦</span>
-            </div>
-          ) : block.type === 'callout' ? (
-            <div class="story-block story-callout">
-              {block.content}
-            </div>
-          ) : block.type === 'image' && block.image ? (
-            <figure class="story-block story-img lb-trigger" data-lightbox-idx={lbByKey.get(block._key) ?? -1}>
-              <img
-                src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
-                srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
-                sizes="(max-width: 768px) 100vw, 860px"
-                width={block.image.dims?.width}
-                height={block.image.dims?.height}
-                alt={block.image.alt ?? ''}
-                loading="lazy"
-                decoding="async"
-              />
-              {block.image.caption && (
-                <figcaption class="story-caption">{block.image.caption}</figcaption>
-              )}
-            </figure>
-          ) : block.type === 'gallery' && block.images?.length ? (
-            <div class="story-block story-gallery" style={`--cols:${Math.min(block.images.length, 4)}`}>
-              {block.images.map((img: any) => (
-                <figure class="story-gallery-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
+
+      <!-- ── Route map ─────────────────────────────────────────────────── -->
+      <div class="trip-map-section story-block">
+        <div class="trip-map-eyebrow">Route</div>
+        <div class="trip-map-placeholder">
+          <svg
+            class="trip-map-svg"
+            viewBox={`0 0 ${mapW} ${mapH}`}
+            preserveAspectRatio="xMidYMid slice"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            {routeSvgPath ? (
+              <>
+                <!-- GPX-derived route -->
+                <path
+                  class="map-route-path"
+                  d={routeSvgPath}
+                  fill="none"
+                  stroke="rgba(192,72,32,0.65)"
+                  stroke-width="2"
+                  stroke-dasharray="6 4"
+                  stroke-linecap="round"
+                />
+                {routeStartPt && (
+                  <circle class="map-route-dot" cx={routeStartPt.x} cy={routeStartPt.y} r="5" fill="var(--rust)" />
+                )}
+                {routeEndPt && (
+                  <circle class="map-route-dot" cx={routeEndPt.x} cy={routeEndPt.y} r="5" fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
+                )}
+              </>
+            ) : (
+              <>
+                <!-- Stylised topo placeholder -->
+                <ellipse class="map-topo-ring" cx="280" cy="140" rx="210" ry="95"  fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="280" cy="140" rx="165" ry="72"  fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="280" cy="140" rx="122" ry="52"  fill="none" stroke="rgba(168,191,201,0.04)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="600" cy="130" rx="185" ry="85"  fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
+                <ellipse class="map-topo-ring" cx="600" cy="130" rx="140" ry="62"  fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
+                <path
+                  class="map-route-path"
+                  d="M 100 210 C 160 200, 200 175, 265 162 S 370 148, 430 152 S 550 144, 610 132 S 710 120, 750 125"
+                  fill="none"
+                  stroke="rgba(192,72,32,0.6)"
+                  stroke-width="2"
+                  stroke-dasharray="6 4"
+                  stroke-linecap="round"
+                />
+                <circle class="map-route-dot" cx="100"  cy="210" r="5"  fill="var(--rust)" />
+                <circle class="map-route-dot" cx="750"  cy="125" r="5"  fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
+                <circle class="map-route-dot" cx="380"  cy="150" r="3.5" fill="rgba(192,72,32,0.7)" />
+                <circle class="map-route-dot" cx="615"  cy="134" r="3.5" fill="rgba(192,72,32,0.7)" />
+              </>
+            )}
+          </svg>
+
+          <div class="trip-map-coords">
+            <span class="trip-map-pin"></span>
+            {trip.coords}
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Field Journal + TOC sidebar ──────────────────────────────── -->
+      <section class={`trip-journal${hasSidebar ? '' : ' trip-journal--no-sidebar'}`}>
+
+        <div class="journal-entries">
+          <div class="trip-journal-eyebrow">Field Journal</div>
+          <div class="trip-story-inner">
+
+            {storyProcessed.map((block: any) => {
+
+              // ── Day Entry header ──────────────────────────────────────
+              if (block.type === 'dayEntry') return (
+                <div class="story-block day-entry" id={`day-${block._dayNum}`}>
+                  <div class="day-header">
+                    <div class="day-number">{String(block._dayNum).padStart(2, '0')}</div>
+                    <div class="day-meta">
+                      <span class="day-label">Day {block._dayNum}</span>
+                      <span class="day-entry-title">{block.dayTitle}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+
+              // ── Hindsight ─────────────────────────────────────────────
+              if (block.type === 'hindsight') return (
+                <div class="story-block trip-hindsight">
+                  <div class="hindsight-label">What We'd Do Differently</div>
+                  {block.richText?.length ? (
+                    <div class="hindsight-body trip-paragraph" set:html={toHTML(block.richText, { components: ptComponents })} />
+                  ) : block.content ? (
+                    <p class="hindsight-body">{block.content}</p>
+                  ) : null}
+                </div>
+              )
+
+              // ── Story divider ─────────────────────────────────────────
+              if (block.type === 'divider') return (
+                <div class="story-block story-divider" role="separator">
+                  <span class="story-divider-mark">✦</span>
+                </div>
+              )
+
+              // ── Callout ───────────────────────────────────────────────
+              if (block.type === 'callout') return (
+                <div class="story-block story-callout">
+                  {block.content}
+                </div>
+              )
+
+              // ── Single image ──────────────────────────────────────────
+              if (block.type === 'image' && block.image) return (
+                <figure class="story-block story-img lb-trigger" data-lightbox-idx={lbByKey.get(block._key) ?? -1}>
                   <img
-                    src={urlFor(img).width(800).quality(85).format('webp').url()}
-                    srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
-                    sizes="(max-width: 768px) 100vw, 25vw"
-                    width={img.dims?.width}
-                    height={img.dims?.height}
-                    alt={img.alt ?? ''}
+                    src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
+                    srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
+                    sizes="(max-width: 768px) 100vw, 860px"
+                    width={block.image.dims?.width}
+                    height={block.image.dims?.height}
+                    alt={block.image.alt ?? ''}
                     loading="lazy"
                     decoding="async"
                   />
-                  {img.caption && <figcaption class="story-caption">{img.caption}</figcaption>}
+                  {block.image.caption && (
+                    <figcaption class="story-caption">{block.image.caption}</figcaption>
+                  )}
                 </figure>
+              )
+
+              // ── Photo strip (gallery with layout=strip) ───────────────
+              if (block.type === 'gallery' && block.layout === 'strip' && block.images?.length) return (
+                <div class="story-block story-strip">
+                  {block.images.map((img: any) => (
+                    <figure class="story-strip-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
+                      <img
+                        src={urlFor(img).width(800).quality(85).format('webp').url()}
+                        srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        width={img.dims?.width}
+                        height={img.dims?.height}
+                        alt={img.alt ?? ''}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </figure>
+                  ))}
+                </div>
+              )
+
+              // ── Gallery grid ──────────────────────────────────────────
+              if (block.type === 'gallery' && block.images?.length) return (
+                <div class="story-block story-gallery" style={`--cols:${Math.min(block.images.length, 4)}`}>
+                  {block.images.map((img: any) => (
+                    <figure class="story-gallery-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
+                      <img
+                        src={urlFor(img).width(800).quality(85).format('webp').url()}
+                        srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
+                        sizes="(max-width: 768px) 100vw, 25vw"
+                        width={img.dims?.width}
+                        height={img.dims?.height}
+                        alt={img.alt ?? ''}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      {img.caption && <figcaption class="story-caption">{img.caption}</figcaption>}
+                    </figure>
+                  ))}
+                </div>
+              )
+
+              // ── Video ─────────────────────────────────────────────────
+              if (block.type === 'video' && block.url) return (
+                <div class="story-block story-video">
+                  <iframe
+                    src={getEmbedUrl(block.url)}
+                    title={`${trip.pageTitle?.join(' ')} — video`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  />
+                </div>
+              )
+
+              // ── Pull quote ────────────────────────────────────────────
+              if (block.type === 'quote') return (
+                <blockquote
+                  class="story-block trip-pull-quote"
+                  style={`--accent:${trip.accentColor}`}
+                >
+                  {block.content}
+                </blockquote>
+              )
+
+              // ── Text (Portable Text) ──────────────────────────────────
+              if (block.type === 'text' && block.richText?.length) return (
+                <div class="story-block trip-paragraph" set:html={toHTML(block.richText, { components: ptComponents })} />
+              )
+
+              // ── Plain text fallback ───────────────────────────────────
+              return (
+                <p class="story-block trip-paragraph">
+                  {block.content}
+                </p>
+              )
+            })}
+
+          </div>
+        </div>
+
+        <!-- TOC sidebar — only when day entries exist -->
+        {hasSidebar && (
+          <aside class="journal-sidebar">
+            <div class="journal-toc-note">
+              <div class="toc-note-label">In This Entry</div>
+              {dayEntries.map(d => (
+                <a href={`#${d.id}`} class="toc-item">
+                  <span class="toc-num">{d.num}</span>
+                  {d.title}
+                </a>
               ))}
             </div>
-          ) : block.type === 'video' && block.url ? (
-            <div class="story-block story-video">
-              <iframe
-                src={getEmbedUrl(block.url)}
-                title={`${trip.pageTitle?.join(' ')} — video`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-              />
-            </div>
-          ) : block.type === 'quote' ? (
-            <blockquote
-              class="story-block trip-pull-quote"
-              style={`--accent:${trip.accentColor}`}
-            >
-              {block.content}
-            </blockquote>
-          ) : block.type === 'text' && block.richText?.length ? (
-            <div class="story-block trip-paragraph" set:html={toHTML(block.richText, { components: ptComponents })} />
-          ) : (
-            <p class="story-block trip-paragraph">
-              {block.content}
-            </p>
-          )
+          </aside>
         )}
-      </div>
-    </section>
 
-    <!-- Next expedition -->
+      </section>
+    </div>
+
+    <!-- ── Next expedition ───────────────────────────────────────────────── -->
     {nextTrip && (
       <section class="trip-next">
         <div class="trip-next-label">Next Expedition</div>
@@ -404,7 +662,7 @@ for (const block of (trip.story ?? [])) {
 
   </div>
 
-  <!-- ── Elevation profile sidebar ────────────────────────────────────── -->
+  <!-- ── Elevation profile sidebar ──────────────────────────────────────── -->
   <aside
     class="elev-sidebar"
     aria-label="Elevation profile"
@@ -419,26 +677,15 @@ for (const block of (trip.story ?? [])) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <!-- Fill area -->
       <polygon points={fillPoints} class="elev-fill" />
-      <!-- Profile line -->
       <polyline points={pointsStr} class="elev-line" />
-      <!-- Min / max labels -->
       <text x="2" y={svgYPad + svgYH + 2} class="elev-label" dominant-baseline="hanging">
         {Math.round(elMin).toLocaleString()}
       </text>
       <text x="2" y={svgYPad - 2} class="elev-label" dominant-baseline="auto">
         {Math.round(elMax).toLocaleString()}
       </text>
-      <!-- Scrubber dot — position updated by scroll driver in BaseLayout -->
-      <circle
-        id="elev-dot"
-        cx={firstX}
-        cy={firstY}
-        r="3.5"
-        class="elev-dot"
-      />
-      <!-- Elevation readout label next to dot -->
+      <circle id="elev-dot" cx={firstX} cy={firstY} r="3.5" class="elev-dot" />
       <text id="elev-readout" x={firstX + 5} y={firstY} class="elev-readout" dominant-baseline="middle">
         {Math.round(elevPoints[0]).toLocaleString()} ft
       </text>
@@ -446,7 +693,26 @@ for (const block of (trip.story ?? [])) {
     <div class="elev-unit">ft</div>
   </aside>
 
-  <!-- ── Lightbox ──────────────────────────────────────────────────────── -->
+  <!-- ── Elevation strip (mobile) ─────────────────────────────────────────── -->
+  <div
+    class="elev-strip"
+    aria-hidden="true"
+    data-strip-points={JSON.stringify(svgStripPoints)}
+  >
+    <svg
+      class="elev-strip-svg"
+      viewBox={`0 0 ${stripW} ${stripH}`}
+      preserveAspectRatio="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <polygon points={stripFillPoints} class="elev-fill" />
+      <polyline points={stripPointsStr} class="elev-line" />
+      <circle id="elev-dot-h" cx={stripFirstX} cy={stripFirstY} r="4" class="elev-dot" />
+    </svg>
+  </div>
+
+  <!-- ── Lightbox ────────────────────────────────────────────────────────── -->
   {lightboxImages.length > 0 && (
     <>
       <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
@@ -465,7 +731,6 @@ for (const block of (trip.story ?? [])) {
       </div>
 
       <script define:vars={{ lightboxImages, accentColor: trip.accentColor }}>
-        // ── State ──────────────────────────────────────────────────────────
         let current = 0
         const lb        = document.getElementById('lightbox')
         const bg        = document.getElementById('lightbox-bg')
@@ -478,22 +743,19 @@ for (const block of (trip.story ?? [])) {
         const nextBtn   = document.getElementById('lightbox-next')
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        let activeImg = imgA   // A/B crossfade: one is "live", the other fades in
+        let activeImg = imgA
         let inactiveImg = imgB
 
-        // ── Open / close ───────────────────────────────────────────────────
         function open(idx) {
           current = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
           lb.hidden = false
           document.body.style.overflow = 'hidden'
-          // Set both images to avoid flash — A is current, B is empty
           activeImg.src = lightboxImages[current].src
           activeImg.alt = lightboxImages[current].alt
           activeImg.style.opacity = '1'
           inactiveImg.style.opacity = '0'
           updateMeta()
           lb.focus()
-          // Trap focus
           document.addEventListener('keydown', onKey)
         }
 
@@ -503,7 +765,6 @@ for (const block of (trip.story ?? [])) {
           document.removeEventListener('keydown', onKey)
         }
 
-        // ── Navigate ───────────────────────────────────────────────────────
         function goTo(idx) {
           const next = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
           if (next === current) return
@@ -517,15 +778,12 @@ for (const block of (trip.story ?? [])) {
             return
           }
 
-          // Crossfade: load next image into inactive slot, swap, fade
           inactiveImg.src = img.src
           inactiveImg.alt = img.alt
           inactiveImg.style.opacity = '0'
-
           inactiveImg.onload = () => {
             inactiveImg.style.opacity = '1'
             activeImg.style.opacity   = '0'
-            // After transition completes swap roles
             setTimeout(() => {
               activeImg.src   = img.src
               activeImg.style.opacity = '1'
@@ -533,20 +791,16 @@ for (const block of (trip.story ?? [])) {
               ;[activeImg, inactiveImg] = [inactiveImg, activeImg]
             }, 220)
           }
-
           updateMeta()
         }
 
         function updateMeta() {
           const img = lightboxImages[current]
-          // Caption
           if (captionEl) captionEl.textContent = img.caption || ''
-          // Counter — "03 / 08" style
           if (counterEl) {
             const pad = n => String(n).padStart(2, '0')
             counterEl.textContent = `${pad(current + 1)} / ${pad(lightboxImages.length)}`
           }
-          // Ambient background tint from image palette
           if (bg) {
             const colour = img.palette || accentColor || '#1A1410'
             bg.style.background = hexToRgba(colour, 0.22)
@@ -560,14 +814,12 @@ for (const block of (trip.story ?? [])) {
           return `rgba(${r},${g},${b},${alpha})`
         }
 
-        // ── Keyboard ───────────────────────────────────────────────────────
         function onKey(e) {
-          if (e.key === 'Escape')      { close(); return }
-          if (e.key === 'ArrowRight')  goTo(current + 1)
-          if (e.key === 'ArrowLeft')   goTo(current - 1)
+          if (e.key === 'Escape')     { close(); return }
+          if (e.key === 'ArrowRight') goTo(current + 1)
+          if (e.key === 'ArrowLeft')  goTo(current - 1)
         }
 
-        // ── Touch / swipe ──────────────────────────────────────────────────
         let touchStartX = 0
         lb.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX }, { passive: true })
         lb.addEventListener('touchend', e => {
@@ -575,7 +827,6 @@ for (const block of (trip.story ?? [])) {
           if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1)
         }, { passive: true })
 
-        // ── Wire up triggers ───────────────────────────────────────────────
         document.querySelectorAll('.lb-trigger').forEach(el => {
           el.addEventListener('click', () => {
             const idx = parseInt(el.dataset.lightboxIdx ?? '-1', 10)
@@ -587,7 +838,6 @@ for (const block of (trip.story ?? [])) {
         prevBtn?.addEventListener('click', () => goTo(current - 1))
         nextBtn?.addEventListener('click', () => goTo(current + 1))
 
-        // Click outside figure closes
         lb.addEventListener('click', e => {
           if (e.target === lb || e.target === bg) close()
         })

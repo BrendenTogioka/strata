@@ -242,6 +242,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         '.contact-footer', '.trip-stats-bar', '.back-btn', '.story-block',
         '.exp-card-num', '.exp-card-title', '.exp-card-meta',
         '.end-cap-rule', '.end-cap-eyebrow', '.end-cap-heading', '.end-cap-arrow-wrap',
+        '.trip-intro-eyebrow', '.trip-journal-eyebrow', '.trip-map-eyebrow',
       ], { opacity: 1, x: 0, y: 0 })
       gsap.set([
         '.hero-title .line', '.section-title .line', '.section-title .line-inner',
@@ -587,10 +588,27 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
     // ── Trip page ─────────────────────────────────────────────────────────
     if (document.querySelector('.trip-page')) {
-      // Scale the hero title to fit before the reveal animation, then again
-      // once the display font has loaded (web-font metrics differ from fallback)
       fitTripTitles()
       document.fonts?.ready.then(fitTripTitles)
+
+      // Hero parallax — image drifts as user scrolls through the hero
+      const tripHeroImg = document.querySelector<HTMLElement>('.trip-hero-img')
+      if (tripHeroImg && !reduceMotion()) {
+        gsap.fromTo(tripHeroImg,
+          { yPercent: -8, scale: 1.16 },
+          {
+            yPercent: 8,
+            scale:    1.16,
+            ease:     'none',
+            scrollTrigger: {
+              trigger: '.trip-hero',
+              start:   'top top',
+              end:     'bottom top',
+              scrub:   1,
+            },
+          }
+        )
+      }
 
       // Reset text states — hero image shows immediately (no CSS hiding it)
       gsap.set('.trip-title .line', { y: '110%' })
@@ -630,6 +648,39 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         })
       })
 
+      // ── Route map motion ────────────────────────────────────────────────
+      const mapSection = document.querySelector<HTMLElement>('.trip-map-section')
+      if (mapSection) {
+        // Subtle parallax: SVG drifts upward as the section scrolls past
+        gsap.to('.trip-map-svg', {
+          yPercent: -6, ease: 'none',
+          scrollTrigger: { trigger: mapSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        })
+
+        const routePath = document.querySelector<SVGPathElement>('.map-route-path')
+        if (routePath) {
+          // Path draw-on: traces the route as a solid line, then restores dashes
+          const pathLen = routePath.getTotalLength()
+          gsap.set(routePath, { strokeDasharray: pathLen, strokeDashoffset: pathLen })
+          gsap.to(routePath, {
+            strokeDashoffset: 0,
+            ease: 'power2.inOut',
+            duration: 2,
+            onComplete: () => gsap.set(routePath, { clearProps: 'strokeDasharray,strokeDashoffset' }),
+            scrollTrigger: { trigger: mapSection, start: 'top 72%', once: true },
+          })
+        }
+
+        // Topo contour rings stagger in (placeholder mode only)
+        const rings = gsap.utils.toArray<Element>('.map-topo-ring')
+        if (rings.length) {
+          gsap.from(rings, {
+            opacity: 0, stagger: 0.12, duration: 0.8, ease: 'power2.out',
+            scrollTrigger: { trigger: mapSection, start: 'top 72%', once: true },
+          })
+        }
+      }
+
       const nextCard = document.getElementById('next-trip-card')
       if (nextCard) {
         // Preload the destination's full-res hero on hover — gives the iris
@@ -660,16 +711,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
     // ── Elevation profile scroll driver ──────────────────────────────────
     const elevSidebar = document.querySelector<HTMLElement>('.elev-sidebar')
-    if (elevSidebar && !reduceMotion()) {
+    const elevStrip   = document.querySelector<HTMLElement>('.elev-strip')
+    if ((elevSidebar || elevStrip) && !reduceMotion()) {
       const elevDot     = document.getElementById('elev-dot')     as SVGCircleElement | null
       const elevReadout = document.getElementById('elev-readout') as SVGTextElement   | null
-      const rawPoints   = elevSidebar.dataset.points
-      const rawSvgPts   = elevSidebar.dataset.svgPoints
+      const elevDotH    = document.getElementById('elev-dot-h')   as SVGCircleElement | null
+      const rawPoints   = elevSidebar?.dataset.points
+      const rawSvgPts   = elevSidebar?.dataset.svgPoints
+      const rawStripPts = elevStrip?.dataset.stripPoints
 
-      if (elevDot && rawPoints && rawSvgPts) {
-        const elPoints  = JSON.parse(rawPoints)  as number[]
-        const svgPoints = JSON.parse(rawSvgPts)  as { x: number; y: number }[]
-        const n         = elPoints.length
+      if (rawPoints && rawSvgPts) {
+        const elPoints    = JSON.parse(rawPoints)  as number[]
+        const svgPoints   = JSON.parse(rawSvgPts)  as { x: number; y: number }[]
+        const stripPoints = rawStripPts ? JSON.parse(rawStripPts) as { x: number; y: number }[] : null
+        const n           = elPoints.length
 
         const updateDot = () => {
           const progress = window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight)
@@ -678,17 +733,27 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           const hi       = Math.min(lo + 1, n - 1)
           const frac     = t - lo
 
-          const cx   = svgPoints[lo].x + frac * (svgPoints[hi].x - svgPoints[lo].x)
-          const cy   = svgPoints[lo].y + frac * (svgPoints[hi].y - svgPoints[lo].y)
-          const elev = elPoints[lo]    + frac * (elPoints[hi]    - elPoints[lo])
+          const elev = elPoints[lo] + frac * (elPoints[hi] - elPoints[lo])
 
-          elevDot.setAttribute('cx', cx.toFixed(1))
-          elevDot.setAttribute('cy', cy.toFixed(1))
+          // Vertical sidebar dot
+          if (elevDot) {
+            const cx = svgPoints[lo].x + frac * (svgPoints[hi].x - svgPoints[lo].x)
+            const cy = svgPoints[lo].y + frac * (svgPoints[hi].y - svgPoints[lo].y)
+            elevDot.setAttribute('cx', cx.toFixed(1))
+            elevDot.setAttribute('cy', cy.toFixed(1))
+            if (elevReadout) {
+              elevReadout.setAttribute('x', (cx + 5).toFixed(1))
+              elevReadout.setAttribute('y', cy.toFixed(1))
+              elevReadout.textContent = `${Math.round(elev).toLocaleString()} ft`
+            }
+          }
 
-          if (elevReadout) {
-            elevReadout.setAttribute('x', (cx + 5).toFixed(1))
-            elevReadout.setAttribute('y', cy.toFixed(1))
-            elevReadout.textContent = `${Math.round(elev).toLocaleString()} ft`
+          // Horizontal strip dot
+          if (elevDotH && stripPoints) {
+            const cx = stripPoints[lo].x + frac * (stripPoints[hi].x - stripPoints[lo].x)
+            const cy = stripPoints[lo].y + frac * (stripPoints[hi].y - stripPoints[lo].y)
+            elevDotH.setAttribute('cx', cx.toFixed(1))
+            elevDotH.setAttribute('cy', cy.toFixed(1))
           }
         }
 
