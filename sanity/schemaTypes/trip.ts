@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { orderRankField, orderRankOrdering } from '@sanity/orderable-document-list'
 
 export default defineType({
   name: 'trip',
@@ -6,6 +7,9 @@ export default defineType({
   type: 'document',
 
   fields: [
+    // Hidden rank used by the orderable Featured list (drag to reorder)
+    orderRankField({ type: 'trip' }),
+
     // ── Identity ────────────────────────────────────────────────────────
     defineField({
       name: 'id',
@@ -217,13 +221,8 @@ export default defineType({
         !parent?.featured || parent?.featureLayout !== 'color-quote',
     }),
 
-    defineField({
-      name: 'featureOrder',
-      title: 'Feature order',
-      type: 'number',
-      description: 'Lower numbers appear first on the home page.',
-      hidden: ({ parent }: { parent?: { featured?: boolean } }) => !parent?.featured,
-    }),
+    // Order on the homepage is now controlled by drag-and-drop in the
+    // "Featured (drag to reorder)" sidebar item — see sanity.config.ts.
 
     // ── Story ───────────────────────────────────────────────────────────
     defineField({
@@ -396,19 +395,16 @@ export default defineType({
       pageTitle:     'pageTitle',
       tripDate:      'tripDate',
       featured:      'featured',
-      featureOrder:  'featureOrder',
       featureLayout: 'featureLayout',
       media:         'heroImage',
     },
-    prepare({ pageTitle, tripDate, featured, featureOrder, featureLayout, media }: {
+    prepare({ pageTitle, tripDate, featured, featureLayout, media }: {
       pageTitle?: string[]; tripDate: string;
-      featured?: boolean; featureOrder?: number; featureLayout?: string;
+      featured?: boolean; featureLayout?: string;
       media: unknown;
     }) {
       const year = tripDate ? new Date(tripDate).getFullYear() : '—'
-      const tag  = featured
-        ? `★ feat #${featureOrder ?? '—'} · ${featureLayout ?? '—'}`
-        : ''
+      const tag  = featured ? `★ featured · ${featureLayout ?? '—'}` : ''
       return {
         title:    Array.isArray(pageTitle) ? pageTitle.join(' ') : '—',
         subtitle: tag ? `${year} · ${tag}` : String(year),

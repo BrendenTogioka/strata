@@ -22,7 +22,7 @@ const TRIP_FIELDS = `
   featureLayout,
   "featureBlurb": coalesce(featureBlurb, description),
   featureQuote,
-  featureOrder,
+  orderRank,
   storyTitle,
   story[] {
     type,
@@ -48,9 +48,10 @@ export const RECENT_TRIPS_QUERY = `
   }
 `
 
-// Curated homepage features — large cinematic sections under the recent scroll
+// Curated homepage features — large cinematic sections under the recent scroll.
+// Order matches the drag-to-reorder list in Studio (orderable-document-list plugin).
 export const FEATURED_TRIPS_QUERY = `
-  *[_type == "trip" && featured == true] | order(featureOrder asc, tripDate desc) {
+  *[_type == "trip" && featured == true] | order(orderRank asc) {
     ${TRIP_FIELDS}
   }
 `

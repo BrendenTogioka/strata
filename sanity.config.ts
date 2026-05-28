@@ -1,6 +1,7 @@
 import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
 import { visionTool } from '@sanity/vision'
+import { orderableDocumentListDeskItem } from '@sanity/orderable-document-list'
 import { schemaTypes } from './sanity/schemaTypes'
 
 const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID
@@ -16,7 +17,7 @@ export default defineConfig({
 
   plugins: [
     structureTool({
-      structure: (S) =>
+      structure: (S, context) =>
         S.list()
           .title('Content')
           .items([
@@ -30,18 +31,14 @@ export default defineConfig({
                   .filter('_type == "trip"')
                   .defaultOrdering([{ field: 'tripDate', direction: 'desc' }])
               ),
-            // Curated homepage features — shows current home-page order at a glance
-            S.listItem()
-              .title('Featured (homepage order)')
-              .icon(() => '★')
-              .schemaType('trip')
-              .child(
-                S.documentList()
-                  .title('Featured trips')
-                  .schemaType('trip')
-                  .filter('_type == "trip" && featured == true')
-                  .defaultOrdering([{ field: 'featureOrder', direction: 'asc' }])
-              ),
+            // Drag-to-reorder featured trips — order shown here is the live home-page order
+            orderableDocumentListDeskItem({
+              type:    'trip',
+              title:   'Featured (drag to reorder)',
+              filter:  'featured == true',
+              S,
+              context,
+            }),
           ]),
     }),
     // Vision: GROQ query sandbox — remove in production if desired
