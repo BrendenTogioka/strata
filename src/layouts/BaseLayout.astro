@@ -81,8 +81,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     <!-- Skip link — first focusable element for keyboard users -->
     <a href="#main" class="skip-link">Skip to content</a>
 
-    <!-- Film-grain overlay -->
-    <div class="grain" aria-hidden="true"></div>
+    <!-- Film-grain overlay — temporarily disabled. Restore by uncommenting. -->
+    <!-- <div class="grain" aria-hidden="true"></div> -->
 
     <!-- Custom cursor — transition:persist keeps these elements alive across
          page swaps so the RAF loop never needs to restart. -->

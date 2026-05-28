@@ -4,15 +4,14 @@ interface Props {
 }
 const { heroVideoUrl = '' } = Astro.props
 
-// Scrub-friendly transformations: cap width 1600 + 30 fps so seek decodes are
-// roughly half the work of the original 60 fps source, and VP9 (webm) scrubs
-// more smoothly than H.264 in modern browsers.
+// Highest-quality delivery: mp4 served as the source upload (no re-encode);
+// webm is a max-quality VP9 alternate for browsers that prefer it. Note: this
+// trades scroll-scrub smoothness for fidelity — larger files + full framerate
+// mean per-seek decode is heavier; jitter may return on slower hardware.
 const heroVideoWebm = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/vc_vp9,q_85,c_limit,w_1600,fps_30/').replace(/\.mp4$/, '.webm')
+  ? heroVideoUrl.replace('/upload/', '/upload/vc_vp9,q_100/').replace(/\.mp4$/, '.webm')
   : ''
 const heroVideoMp4 = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/q_85,c_limit,w_1600,fps_30/')
-  : ''
 ---
 
 <section class="hero" id="hero">
