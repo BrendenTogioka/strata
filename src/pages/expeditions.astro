@@ -99,8 +99,8 @@ const cards = trips.map((trip: any, i: number) => ({
       )}
 
       <div class="filter-group filter-group--sort">
-        <span class="filter-label">Sort</span>
-        <select id="sort-select" class="sort-select">
+        <label class="filter-label" for="sort-select">Sort</label>
+        <select id="sort-select" class="sort-select" aria-label="Sort expeditions by date">
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
         </select>

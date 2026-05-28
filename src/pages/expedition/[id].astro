@@ -198,7 +198,7 @@ function getEmbedUrl(url: string): string {
             <div class="story-block story-video">
               <iframe
                 src={getEmbedUrl(block.url)}
-                title="Video"
+                title={`${trip.pageTitle?.join(' ')} — video`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
               />

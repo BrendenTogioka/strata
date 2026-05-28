@@ -20,6 +20,11 @@ interface IrisOptions {
  *    handoff is what prevents the dark flash between navigations.
  */
 export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): void {
+  // Reduced motion: skip the expand animation, just navigate.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    navigate(href)
+    return
+  }
   // Kick off a preload for the destination's full-res hero immediately —
   // the 0.75s animation gives the browser a head start before the page swap.
   if (heroSrc && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroSrc)}"]`)) {

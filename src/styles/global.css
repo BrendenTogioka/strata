@@ -33,6 +33,33 @@ body {
   cursor: none;
 }
 
+/* ─── Keyboard focus (the site hides the mouse cursor, so this matters) ─── */
+:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+/* The skip-link target receives focus programmatically — no box around it */
+#main:focus,
+#main:focus-visible { outline: none; }
+
+/* ─── Skip-to-content link ─── */
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 10000;
+  padding: 0.65rem 1.1rem;
+  background: var(--bone);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  border-radius: 3px;
+  transition: top 0.2s ease;
+}
+.skip-link:focus { top: 1rem; }
+
 /* ─── Custom cursor ─── */
 .cursor {
   position: fixed;
@@ -1247,6 +1274,10 @@ nav {
   }
   .scroll-bar { animation: none; opacity: 0.5; }
   .grain { animation: none; }
+  /* Restore the real cursor; hide the custom trailing one */
+  body { cursor: auto; }
+  .cursor, .cursor-ring { display: none; }
+  a, button, [role="button"], .exp-card, .exp-grid-card { cursor: pointer; }
 }
 
 /* ── Additional mobile refinements ── */

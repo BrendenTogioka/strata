@@ -52,6 +52,9 @@ const {
   </head>
 
   <body>
+    <!-- Skip link — first focusable element for keyboard users -->
+    <a href="#main" class="skip-link">Skip to content</a>
+
     <!-- Film-grain overlay -->
     <div class="grain" aria-hidden="true"></div>
 
@@ -63,7 +66,9 @@ const {
     <!-- Page content -->
     <div class="content" transition:animate="none">
       <Navigation isExpedition={isExpedition} />
-      <slot />
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
     </div>
   </body>
 </html>
@@ -76,7 +81,8 @@ const {
 
   gsap.registerPlugin(ScrollTrigger)
 
-  const isTouch = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  const isTouch  = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   // ── Trip title fit-to-width ────────────────────────────────────────────
   // The hero title is sized with a viewport-based clamp for maximum impact,
@@ -108,7 +114,7 @@ const {
 
   // ── Lenis smooth scroll ────────────────────────────────────────────────
   function initLenis() {
-    if (isTouch()) return
+    if (isTouch() || reduceMotion()) return
 
     lenis = new Lenis({
       duration:        1.4,
@@ -177,6 +183,28 @@ const {
   // owns every GSAP animation so it always runs regardless of which page
   // the user first lands on.
   function initPageAnimations() {
+
+    // ── Reduced motion: show everything in its final state, no animation ──
+    // Skips intros, parallax and the iris overlay entirely; elements that the
+    // animations would have revealed are set visible up-front.
+    if (reduceMotion()) {
+      gsap.set([
+        '.hero-location', '.hero-sub', '.section-eyebrow', '.section-body',
+        '.feature-quote', '.feature-link', '.contact-pre', '.contact-email',
+        '.contact-footer', '.trip-stats-bar', '.back-btn', '.story-block',
+        '.exp-card-num', '.exp-card-title', '.exp-card-meta',
+      ], { opacity: 1, x: 0, y: 0 })
+      gsap.set([
+        '.hero-title .line', '.section-title .line', '.section-title .line-inner',
+        '.contact-headline .line', '.trip-title .line',
+      ], { y: 0, opacity: 1 })
+      document.querySelector<HTMLElement>('.iris-overlay')?.remove()
+      if (document.querySelector('.trip-page')) {
+        fitTripTitles()
+        document.fonts?.ready.then(fitTripTitles)
+      }
+      return
+    }
 
     // ── Iris overlay handoff ────────────────────────────────────────────
     // The overlay from the previous page's iris transition is kept on screen
