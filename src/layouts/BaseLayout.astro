@@ -880,13 +880,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         else img.addEventListener('load', reveal, { once: true })
       })
 
-      // ── Route map motion ────────────────────────────────────────────────
-      // Chain on scroll: section fade → path draw-on → topo rings stagger.
-      // Path length is recomputed inside onEnter because Chrome occasionally
-      // returns 0 from getTotalLength() before first paint after a client-side
-      // route swap. Triggers are also slightly more forgiving (top 90% vs 82%)
-      // and the path's stroke styles are set in onEnter, so a glitch in the
-      // ScrollTrigger never leaves the path locked in its "fully hidden" state.
+      // ── Route map: draw-on-enter → looping auto-track → desktop hover ──
+      // Sequence: section fades in → route path draws → topo rings appear →
+      // tracker dot rides the path in an infinite loop (mobile + desktop).
+      // On desktop, moving the cursor over the map pauses the auto-loop and
+      // hands control to the cursor scrubber; leaving resumes the loop.
       const mapSection = document.querySelector<HTMLElement>('.trip-map-section')
       if (mapSection) {
         gsap.to('.trip-map-svg', {
@@ -894,10 +892,96 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           scrollTrigger: { trigger: mapSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
         })
 
-        const routePath = document.querySelector<SVGPathElement>('.map-route-path')
-        const rings     = gsap.utils.toArray<Element>('.map-topo-ring')
+        const routePath   = document.querySelector<SVGPathElement>('.map-route-path')
+        const progressEl  = mapSection.querySelector<SVGPathElement>('.map-route-progress')
+        const trackerDot  = mapSection.querySelector<SVGCircleElement>('.map-tracker-dot')
+        const trackerHalo = mapSection.querySelector<SVGCircleElement>('.map-tracker-halo')
+        const mapWrap     = mapSection.querySelector<HTMLElement>('.trip-map-placeholder')
+        const mapSvg      = mapSection.querySelector<SVGSVGElement>('.trip-map-svg')
+        const rings       = gsap.utils.toArray<Element>('.map-topo-ring')
         if (rings.length) gsap.set(rings, { opacity: 0 })
 
+        // Shared state — used by both auto-loop and hover scrubber
+        let samples: Array<{ x: number; y: number; len: number }> = []
+        let totalLen = 0
+
+        const buildSamples = () => {
+          if (!routePath) return false
+          totalLen = routePath.getTotalLength()
+          if (totalLen === 0) return false
+          samples = []
+          const N = 120
+          for (let i = 0; i <= N; i++) {
+            const len = (i / N) * totalLen
+            const pt  = routePath.getPointAtLength(len)
+            samples.push({ x: pt.x, y: pt.y, len })
+          }
+          return true
+        }
+
+        const findClosest = (mx: number, my: number) => {
+          let best = samples[0]
+          let bestDist = Infinity
+          for (const s of samples) {
+            const dx = s.x - mx, dy = s.y - my
+            const d  = dx * dx + dy * dy
+            if (d < bestDist) { bestDist = d; best = s }
+          }
+          return best
+        }
+
+        // ── Auto-looping tracker (runs on all devices after path draws) ──
+        let autoTween: gsap.core.Tween | null = null
+        let autoRunning = false
+
+        const runAutoLoop = () => {
+          if (!routePath || !progressEl || !trackerDot || !trackerHalo) return
+          if (totalLen === 0) buildSamples()
+          if (totalLen === 0) return
+
+          // Kill any in-flight tweens cleanly
+          if (autoTween) { autoTween.kill(); autoTween = null }
+          gsap.killTweensOf([trackerDot, trackerHalo])
+
+          autoRunning = true
+
+          // Snap to path start, clear progress, then fade tracker in
+          const startPt = routePath.getPointAtLength(0)
+          trackerDot.setAttribute('cx',  startPt.x.toFixed(1))
+          trackerDot.setAttribute('cy',  startPt.y.toFixed(1))
+          trackerHalo.setAttribute('cx', startPt.x.toFixed(1))
+          trackerHalo.setAttribute('cy', startPt.y.toFixed(1))
+          if (progressEl) progressEl.style.strokeDasharray = '0 99999'
+
+          gsap.to([trackerDot, trackerHalo], { opacity: 1, duration: 0.5, ease: 'power2.out' })
+
+          const proxy = { t: 0 }
+          autoTween = gsap.to(proxy, {
+            t: 1,
+            duration: 4.5,
+            ease: 'power1.inOut',
+            onUpdate() {
+              if (!routePath || !progressEl) return
+              const dist = proxy.t * totalLen
+              const pt   = routePath.getPointAtLength(dist)
+              progressEl.style.strokeDasharray = `${dist} ${totalLen - dist}`
+              trackerDot.setAttribute('cx',  pt.x.toFixed(1))
+              trackerDot.setAttribute('cy',  pt.y.toFixed(1))
+              trackerHalo.setAttribute('cx', pt.x.toFixed(1))
+              trackerHalo.setAttribute('cy', pt.y.toFixed(1))
+            },
+            onComplete() {
+              // Fade out, then restart after a short pause
+              gsap.killTweensOf([trackerDot, trackerHalo])
+              gsap.to([trackerDot, trackerHalo], {
+                opacity: 0, duration: 0.5, ease: 'power2.in',
+                onComplete: () => { if (autoRunning) gsap.delayedCall(0.8, runAutoLoop) },
+              })
+            },
+          })
+        }
+
+        // ── Scroll-triggered: fade → draw path → rings → start auto-loop ─
         ScrollTrigger.create({
           trigger: mapSection,
           start:   'top 90%',
@@ -908,16 +992,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             if (routePath) {
               const pathLen = routePath.getTotalLength()
               if (pathLen > 0) {
+                totalLen = pathLen  // seed early so auto-loop doesn't need to recompute
                 routePath.style.strokeDasharray  = `${pathLen}`
                 routePath.style.strokeDashoffset = `${pathLen}`
                 gsap.to(routePath, {
                   strokeDashoffset: 0,
-                  ease:    'power2.inOut',
+                  ease:     'power2.inOut',
                   duration: 2,
                   delay:    0.35,
                   onComplete: () => {
                     routePath.style.strokeDasharray  = ''
                     routePath.style.strokeDashoffset = ''
+                    runAutoLoop()  // ← kick off the looping dot
                   },
                 })
               }
@@ -929,54 +1015,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           },
         })
 
-        // ── Mouse-driven route progress ────────────────────────────────
-        // As the cursor moves over the map, find the closest point on the
-        // route path and fill the progress overlay up to that length. The
-        // tracker dot snaps to the same projected point. This makes the
-        // map feel like an interactive scrubber rather than a static SVG.
-        const mapWrap     = mapSection.querySelector<HTMLElement>('.trip-map-placeholder')
-        const mapSvg      = mapSection.querySelector<SVGSVGElement>('.trip-map-svg')
-        const progressEl  = mapSection.querySelector<SVGPathElement>('.map-route-progress')
-        const trackerDot  = mapSection.querySelector<SVGCircleElement>('.map-tracker-dot')
-        const trackerHalo = mapSection.querySelector<SVGCircleElement>('.map-tracker-halo')
-
+        // ── Desktop hover: pause auto-loop → cursor scrubber ────────────
         if (mapWrap && mapSvg && progressEl && routePath && trackerDot && trackerHalo && !isTouch()) {
-          // Sample N points along the path once — used to find the closest
-          // point under the cursor without doing a binary search each frame.
-          // Recomputed lazily because the path length isn't reliable until
-          // first paint on a fresh client-side navigation.
-          let samples: Array<{ x: number; y: number; len: number }> = []
-          let totalLen = 0
-
-          const buildSamples = () => {
-            totalLen = routePath.getTotalLength()
-            if (totalLen === 0) return false
-            samples = []
-            const N = 120
-            for (let i = 0; i <= N; i++) {
-              const len = (i / N) * totalLen
-              const pt  = routePath.getPointAtLength(len)
-              samples.push({ x: pt.x, y: pt.y, len })
-            }
-            return true
-          }
-
-          const findClosest = (mx: number, my: number) => {
-            let best = samples[0]
-            let bestDist = Infinity
-            for (const s of samples) {
-              const dx = s.x - mx, dy = s.y - my
-              const d  = dx * dx + dy * dy
-              if (d < bestDist) { bestDist = d; best = s }
-            }
-            return best
-          }
-
-          // Convert clientX/Y → SVG viewBox coords via the SVG's CTM
-          const svgPt = mapSvg.createSVGPoint()
+          let svgPt: DOMPoint | null = null
           const toSvgCoords = (clientX: number, clientY: number) => {
-            svgPt.x = clientX
-            svgPt.y = clientY
+            if (!svgPt) svgPt = mapSvg.createSVGPoint()
+            svgPt.x = clientX; svgPt.y = clientY
             const ctm = mapSvg.getScreenCTM()
             if (!ctm) return { x: 0, y: 0 }
             const p = svgPt.matrixTransform(ctm.inverse())
@@ -985,9 +1029,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
           let rafQueued = false
           let pendingX = 0, pendingY = 0
+
           const onMove = (e: MouseEvent) => {
-            pendingX = e.clientX
-            pendingY = e.clientY
+            // First mousemove — pause the auto-loop
+            if (autoTween?.isActive()) { autoTween.pause(); autoRunning = false }
+            pendingX = e.clientX; pendingY = e.clientY
             if (rafQueued) return
             rafQueued = true
             requestAnimationFrame(() => {
@@ -1001,12 +1047,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
               trackerDot.setAttribute('cy',  hit.y.toFixed(1))
               trackerHalo.setAttribute('cx', hit.x.toFixed(1))
               trackerHalo.setAttribute('cy', hit.y.toFixed(1))
+              ;(trackerDot  as HTMLElement).style.opacity = '1'
+              ;(trackerHalo as HTMLElement).style.opacity = '1'
             })
           }
 
           const onLeave = () => {
             progressEl.classList.remove('is-tracking')
-            progressEl.style.strokeDasharray = `0 99999`
+            // Resume the loop from the beginning
+            autoRunning = true
+            runAutoLoop()
           }
 
           mapWrap.addEventListener('mousemove', onMove, { passive: true })

@@ -118,7 +118,7 @@ body::before {
 }
 
 /* ─── Navigation ─── */
-nav {
+.site-nav {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
@@ -1745,18 +1745,13 @@ nav {
   transition: none;  /* live tracking — instant response */
 }
 
-/* Tracker dot + halo — follow the cursor along the path */
+/* Tracker dot + halo — JS drives opacity; starts hidden, auto-loop fades in */
 .map-tracker-dot,
 .map-tracker-halo {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
   transform-box: fill-box;
   transform-origin: center center;
-}
-.trip-map-placeholder:hover .map-tracker-dot,
-.trip-map-placeholder:hover .map-tracker-halo {
-  opacity: 1;
 }
 .map-tracker-halo {
   animation: tracker-halo-pulse 1.6s ease-out infinite;
