@@ -374,44 +374,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           .forEach(el => gsap.set(el, { opacity: 1, y: 0 }))
       })
 
-      // Card video — mobile autoplay via IntersectionObserver, desktop hover-play
-      if (!reduceMotion()) {
-        const cardVideos = document.querySelectorAll<HTMLVideoElement>('.exp-card-video')
-
-        if (isTouch() && cardVideos.length) {
-          const io = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              const vid = entry.target as HTMLVideoElement
-              if (entry.isIntersecting) {
-                if (!vid.src) vid.src = vid.dataset.src ?? ''
-                vid.play().catch(() => {})
-                vid.classList.add('is-playing')
-              } else {
-                vid.pause()
-                vid.classList.remove('is-playing')
-              }
-            })
-          }, { threshold: 0.5 })
-          cardVideos.forEach(v => io.observe(v))
-        } else {
-          // Desktop: lazy-load and play on hover; pause and hide on leave
-          cardVideos.forEach(vid => {
-            const card = vid.closest<HTMLElement>('.exp-card')
-            if (!card) return
-            card.addEventListener('mouseenter', () => {
-              if (!vid.src) vid.src = vid.dataset.src ?? ''
-              vid.play().catch(() => {})
-              vid.classList.add('is-playing')
-            })
-            card.addEventListener('mouseleave', () => {
-              vid.pause()
-              vid.currentTime = 0
-              vid.classList.remove('is-playing')
-            })
-          })
-        }
-      }
-
       // Iris transition on card click — video stops first, iris uses the static image
       document.querySelectorAll<HTMLElement>('.exp-card').forEach((card) => {
         const preloadCardHero = () => {
@@ -438,6 +400,48 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           playIrisTransition({ src, rect: img.getBoundingClientRect(), href, heroSrc })
         })
       })
+    }
+
+    // ── Card-video hover preview (.exp-card-video) ────────────────────────
+    // Runs on any page that has .exp-card-video elements — home gallery AND
+    // the expeditions archive grid. Touch devices autoplay on visibility;
+    // mouse devices play on hover. Reduced motion skips entirely.
+    if (!reduceMotion()) {
+      const cardVideos = document.querySelectorAll<HTMLVideoElement>('.exp-card-video')
+      if (cardVideos.length) {
+        if (isTouch()) {
+          const io = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              const vid = entry.target as HTMLVideoElement
+              if (entry.isIntersecting) {
+                if (!vid.src) vid.src = vid.dataset.src ?? ''
+                vid.play().catch(() => {})
+                vid.classList.add('is-playing')
+              } else {
+                vid.pause()
+                vid.classList.remove('is-playing')
+              }
+            })
+          }, { threshold: 0.5 })
+          cardVideos.forEach(v => io.observe(v))
+        } else {
+          cardVideos.forEach(vid => {
+            // Closest card wrapper covers both layouts: .exp-card (home) and .exp-grid-card (expeditions)
+            const card = vid.closest<HTMLElement>('.exp-card, .exp-grid-card')
+            if (!card) return
+            card.addEventListener('mouseenter', () => {
+              if (!vid.src) vid.src = vid.dataset.src ?? ''
+              vid.play().catch(() => {})
+              vid.classList.add('is-playing')
+            })
+            card.addEventListener('mouseleave', () => {
+              vid.pause()
+              vid.currentTime = 0
+              vid.classList.remove('is-playing')
+            })
+          })
+        }
+      }
     }
 
     // ── Featured sections (curated homepage trips) ────────────────────────

@@ -59,6 +59,7 @@ const cards = trips.map((trip: any, i: number) => ({
   heroUrl:   trip.heroImage
                ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
                : '',
+  cardVideoUrl: trip.cardVideoUrl ?? '',
 }))
 ---
 
@@ -130,6 +131,17 @@ const cards = trips.map((trip: any, i: number) => ({
               loading="lazy"
               decoding="async"
             />
+            {card.cardVideoUrl && (
+              <video
+                class="exp-card-video"
+                data-src={card.cardVideoUrl}
+                muted
+                loop
+                playsinline
+                preload="none"
+                aria-hidden="true"
+              />
+            )}
           </div>
           <div class="exp-grid-overlay"></div>
           <div class="exp-grid-content">
@@ -241,6 +253,8 @@ const cards = trips.map((trip: any, i: number) => ({
 
       card.addEventListener('click', e => {
         e.preventDefault()
+        // Pause any playing card video so iris uses the static image
+        card.querySelector<HTMLVideoElement>('.exp-card-video')?.pause()
         const src     = card.dataset.src     ?? ''
         const href    = card.dataset.href    ?? card.getAttribute('href') ?? '/'
         const heroSrc = card.dataset.heroUrl ?? ''
