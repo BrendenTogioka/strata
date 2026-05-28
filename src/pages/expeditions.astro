@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import SiteFooter from '../components/SiteFooter.astro'
 import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../lib/queries'
 
@@ -170,6 +171,8 @@ const cards = trips.map((trip: any, i: number) => ({
     </p>
 
   </div>
+
+  <SiteFooter />
 </BaseLayout>
 
 <script>

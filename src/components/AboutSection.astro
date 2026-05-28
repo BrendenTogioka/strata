@@ -1,0 +1,76 @@
+---
+const imgBase = 'https://res.cloudinary.com/dlle6kl4n/image/upload'
+const imgId   = 'v1757649729/DSCF4827_t8bghf.jpg'
+
+const imgUrl    = `${imgBase}/w_1400,q_85,f_webp/${imgId}`
+const imgSrcset = [700, 1000, 1400]
+  .map(w => `${imgBase}/w_${w},q_85,f_webp/${imgId} ${w}w`)
+  .join(', ')
+---
+
+<section class="about" id="about">
+
+  <!-- Image column -->
+  <div class="about-img-col">
+    <div class="about-img-wrap">
+      <img
+        src={imgUrl}
+        srcset={imgSrcset}
+        sizes="(max-width: 900px) 100vw, 55vw"
+        alt="Brenden and Demeris on the trail — Our Roaming Reels"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+    <div class="about-img-overlay"></div>
+    <div class="about-img-badge">
+      <div class="about-badge-dot"></div>
+      <span>Los Angeles, CA</span>
+    </div>
+  </div>
+
+  <!-- Text column -->
+  <div class="about-text-col">
+
+    <p class="about-eyebrow">The Humans Behind the Lens</p>
+
+    <h2 class="about-headline" aria-label="Brenden and Demeris">
+      <span class="line"><span class="line-inner">BRENDEN</span></span>
+      <span class="line"><span class="line-inner"><span class="about-amp">&amp;</span></span></span>
+      <span class="line"><span class="line-inner">DEMERIS</span></span>
+    </h2>
+
+    <p class="about-sub">
+      We just really love being outside.<br />
+      The rest kind of figured itself out.
+    </p>
+
+    <div class="about-body">
+      <p>From desert canyon walls to open water, we go wherever the light is worth chasing. This is our record of it.</p>
+      <p>We backpack, dive, paddle, and photograph. We've hauled tripods up ridgelines we had no business climbing and dropped into underwater visibility so clear it doesn't feel real. Somewhere between the trailhead and the waterline, we figured out this was the life.</p>
+      <p>Based in Los Angeles — with two dogs and a cat who deserve their own journal.</p>
+    </div>
+
+  </div>
+
+  <!-- Detail strip -->
+  <div class="about-details">
+    <div class="about-detail-item">
+      <span class="about-detail-label">Based</span>
+      <span class="about-detail-value">Los Angeles, CA</span>
+    </div>
+    <div class="about-detail-item">
+      <span class="about-detail-label">Pursuits</span>
+      <span class="about-detail-value">Trail · Sea · Summit</span>
+    </div>
+    <div class="about-detail-item">
+      <span class="about-detail-label">Shot on</span>
+      <span class="about-detail-value">Fujifilm X-H2S</span>
+    </div>
+    <div class="about-detail-item">
+      <span class="about-detail-label">Crew</span>
+      <span class="about-detail-value">Brenden, Demeris + 3</span>
+    </div>
+  </div>
+
+</section>

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import SiteFooter from '../components/SiteFooter.astro'
 import { client, urlFor } from '../lib/sanity'
 import { GEAR_QUERY } from '../lib/queries'
 
@@ -104,6 +105,8 @@ function groupOf(cat: string) {
     )}
 
   </div>
+
+  <SiteFooter />
 </BaseLayout>
 
 <script>

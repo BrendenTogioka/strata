@@ -124,6 +124,38 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   const isTouch  = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches
   const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+  // ── Count-up animation for numeric stat values ─────────────────────────
+  // Parses the leading number from .stat-value text (e.g. "47.2 mi",
+  // "18,542 ft", "5 days"), animates from 0 to target, preserves any suffix.
+  function countUpStat(statEl: HTMLElement) {
+    const valEl = statEl.querySelector<HTMLElement>('.stat-value')
+    if (!valEl) return
+    const text = valEl.textContent ?? ''
+    // Match a leading integer or decimal (commas allowed as thousands separator)
+    const match = text.match(/^([\d,]+\.?\d*)(.*)$/)
+    if (!match) return
+    const rawNum = parseFloat(match[1].replace(/,/g, ''))
+    if (isNaN(rawNum) || rawNum === 0) return
+    const suffix      = match[2]
+    const useComma    = rawNum >= 1000
+    const decPlaces   = match[1].includes('.') ? (match[1].split('.')[1]?.length ?? 0) : 0
+    const duration    = 900  // ms
+    const startTime   = performance.now()
+
+    const tick = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased    = 1 - Math.pow(1 - progress, 3)  // ease-out cubic
+      const current  = rawNum * eased
+      let formatted: string
+      if (useComma)        formatted = Math.round(current).toLocaleString()
+      else if (decPlaces)  formatted = current.toFixed(decPlaces)
+      else                 formatted = Math.round(current).toString()
+      valEl.textContent = formatted + suffix
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }
+
   // ── Trip title fit-to-width ────────────────────────────────────────────
   // The hero title is sized with a viewport-based clamp for maximum impact,
   // but a long word (e.g. "NARROWS") can exceed the available width and get
@@ -247,7 +279,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     if (reduceMotion()) {
       gsap.set([
         '.hero-location', '.hero-sub', '.section-eyebrow', '.section-body',
-        '.feature-quote', '.feature-link', '.contact-pre', '.contact-email',
+        '.feature-quote', '.feature-link',
+        '.about-eyebrow', '.about-sub', '.about-body', '.about-img-badge',
+        '.contact-pre', '.contact-sub', '.contact-email-label', '.contact-email',
         '.contact-footer', '.trip-stats-bar', '.back-btn', '.story-block',
         '.trip-map-section',
         '.exp-card-num', '.exp-card-title', '.exp-card-meta',
@@ -258,10 +292,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       ], { opacity: 1, x: 0, y: 0 })
       gsap.set([
         '.hero-title .line', '.section-title .line', '.section-title .line-inner',
-        '.contact-headline .line', '.trip-title .line',
+        '.about-headline .line-inner', '.contact-headline .line', '.trip-title .line',
       ], { y: 0, opacity: 1 })
       // Make CSS-driven elements immediately visible
-      document.querySelectorAll<HTMLElement>('.stat, .intel-row, .condition-item').forEach(el => {
+      document.querySelectorAll<HTMLElement>('.stat, .intel-row, .condition-item, .about-detail-item').forEach(el => {
         el.classList.add('is-visible')
       })
       document.querySelectorAll<HTMLImageElement>(
@@ -676,6 +710,45 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       })
     })
 
+    // ── About section ────────────────────────────────────────────────────
+    const aboutSection = document.querySelector<HTMLElement>('.about')
+    if (aboutSection) {
+      // Image parallax — same cadence as the feature sections
+      const aboutImgWrap = aboutSection.querySelector<HTMLElement>('.about-img-wrap')
+      if (aboutImgWrap) {
+        gsap.to(aboutImgWrap, {
+          yPercent: -8, ease: 'none',
+          scrollTrigger: { trigger: aboutSection, start: 'top bottom', end: 'bottom top', scrub: 1 },
+        })
+      }
+
+      // Text stagger reveal — eyebrow → headline lines → sub → body
+      ScrollTrigger.create({
+        trigger: aboutSection,
+        start: 'top 68%',
+        once: true,
+        onEnter: () => {
+          gsap.to('.about-eyebrow',              { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' })
+          gsap.to('.about-headline .line-inner', { y: 0, stagger: 0.08, duration: 1.1, ease: 'power4.out', delay: 0.1 })
+          gsap.to('.about-sub',                  { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.3 })
+          gsap.to('.about-body',                 { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.45 })
+          gsap.to('.about-img-badge',            { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: 0.6 })
+        },
+      })
+
+      // Detail strip stagger
+      ScrollTrigger.create({
+        trigger: '.about-details',
+        start: 'top 88%',
+        once: true,
+        onEnter: () => {
+          document.querySelectorAll<HTMLElement>('.about-detail-item').forEach((item, i) => {
+            setTimeout(() => item.classList.add('is-visible'), i * 90)
+          })
+        },
+      })
+    }
+
     // ── Contact section ──────────────────────────────────────────────────
     const contactSection = document.querySelector<HTMLElement>('.contact')
     if (contactSection) {
@@ -687,9 +760,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         scrollTrigger: { trigger: '.contact-headline', start: 'top 85%', once: true },
         y: 0, stagger: 0.09, duration: 1.1, ease: 'power4.out',
       })
-      gsap.to('.contact-email, .contact-footer', {
-        scrollTrigger: { trigger: '.contact-email', start: 'top 85%', once: true },
-        opacity: 1, y: 0, stagger: 0.15, duration: 0.8, ease: 'power3.out',
+      gsap.to('.contact-sub, .contact-email-label, .contact-email, .contact-footer', {
+        scrollTrigger: { trigger: '.contact-sub', start: 'top 85%', once: true },
+        opacity: 1, y: 0, stagger: 0.12, duration: 0.8, ease: 'power3.out',
       })
     }
 
@@ -740,7 +813,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .call(() => {
           // Stagger .stat elements after bar is visible; CSS handles the transition
           document.querySelectorAll<HTMLElement>('.stat').forEach((s, i) => {
-            setTimeout(() => s.classList.add('is-visible'), i * 60)
+            setTimeout(() => {
+              s.classList.add('is-visible')
+              countUpStat(s)
+            }, i * 60)
           })
         }, [], '-=0.3')
 
@@ -1053,20 +1129,29 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   // Animations fire on every page load (covers both initial load + transitions)
   document.addEventListener('astro:page-load', initPageAnimations)
 
-  // Curtain transition for any link pointing to /expeditions (nav, gallery
-  // end-cap, "All Expeditions" link). One global delegate; document survives
-  // Astro swaps so this only registers once. Modifier keys (cmd/ctrl-click
-  // for new tab) and non-left clicks are passed through.
+  // Curtain transition — fires when navigating TO the main nav destinations
+  // (home, /expeditions, /gear, /#contact). Specific expedition pages use the
+  // iris transition instead (their click handlers call e.preventDefault() first,
+  // so e.defaultPrevented catches them before this delegate runs).
+  // Same-page guard prevents the curtain firing when clicking a nav link
+  // you're already on (e.g. logo click while on home, or Expeditions while
+  // already browsing /expeditions).
+  const CURTAIN_PATHS = new Set(['/', '', '/expeditions', '/expeditions/', '/gear', '/gear/', '/#contact'])
   document.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
     const a = (e.target as HTMLElement | null)?.closest?.('a') as HTMLAnchorElement | null
     if (!a) return
     const path = a.getAttribute('href') ?? ''
-    if (path === '/expeditions' || path === '/expeditions/' ||
-        path === '/gear'        || path === '/gear/') {
-      e.preventDefault()
-      playCurtainTransition({ href: path })
-    }
+    if (!CURTAIN_PATHS.has(path)) return
+
+    // Don't curtain if we're already on the destination page
+    try {
+      const dest = new URL(path || '/', window.location.href)
+      if (dest.pathname === window.location.pathname) return
+    } catch {}
+
+    e.preventDefault()
+    playCurtainTransition({ href: path || '/' })
   })
 
   // Re-fit hero titles on resize (no-op on pages without a .trip-title)

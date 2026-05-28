@@ -754,7 +754,7 @@ for (const block of storyProcessed) {
       <text x="2" y={svgYPad - 2} class="elev-label" dominant-baseline="auto">
         {Math.round(elMax).toLocaleString()}
       </text>
-      <circle id="elev-dot" cx={firstX} cy={firstY} r="3.5" class="elev-dot" />
+      <circle id="elev-dot" cx={firstX} cy={firstY} r="3.5" class="elev-dot" style={`fill:${trip.accentColor}`} />
       <text id="elev-readout" x={firstX + 5} y={firstY} class="elev-readout" dominant-baseline="middle">
         {Math.round(elevPoints[0]).toLocaleString()} ft
       </text>
@@ -777,7 +777,7 @@ for (const block of storyProcessed) {
     >
       <polygon points={stripFillPoints} class="elev-fill" />
       <polyline points={stripPointsStr} class="elev-line" />
-      <circle id="elev-dot-h" cx={stripFirstX} cy={stripFirstY} r="4" class="elev-dot" />
+      <circle id="elev-dot-h" cx={stripFirstX} cy={stripFirstY} r="4" class="elev-dot" style={`fill:${trip.accentColor}`} />
     </svg>
   </div>
 

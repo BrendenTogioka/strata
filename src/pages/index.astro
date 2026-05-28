@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 import HeroSection from '../components/HeroSection.astro'
 import ExpeditionGallery from '../components/ExpeditionGallery.astro'
+import AboutSection from '../components/AboutSection.astro'
 import FeaturedSection from '../components/FeaturedSection.astro'
 import ContactSection from '../components/ContactSection.astro'
 import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
@@ -39,6 +40,7 @@ const heroVideoUrl = 'https://res.cloudinary.com/dlle6kl4n/video/upload/v1779987
 <BaseLayout preloadImage="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779987514/OurRoamingReels/hero-bg.jpg">
   <HeroSection heroVideoUrl={heroVideoUrl} />
   <ExpeditionGallery expeditions={expeditions} />
+  <AboutSection />
   {featured.map((feature: any, i: number) => (
     <FeaturedSection feature={feature} index={i} />
   ))}
