@@ -184,9 +184,9 @@ export default defineType({
       type: 'string',
       options: {
         list: [
-          { title: 'Image left · text right',   value: 'text-right'  },
-          { title: 'Image right · text left',   value: 'text-left'   },
-          { title: 'Text + quote on colour',    value: 'color-quote' },
+          { title: 'Text right',   value: 'text-right'  },
+          { title: 'Text left',    value: 'text-left'   },
+          { title: 'Text + quote', value: 'color-quote' },
         ],
         layout: 'radio',
       },
