@@ -817,15 +817,20 @@ nav {
   opacity: 0;
   transform: translateY(20px);
 }
-/* Stat items align to the same centered column as the trip title + story copy */
+/* Stat items align to the left under the same column as the trip-intro
+   text — i.e. the 1fr column of .trip-intro's `1fr 300px` grid. We mirror
+   that shape by using the same outer max-width (72rem) and padding-left as
+   the wrap, then reserving padding-right equal to the gap + field-intel
+   column so the flex content sits in the matching width. */
 .trip-stats-inner {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   row-gap: 0.75rem;
-  max-width: 48rem;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: 0 2.5rem;
+  padding-left: 2.5rem;
+  padding-right: calc(2.5rem + 5rem + 300px);
 }
 .stat {
   display: flex;

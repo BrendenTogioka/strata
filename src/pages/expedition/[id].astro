@@ -199,9 +199,11 @@ if (trip.routeGpxUrl) {
 }
 
 // ── Story pre-processing ─────────────────────────────────────────────────────
-// Section blocks (type=dayEntry) come in two flavours:
-//   • Day mode   → auto-numbered "Day 01", "Day 02" (count up across the story)
-//   • Custom mode→ author-supplied eyebrow like "Overview" or "Aftermath"
+// Section blocks (type=dayEntry) come in four flavours:
+//   • overview → eyebrow "Overview"
+//   • day      → auto-numbered "Day 01", "Day 02" (increments per day section)
+//   • final    → eyebrow "Final Thoughts"
+//   • custom   → author-supplied eyebrow text
 // Existing data without an eyebrowKind defaults to Day mode for backwards compat.
 let dayCounter     = 0
 let sectionCounter = 0
@@ -210,14 +212,25 @@ const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
     sectionCounter++
     const kind = block.eyebrowKind ?? 'day'
     if (kind === 'day') dayCounter++
-    return {
-      ...block,
-      _idx:     sectionCounter,
-      _eyebrow: kind === 'day'
-        ? `Day ${String(dayCounter).padStart(2, '0')}`
-        : (block.customEyebrow ?? 'Section'),
-      _anchor:  kind === 'day' ? `day-${dayCounter}` : `section-${sectionCounter}`,
-    }
+
+    const eyebrow =
+      kind === 'overview' ? 'Overview' :
+      kind === 'final'    ? 'Final Thoughts' :
+      kind === 'custom'   ? (block.customEyebrow ?? 'Section') :
+                            `Day ${String(dayCounter).padStart(2, '0')}`
+
+    const anchor =
+      kind === 'overview' ? 'overview' :
+      kind === 'final'    ? 'final-thoughts' :
+      kind === 'day'      ? `day-${dayCounter}` :
+                            `section-${sectionCounter}`
+
+    // Big rust-coloured number renders only for Day-kind sections so the
+    // numbering never gets out of sync with Day 01 / Day 02 (Overview and
+    // Final Thoughts would otherwise shift everything off by one).
+    const bigNum = kind === 'day' ? String(dayCounter).padStart(2, '0') : null
+
+    return { ...block, _idx: sectionCounter, _eyebrow: eyebrow, _anchor: anchor, _bigNum: bigNum }
   }
   return block
 })
@@ -225,7 +238,7 @@ const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
 const dayEntries = storyProcessed
   .filter(b => b.type === 'dayEntry')
   .map(b => ({
-    num:   String(b._idx).padStart(2, '0'),
+    num:   b._bigNum ?? '',
     title: b.dayTitle ?? b._eyebrow,
     id:    b._anchor,
   }))
@@ -477,11 +490,13 @@ for (const block of storyProcessed) {
 
             {storyProcessed.map((block: any) => {
 
-              // ── Section header (Day or Custom) ────────────────────────
+              // ── Section header (Overview / Day / Final / Custom) ──────
               if (block.type === 'dayEntry') return (
                 <div class="story-block story-section" id={block._anchor}>
                   <div class="story-section-header">
-                    <div class="story-section-number">{String(block._idx).padStart(2, '0')}</div>
+                    {block._bigNum && (
+                      <div class="story-section-number">{block._bigNum}</div>
+                    )}
                     <div class="story-section-meta">
                       <span class="story-section-label">{block._eyebrow}</span>
                       <span class="story-section-title">{block.dayTitle}</span>

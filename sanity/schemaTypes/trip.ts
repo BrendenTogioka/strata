@@ -429,18 +429,24 @@ export default defineType({
             }),
 
             // ── Section block ────────────────────────────────────────────
-            // Eyebrow can be auto-numbered ("Day 01", "Day 02") or custom
-            // ("Overview", "Aftermath", "Field Notes"). Day-mode numbers are
-            // computed at render time by counting day-mode sections in order.
+            // Eyebrow label can be one of four kinds:
+            //   • Overview        — first section, "Overview" eyebrow
+            //   • Day             — auto-numbered "Day 01", "Day 02" …
+            //                       (numbers count up across day-kind sections)
+            //   • Final Thoughts  — closing section, "Final Thoughts" eyebrow
+            //   • Custom          — author-supplied eyebrow text
+            // Backwards-compat: existing entries default to Day mode.
             defineField({
               name: 'eyebrowKind',
               title: 'Section label',
               type: 'string',
-              description: 'Day = auto-numbered "Day 01", "Day 02" (numbers count up across the story). Custom = your own label, e.g. "Overview".',
+              description: 'Pick a recommended label or use Custom to write your own.',
               options: {
                 list: [
-                  { title: 'Day (auto-numbered)', value: 'day'    },
-                  { title: 'Custom label',         value: 'custom' },
+                  { title: 'Overview',                value: 'overview' },
+                  { title: 'Day (auto-numbered)',     value: 'day'      },
+                  { title: 'Final Thoughts',          value: 'final'    },
+                  { title: 'Custom label',            value: 'custom'   },
                 ],
                 layout: 'radio',
               },
@@ -451,7 +457,7 @@ export default defineType({
               name: 'customEyebrow',
               title: 'Custom label',
               type: 'string',
-              description: 'Small text shown above the heading, e.g. "Overview", "Aftermath".',
+              description: 'Small text shown above the heading, e.g. "Aftermath", "Field Notes".',
               hidden: ({ parent }: { parent?: { type?: string; eyebrowKind?: string } }) =>
                 parent?.type !== 'dayEntry' || parent?.eyebrowKind !== 'custom',
               validation: Rule => Rule.custom((val, ctx) => {
@@ -615,7 +621,11 @@ export default defineType({
               if (type === 'video')    return { title: '▶ Video' }
               if (type === 'divider')  return { title: '— Divider' }
               if (type === 'dayEntry') {
-                const eyebrow = eyebrowKind === 'custom' ? (customEyebrow ?? 'Section') : 'Day'
+                const eyebrow =
+                  eyebrowKind === 'overview' ? 'Overview' :
+                  eyebrowKind === 'final'    ? 'Final Thoughts' :
+                  eyebrowKind === 'custom'   ? (customEyebrow ?? 'Section') :
+                                               'Day'
                 return { title: `▷ ${eyebrow} · ${dayTitle ?? '—'}` }
               }
               if (type === 'hindsight') return { title: `↺ What We'd Do Differently` }
