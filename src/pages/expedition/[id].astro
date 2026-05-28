@@ -48,7 +48,7 @@ const ogImageHeight = trip.heroImage?.dims
   : undefined
 
 // JSON-LD structured data
-const siteUrl   = 'https://strata.journal'
+const siteUrl   = 'https://ourroamingreels.netlify.app'
 const pageUrl   = `${siteUrl}/expedition/${trip.id}`
 const jsonLd = JSON.stringify({
   '@context': 'https://schema.org',
@@ -60,10 +60,10 @@ const jsonLd = JSON.stringify({
       image:           ogUrl,
       datePublished:   trip.tripDate,
       url:             pageUrl,
-      author:    { '@type': 'Organization', name: 'STRATA' },
+      author:    { '@type': 'Organization', name: 'Our Roaming Reels' },
       publisher: {
         '@type': 'Organization',
-        name:    'STRATA — A Field Journal',
+        name:    'Our Roaming Reels — A Field Journal',
         url:     siteUrl,
       },
     },
@@ -290,7 +290,7 @@ for (const block of storyProcessed) {
 ---
 
 <BaseLayout
-  title={`${trip.pageTitle.join(' ')} — STRATA`}
+  title={`${trip.pageTitle.join(' ')} — Our Roaming Reels`}
   description={trip.description}
   ogImage={ogUrl}
   ogImageWidth={ogImageWidth}

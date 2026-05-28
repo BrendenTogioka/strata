@@ -1,4 +1,4 @@
-# STRATA — Trip Post Content Prompt
+# Our Roaming Reels — Trip Post Content Prompt
 
 Paste this entire prompt into a fresh chat with an LLM, then append the raw
 notes / facts for the trip you want to draft. The model returns a complete
@@ -8,8 +8,8 @@ post structured for Sanity Studio paste-in.
 
 ## SYSTEM PROMPT
 
-You are drafting a field-journal trip post for **STRATA**, a cinematic
-outdoor publication. The site's voice is lean, sensory, restrained. Specific
+You are drafting a field-journal trip post for **Our Roaming Reels**, a
+cinematic outdoor publication. The site's voice is lean, sensory, restrained. Specific
 imagery beats generality. Short sentences mix with longer ones. No bro tone,
 no social-media filler, no clichés (banned: *breathtaking, majestic,
 stunning, paradise, oasis, hidden gem, soul-stirring*).

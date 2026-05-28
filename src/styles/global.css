@@ -286,7 +286,7 @@ nav {
 }
 .expedition-header {
   position: absolute;
-  top: 4.5rem; left: 0; right: 0; /* clear the fixed nav / STRATA logo */
+  top: 4.5rem; left: 0; right: 0; /* clear the fixed nav / brand logo */
   z-index: 10;
   padding: 1rem 2.5rem;
   display: flex;
@@ -2247,5 +2247,5 @@ nav {
 /* ── Hide nav links on very small screens to avoid overflow ── */
 @media (max-width: 480px) {
   .nav-links { display: none; }
-  /* STRATA logo acts as the only nav on tiny screens */
+  /* Brand logo acts as the only nav on tiny screens */
 }

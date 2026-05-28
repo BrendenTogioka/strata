@@ -9,8 +9,8 @@ const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID
 const dataset   = import.meta.env.PUBLIC_SANITY_DATASET ?? 'production'
 
 export default defineConfig({
-  name:    'strata-studio',
-  title:   'Strata Journal',
+  name:    'our-roaming-reels-studio',
+  title:   'Our Roaming Reels',
 
   projectId,
   dataset,

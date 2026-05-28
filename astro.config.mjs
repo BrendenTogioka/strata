@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap'
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://strata.journal',
+  site: 'https://ourroamingreels.netlify.app',
 
   // Prefetch linked pages on hover — so trip pages are cached before the user
   // finishes clicking, making the iris transition land on a loaded page.
