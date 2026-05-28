@@ -33,7 +33,7 @@ const expeditions = trips.map((trip: any, i: number) => ({
 }))
 ---
 
-<BaseLayout>
+<BaseLayout preloadImage="/images/valley-fire.webp">
   <HeroSection />
   <ExpeditionGallery expeditions={expeditions} />
   {featured.map((feature: any, i: number) => (

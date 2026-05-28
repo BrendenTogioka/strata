@@ -37,7 +37,7 @@ const { expeditions } = Astro.props
           <img
             src={exp.img}
             srcset={exp.imgSrcset}
-            sizes="(max-width: 768px) 100vw, 480px"
+            sizes="(max-width: 768px) 100vw, 60vw"
             alt={exp.alt}
             loading={i === 0 ? 'eager' : 'lazy'}
             decoding="async"

@@ -166,6 +166,8 @@ function getEmbedUrl(url: string): string {
                 src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
                 srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
                 sizes="(max-width: 768px) 100vw, 860px"
+                width={block.image.dims?.width}
+                height={block.image.dims?.height}
                 alt={block.image.alt ?? ''}
                 loading="lazy"
                 decoding="async"
@@ -182,6 +184,8 @@ function getEmbedUrl(url: string): string {
                     src={urlFor(img).width(800).quality(85).format('webp').url()}
                     srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
                     sizes="(max-width: 768px) 100vw, 25vw"
+                    width={img.dims?.width}
+                    height={img.dims?.height}
                     alt={img.alt ?? ''}
                     loading="lazy"
                     decoding="async"

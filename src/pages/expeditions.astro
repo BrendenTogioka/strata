@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
-import { client, urlFor } from '../lib/sanity'
+import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../lib/queries'
 
 const trips = await client.fetch(ALL_TRIPS_QUERY)
@@ -50,6 +50,9 @@ const cards = trips.map((trip: any, i: number) => ({
   accent:    trip.accentColor ?? '#C04820',
   img:       trip.heroImage
                ? urlFor(trip.heroImage).width(800).quality(80).format('webp').url()
+               : '',
+  imgSrcset: trip.heroImage
+               ? sanityImgSrcset(trip.heroImage, [400, 600, 800], 80)
                : '',
   alt:       trip.heroImage?.alt ?? trip.location,
   href:      `/expedition/${trip.id}`,
@@ -121,6 +124,8 @@ const cards = trips.map((trip: any, i: number) => ({
           <div class="exp-grid-img-wrap">
             <img
               src={card.img}
+              srcset={card.imgSrcset}
+              sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 360px"
               alt={card.alt}
               loading="lazy"
               decoding="async"

@@ -29,7 +29,7 @@ const img = feature.heroImage
   ? urlFor(feature.heroImage).width(2000).quality(85).format('webp').url()
   : ''
 const imgSrcset = feature.heroImage
-  ? sanityImgSrcset(feature.heroImage, [700, 1000, 1400, 2000, 2600], 85)
+  ? sanityImgSrcset(feature.heroImage, [700, 1000, 1400, 2000], 85)
   : ''
 const sizes = isColor ? '(max-width: 900px) 100vw, 50vw' : '100vw'
 ---

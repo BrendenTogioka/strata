@@ -29,8 +29,8 @@ const TRIP_FIELDS = `
     content,
     richText,
     url,
-    image { ..., alt, caption },
-    images[] { _key, ..., alt, caption }
+    image { ..., alt, caption, "dims": asset->metadata.dimensions },
+    images[] { _key, ..., alt, caption, "dims": asset->metadata.dimensions }
   }
 `
 
