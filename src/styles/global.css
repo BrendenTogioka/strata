@@ -94,17 +94,28 @@ body {
   background: rgba(192, 72, 32, 0.9);
 }
 
-/* ─── App shell ─── */
-.app { position: relative; }
-
-/* fixed canvas (stars) */
-.canvas-wrap {
-  position: fixed; inset: 0;
-  z-index: 0; pointer-events: none;
-}
-
 /* scrollable content sits on top */
 .content { position: relative; z-index: 1; }
+
+/* ─── Top scrim ─── */
+/* Soft dark-to-transparent gradient at the top of every page so the nav and
+   back-btn stay legible over any hero photo. Replaces the previous
+   mix-blend-mode: difference trick, which produced muddy mid-tone text over
+   sandstone / rust imagery. Pointer-events none so it never intercepts clicks. */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 140px;
+  z-index: 50;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(12, 9, 6, 0.6) 0%,
+    rgba(12, 9, 6, 0.32) 45%,
+    rgba(12, 9, 6, 0) 100%
+  );
+}
 
 /* ─── Navigation ─── */
 nav {
@@ -115,7 +126,6 @@ nav {
   justify-content: space-between;
   align-items: center;
   padding: 1.75rem 2.5rem;
-  mix-blend-mode: difference;
 }
 .nav-logo {
   font-family: var(--font-display);
@@ -721,7 +731,6 @@ nav {
   opacity: 0;
   transform: translateX(-16px);
   transition: color 0.3s;
-  mix-blend-mode: difference;
 }
 .back-btn:hover { color: var(--rust); }
 .back-arrow {
@@ -852,21 +861,6 @@ nav {
   flex-shrink: 0;
 }
 
-/* Story section — centered reading column shared with the stats + trip title */
-.trip-story {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 12vh 2.5rem 10vh;
-}
-.trip-story-title {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  line-height: 1.05;
-  letter-spacing: 0.01em;
-  color: var(--bone);
-  margin-bottom: 3rem;
-}
 .trip-story-inner {
   display: flex;
   flex-direction: column;
@@ -1298,20 +1292,43 @@ nav {
 }
 .intel-val--good { color: #7db87d; }
 .intel-val--warn { color: var(--rust); }
-/* ── Conditions strip ── */
+/* ── Conditions panel ── */
+/* Lives inside the trip-intro left column, paired visually with the
+   field-intel sidebar on the right. The 1px gap + background trick paints
+   the gridlines automatically regardless of item count. */
 .trip-conditions {
+  margin-top: 2.5rem;
+}
+.trip-conditions-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  color: var(--rust);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.trip-conditions-eyebrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(240,226,206,0.1);
+}
+.trip-conditions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  border-top: 1px solid rgba(240,226,206,0.1);
-  border-bottom: 1px solid rgba(240,226,206,0.1);
-  margin-bottom: 4rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(240,226,206,0.1);
+  border: 1px solid rgba(240,226,206,0.1);
 }
 .condition-item {
-  padding: 1.4rem 1.25rem;
-  border-right: 1px solid rgba(240,226,206,0.08);
+  background: var(--ink);
+  padding: 1.4rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -1320,7 +1337,6 @@ nav {
   opacity: 1;
   transform: none;
 }
-.condition-item:last-child { border-right: none; }
 .condition-icon {
   font-size: 1.1rem;
   margin-bottom: 0.2rem;
@@ -1350,7 +1366,7 @@ nav {
 /* Always left-aligns to the same x as the expedition-text column and the
    field-journal column (which both start at the wrap's padding edge). Width
    matches the journal-entries column (1fr of .trip-journal's 1fr/240px grid);
-   when the page has no day-entry sidebar, it falls back to a 48rem max so it
+   when the page has no story-section sidebar, it falls back to a 48rem max so it
    doesn't sprawl across the wider trip-wide-wrap. Never auto-centered. */
 .trip-map-section {
   margin: 0 0 5rem;
@@ -1464,21 +1480,21 @@ nav {
   background: rgba(240,226,206,0.1);
 }
 
-/* Section header (Day entry or custom-labelled). The scroll-margin-top
-   gives anchor-link jumps from the TOC breathing room so the heading doesn't
-   land flush against the viewport edge. */
-.day-entry {
+/* Story section header (auto-numbered Day or custom-labelled). The
+   scroll-margin-top gives anchor-link jumps from the TOC breathing room so
+   the heading doesn't land flush against the viewport edge. */
+.story-section {
   margin-bottom: 1rem;
   scroll-margin-top: 6rem;
 }
-.day-header {
+.story-section-header {
   display: flex;
   align-items: flex-end;
   gap: 1.25rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid rgba(240,226,206,0.08);
 }
-.day-number {
+.story-section-number {
   font-family: var(--font-display);
   font-size: 4rem;
   line-height: 1;
@@ -1487,26 +1503,27 @@ nav {
   flex-shrink: 0;
   letter-spacing: 0.02em;
 }
-.day-meta {
+.story-section-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding-bottom: 0.2rem;
+  gap: 0;
+  padding-bottom: 0.3rem;
 }
-.day-label {
+.story-section-label {
   font-family: var(--font-body);
   font-size: 0.58rem;
   letter-spacing: 0.2em;
   color: var(--fog);
   text-transform: uppercase;
+  line-height: 1.4;
 }
-.day-entry-title {
+.story-section-title {
   font-family: var(--font-body);
   font-weight: 400;
   font-style: italic;
   font-size: clamp(1.85rem, 2.6vw, 2.4rem);
   color: var(--bone);
-  line-height: 1.15;
+  line-height: 1.05;
 }
 
 /* Hindsight block */
@@ -1608,11 +1625,9 @@ nav {
   .trip-field-intel { position: static; }
   .trip-journal { grid-template-columns: 1fr; gap: 3rem; }
   .journal-sidebar { position: static; }
-  .trip-conditions { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 640px) {
   .trip-wide-wrap { padding: 0 1.5rem; }
-  .trip-conditions { grid-template-columns: repeat(2, 1fr); }
   .story-strip { grid-template-columns: 1fr 1fr; }
   .story-strip-item:last-of-type { display: none; }
 }
@@ -2060,13 +2075,6 @@ nav {
   100% { transform: translate(2%, -3%); }
 }
 
-/* ─── Divider ─── */
-.section-divider {
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);
-}
-
-
 /* ═══════════════════════════════════════════════════
    RESPONSIVE — TABLET & MOBILE
    ═══════════════════════════════════════════════════ */
@@ -2191,7 +2199,6 @@ nav {
   }
 
   /* Story */
-  .trip-story { padding: 8vh 1.25rem 6vh; }
   .trip-paragraph { font-size: 1.05rem; }
   .trip-pull-quote { font-size: clamp(1.15rem, 4.5vw, 1.6rem); padding-left: 1rem; }
 

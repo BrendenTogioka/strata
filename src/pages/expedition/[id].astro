@@ -203,7 +203,7 @@ if (trip.routeGpxUrl) {
 //   • Day mode   → auto-numbered "Day 01", "Day 02" (count up across the story)
 //   • Custom mode→ author-supplied eyebrow like "Overview" or "Aftermath"
 // Existing data without an eyebrowKind defaults to Day mode for backwards compat.
-let dayCounter   = 0
+let dayCounter     = 0
 let sectionCounter = 0
 const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
   if (block.type === 'dayEntry') {
@@ -212,8 +212,6 @@ const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
     if (kind === 'day') dayCounter++
     return {
       ...block,
-      _kind:    kind,
-      _dayNum:  kind === 'day' ? dayCounter : null,
       _idx:     sectionCounter,
       _eyebrow: kind === 'day'
         ? `Day ${String(dayCounter).padStart(2, '0')}`
@@ -227,10 +225,9 @@ const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
 const dayEntries = storyProcessed
   .filter(b => b.type === 'dayEntry')
   .map(b => ({
-    num:     String(b._idx).padStart(2, '0'),
-    eyebrow: b._eyebrow,
-    title:   b.dayTitle ?? b._eyebrow,
-    id:      b._anchor,
+    num:   String(b._idx).padStart(2, '0'),
+    title: b.dayTitle ?? b._eyebrow,
+    id:    b._anchor,
   }))
 
 const hasFieldIntel = trip.fieldIntel?.length > 0
@@ -375,6 +372,22 @@ for (const block of storyProcessed) {
           {trip.description && (
             <p class="trip-intro-body">{trip.description}</p>
           )}
+
+          {trip.conditions?.length > 0 && (
+            <div class="trip-conditions">
+              <div class="trip-conditions-eyebrow">Conditions at the time</div>
+              <div class="trip-conditions-grid">
+                {trip.conditions.map((c: any) => (
+                  <div class="condition-item">
+                    {c.icon && <div class="condition-icon">{c.icon}</div>}
+                    <div class="condition-label">{c.label}</div>
+                    <div class="condition-value">{c.value}</div>
+                    {c.subtext && <div class="condition-sub">{c.subtext}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {hasFieldIntel && (
@@ -392,20 +405,6 @@ for (const block of storyProcessed) {
           </aside>
         )}
       </section>
-
-      <!-- ── Conditions strip ──────────────────────────────────────────── -->
-      {trip.conditions?.length > 0 && (
-        <div class="trip-conditions story-block">
-          {trip.conditions.map((c: any) => (
-            <div class="condition-item">
-              {c.icon && <div class="condition-icon">{c.icon}</div>}
-              <div class="condition-label">{c.label}</div>
-              <div class="condition-value">{c.value}</div>
-              {c.subtext && <div class="condition-sub">{c.subtext}</div>}
-            </div>
-          ))}
-        </div>
-      )}
 
       <!-- ── Route map ─────────────────────────────────────────────────── -->
       <div class={`trip-map-section story-block${hasSidebar ? '' : ' trip-map-section--no-sidebar'}`}>
@@ -480,12 +479,12 @@ for (const block of storyProcessed) {
 
               // ── Section header (Day or Custom) ────────────────────────
               if (block.type === 'dayEntry') return (
-                <div class="story-block day-entry" id={block._anchor}>
-                  <div class="day-header">
-                    <div class="day-number">{String(block._idx).padStart(2, '0')}</div>
-                    <div class="day-meta">
-                      <span class="day-label">{block._eyebrow}</span>
-                      <span class="day-entry-title">{block.dayTitle}</span>
+                <div class="story-block story-section" id={block._anchor}>
+                  <div class="story-section-header">
+                    <div class="story-section-number">{String(block._idx).padStart(2, '0')}</div>
+                    <div class="story-section-meta">
+                      <span class="story-section-label">{block._eyebrow}</span>
+                      <span class="story-section-title">{block.dayTitle}</span>
                     </div>
                   </div>
                 </div>

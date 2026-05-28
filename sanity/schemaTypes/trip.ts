@@ -1,5 +1,5 @@
 import { defineField, defineType } from 'sanity'
-import { orderRankField, orderRankOrdering } from '@sanity/orderable-document-list'
+import { orderRankField } from '@sanity/orderable-document-list'
 import { UppercaseInput } from '../components/UppercaseInput'
 import { createPresetInput } from '../components/PresetInput'
 
