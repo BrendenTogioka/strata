@@ -88,6 +88,12 @@ const nextSrcset  = nextTrip?.heroImage
 const nextHeroUrl = nextTrip?.heroImage
   ? urlFor(nextTrip.heroImage).width(1600).quality(90).format('webp').url()
   : ''
+// Same srcset shape the destination trip-hero-img uses — so the browser's
+// preload picks the exact resolution it'd pick on first paint, no wasted
+// fetch and no cache miss when the user clicks the next-trip card.
+const nextHeroSrcset = nextTrip?.heroImage
+  ? sanityImgSrcset(nextTrip.heroImage, [800, 1200, 1600, 2400], 90)
+  : ''
 
 // ── Elevation profile helpers ────────────────────────────────────────────────
 async function parseGpxElevation(gpxUrl: string): Promise<number[]> {
@@ -300,6 +306,19 @@ for (const block of storyProcessed) {
   preloadImage={heroUrl}
 >
   <Fragment slot="head">
+    {/* Preload the next-trip's hero so the iris-to-hero handoff doesn't
+        flash the accent-colour background on first visit. imagesrcset +
+        imagesizes mirror the destination trip-hero-img so the browser
+        picks the exact resolution it'd otherwise pick on render. */}
+    {nextTrip && nextHeroUrl && (
+      <link
+        rel="preload"
+        as="image"
+        href={nextHeroUrl}
+        imagesrcset={nextHeroSrcset}
+        imagesizes="100vw"
+      />
+    )}
     <script type="application/ld+json" set:html={jsonLd} />
   </Fragment>
   <div class="trip-page">
