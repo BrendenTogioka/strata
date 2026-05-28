@@ -315,21 +315,38 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     }
 
     // ── Iris overlay handoff ────────────────────────────────────────────
-    // The overlay from the previous page's iris transition is kept on screen
-    // until the destination hero has actually painted, then removed in a
-    // single frame. We do NOT cross-fade out — a fade would double up with
-    // the title reveal beneath. The iris's inner img already matches the
-    // hero's scale(1.16) translateY(-8%) baseline (see irisTransition.ts),
-    // so the only thing that can cause a "background flash" is the hero
-    // not being painted yet at removal time. waitForImagePainted is the
-    // belt-and-braces check that prevents that:
-    //   1. wait for load (bytes in)
-    //   2. await decode() (decoded into memory, ready to paint)
-    //   3. 2× requestAnimationFrame (compositor commits the paint)
+    // The overlay from the previous page's iris transition stays on screen until
+    // the destination hero is decoded, then we do a short cross-dissolve:
+    // iris fades out while the hero simultaneously fades in. This eliminates
+    // the single-frame dark flash caused by GPU texture upload latency — even
+    // after img.decode() the compositor may need 1-2 more frames before the
+    // bitmap is on screen. An instant removal exposed that gap; a 0.25s dissolve
+    // covers it entirely while still feeling snappy.
+    //
+    // Why cross-dissolve and not just fade-out?
+    //   The iris inner img is scaled/offset to match the destination hero's GSAP
+    //   baseline (scale 1.16 / yPercent -8). Same photo, same crop, both images
+    //   covering the viewport — the dissolve reads as a single seamless image
+    //   sharpening up, not as two images crossing.
+    //
+    // Hero is pre-hidden (opacity 0) only when an iris overlay is present,
+    // so direct URL loads and reduced-motion paths are unaffected.
     const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
     if (irisOverlay) {
       const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
-      const removeIris = () => irisOverlay.remove()
+
+      // Pre-hide hero so the dissolve starts from invisible — prevents it from
+      // flashing at full opacity for one frame before GSAP sets the opacity tween.
+      if (tripHero) gsap.set(tripHero, { opacity: 0 })
+
+      const doHandoff = () => {
+        if (tripHero) {
+          // Hero fades in as iris fades out — same duration, no gap
+          gsap.to(tripHero,    { opacity: 1, duration: 0.25, ease: 'power2.out' })
+        }
+        gsap.to(irisOverlay, { opacity: 0, duration: 0.25, ease: 'power2.in',
+          onComplete: () => irisOverlay.remove() })
+      }
 
       const waitForImagePainted = async (img: HTMLImageElement) => {
         if (!img.complete || img.naturalWidth === 0) {
@@ -339,6 +356,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           })
         }
         try { await img.decode() } catch {}
+        // Two rAFs ensure the browser has flushed the decoded image to the
+        // compositor; the dissolve then starts against an already-painted frame.
         await new Promise<void>(r => requestAnimationFrame(() => r()))
         await new Promise<void>(r => requestAnimationFrame(() => r()))
       }
@@ -347,9 +366,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         Promise.all([
           waitForImagePainted(tripHero),
           new Promise<void>(r => setTimeout(r, 300)),
-        ]).then(removeIris)
+        ]).then(doHandoff)
       } else {
-        setTimeout(() => requestAnimationFrame(() => irisOverlay.remove()), 250)
+        // No hero img on this trip page — fall back to plain fade-out
+        setTimeout(() => requestAnimationFrame(() => {
+          gsap.to(irisOverlay, { opacity: 0, duration: 0.25, ease: 'power2.in',
+            onComplete: () => irisOverlay.remove() })
+        }), 250)
       }
     }
 
