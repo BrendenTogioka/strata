@@ -19,7 +19,6 @@ const TRIP_FIELDS = `
     "#C04820"
   ),
   "cardVideoUrl":  cardVideo.secure_url,
-  "heroVideoUrl":  heroVideo.secure_url,
   "routeGpxUrl":   routeGpx.asset->url,
   elevationPoints,
   featured,

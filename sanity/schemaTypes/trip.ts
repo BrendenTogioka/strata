@@ -196,13 +196,6 @@ export default defineType({
       description: 'Short 10–20s ambient clip shown on mobile expedition cards. Upload via the Cloudinary browser.',
     }),
 
-    defineField({
-      name: 'heroVideo',
-      title: 'Hero scroll-scrub video',
-      type: 'cloudinary.asset',
-      description: 'Video scrubbed by scroll on the home page hero. Leave blank to keep the static image.',
-    }),
-
     // ── Homepage feature ──────────────────────────────────────────────────
     defineField({
       name: 'featured',
