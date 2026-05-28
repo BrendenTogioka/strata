@@ -1676,7 +1676,9 @@ nav {
 }
 .trip-map-placeholder {
   position: relative;
-  height: 520px;
+  aspect-ratio: 800 / 520;
+  height: auto;
+  min-height: 200px;
   border: 1px solid rgba(240,226,206,0.08);
   background:
     radial-gradient(ellipse at 38% 58%, rgba(168,191,201,0.05) 0%, transparent 55%),
@@ -1824,6 +1826,7 @@ nav {
    scroll-margin-top gives anchor-link jumps from the TOC breathing room so
    the heading doesn't land flush against the viewport edge. */
 .story-section {
+  margin-top: 2rem;
   margin-bottom: 1rem;
   scroll-margin-top: 6rem;
 }
@@ -1831,7 +1834,7 @@ nav {
   display: flex;
   align-items: flex-end;
   gap: 1.25rem;
-  padding-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(240,226,206,0.08);
 }
 .story-section-number {
@@ -2078,8 +2081,9 @@ nav {
   object-fit: contain;
   display: block;
   pointer-events: auto;
-  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .lightbox-img-b {
   /* Inherits position/centering from .lightbox-img */
@@ -2545,7 +2549,7 @@ nav {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin: 1.5rem 1.25rem 0;
+    margin: 1.5rem 1.25rem 2rem;
     padding: 0.85rem 1.25rem;
     border: 1px solid rgba(240, 226, 206, 0.15);
     font-family: var(--font-mono);

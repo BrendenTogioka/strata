@@ -445,7 +445,7 @@ for (const block of storyProcessed) {
           <svg
             class="trip-map-svg"
             viewBox={`0 0 ${mapW} ${mapH}`}
-            preserveAspectRatio="xMidYMid slice"
+            preserveAspectRatio="none"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
@@ -817,8 +817,9 @@ for (const block of storyProcessed) {
 
         // Shared helper — combine centering translate with an optional
         // scale and x-offset so all transforms stay in one declaration.
-        const setTransform = (img, { scale = 1, x = 0 } = {}) => {
-          img.style.transform = `translate(calc(-50% + ${x}px), -50%) scale(${scale})`
+        const setTransform = (img, { scale = 1, x = 0, blur = 0, rotate = 0 } = {}) => {
+          img.style.transform = `translate(calc(-50% + ${x}px), -50%) scale(${scale}) rotate(${rotate}deg)`
+          img.style.filter = blur > 0 ? `blur(${blur}px)` : ''
         }
         const resetTransform = img => setTransform(img)
 
@@ -831,7 +832,7 @@ for (const block of storyProcessed) {
           activeImg.src = lightboxImages[current].src
           activeImg.alt = lightboxImages[current].alt
 
-          if (!prefersReducedMotion) setTransform(activeImg, { scale: 1.06 })
+          if (!prefersReducedMotion) setTransform(activeImg, { scale: 1.06, blur: 6 })
 
           const showActive = () => {
             // Force reflow so the start-state transform is painted before
@@ -855,9 +856,9 @@ for (const block of storyProcessed) {
             document.removeEventListener('keydown', onKey)
             return
           }
-          // Image scales slightly out as it fades — feels like releasing
+          // Image scales + blurs out as it fades — feels like releasing
           activeImg.style.opacity = '0'
-          setTransform(activeImg, { scale: 1.04 })
+          setTransform(activeImg, { scale: 1.04, blur: 5 })
           setTimeout(() => {
             lb.hidden = true
             document.body.style.overflow = ''
@@ -886,22 +887,22 @@ for (const block of storyProcessed) {
           inactiveImg.src = img.src
           inactiveImg.alt = img.alt
           inactiveImg.style.opacity = '0'
-          // New image starts offset in the direction of travel
-          setTransform(inactiveImg, { x: dir * 22, scale: 0.97 })
+          // New image starts offset in the direction of travel, slightly blurred + tilted
+          setTransform(inactiveImg, { x: dir * 55, scale: 0.94, blur: 10, rotate: dir * -1.2 })
 
           const doSwap = () => {
             inactiveImg.offsetHeight  // force reflow before transition
-            // New image slides to centre; old image exits the opposite side
+            // New image slides to centre, clears blur; old image exits blurred the opposite side
             inactiveImg.style.opacity = '1'
             resetTransform(inactiveImg)
             activeImg.style.opacity = '0'
-            setTransform(activeImg, { x: dir * -22, scale: 0.97 })
+            setTransform(activeImg, { x: dir * -55, scale: 0.94, blur: 10, rotate: dir * 1.2 })
             setTimeout(() => {
               ;[activeImg, inactiveImg] = [inactiveImg, activeImg]
               // Reset the newly-inactive slot for the next navigation
               inactiveImg.style.opacity = '0'
               resetTransform(inactiveImg)
-            }, 260)
+            }, 300)
           }
 
           if (inactiveImg.complete && inactiveImg.naturalWidth > 0) doSwap()
