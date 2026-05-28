@@ -505,8 +505,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           cardVideos.forEach(v => io.observe(v))
         } else {
           cardVideos.forEach(vid => {
-            // Closest card wrapper covers both layouts: .exp-card (home) and .exp-grid-card (expeditions)
-            const card = vid.closest<HTMLElement>('.exp-card, .exp-grid-card')
+            // Closest card wrapper covers every layout that uses .exp-card-video:
+            // .exp-card (home gallery), .exp-grid-card (expeditions archive),
+            // .trip-next-card (next-expedition CTA at the bottom of trip pages).
+            const card = vid.closest<HTMLElement>('.exp-card, .exp-grid-card, .trip-next-card')
             if (!card) return
             card.addEventListener('mouseenter', () => {
               if (!vid.src) vid.src = vid.dataset.src ?? ''
@@ -614,6 +616,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         })
       })
 
+      // Story-divider ✦ mark scales + rotates in — small editorial flourish
+      // marking each scene break.
+      gsap.utils.toArray<HTMLElement>('.story-divider').forEach((d) => {
+        const mark = d.querySelector('.story-divider-mark')
+        if (!mark) return
+        gsap.from(mark, {
+          scale:    0.85,
+          rotate:   -90,
+          duration: 1.2,
+          ease:     'power3.out',
+          scrollTrigger: { trigger: d, start: 'top 85%', once: true },
+        })
+      })
+
       const nextCard = document.getElementById('next-trip-card')
       if (nextCard) {
         // Preload the destination's full-res hero on hover — gives the iris
@@ -630,10 +646,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         }, { once: true })
 
         nextCard.addEventListener('click', () => {
+          // Pause the hover-preview video so iris uses the static image
+          nextCard.querySelector<HTMLVideoElement>('.exp-card-video')?.pause()
           const src     = nextCard.dataset.src     ?? ''
           const href    = nextCard.dataset.href    ?? '/'
           const heroSrc = nextCard.dataset.heroUrl ?? ''
-          const img     = nextCard.querySelector<HTMLImageElement>('img')
+          const img     = nextCard.querySelector<HTMLImageElement>('.trip-next-img-wrap img')
           if (!img || !src) { window.location.href = href; return }
           playIrisTransition({ src, rect: img.getBoundingClientRect(), href, heroSrc })
         })

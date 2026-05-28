@@ -979,6 +979,8 @@ nav {
   font-size: 0.9rem;
   letter-spacing: 0.6em;
   padding-left: 0.6em;
+  display: inline-block;        /* transforms apply (GSAP scroll-in rotates/scales) */
+  transform-origin: center;
 }
 .story-callout {
   padding: 0.9rem 1.4rem;

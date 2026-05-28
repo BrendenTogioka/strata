@@ -380,6 +380,17 @@ for (const block of (trip.story ?? [])) {
               loading="lazy"
               decoding="async"
             />
+            {nextTrip.cardVideoUrl && (
+              <video
+                class="exp-card-video"
+                data-src={nextTrip.cardVideoUrl}
+                muted
+                loop
+                playsinline
+                preload="none"
+                aria-hidden="true"
+              />
+            )}
           </div>
           <div class="trip-next-overlay"></div>
           <div class="trip-next-content">
