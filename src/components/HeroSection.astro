@@ -4,13 +4,11 @@ interface Props {
 }
 const { heroVideoUrl = '' } = Astro.props
 
-// H.264 for the fastest scrub seeks; q_auto:best is Cloudinary's "lowest
-// compression that's visually indistinguishable from source" — close to the
-// uploaded quality at a fraction of q_100's file size. w_1920 caps at full
-// HD (only downscales if larger), keeping retina-sharp on most viewports.
+// Source-quality delivery: no transformations — Cloudinary streams the exact
+// MP4 you uploaded. Heaviest decode per seek; if scrub feels laggy again that's
+// the trade-off, and we can reintroduce a cap (e.g. vc_h264,q_90,w_1920,fps_60)
+// to dial back in stages.
 const heroVideoMp4 = heroVideoUrl
-  ? heroVideoUrl.replace('/upload/', '/upload/vc_h264,q_auto:best,c_limit,w_1920,fps_60/')
-  : ''
 ---
 
 <section class="hero" id="hero">
