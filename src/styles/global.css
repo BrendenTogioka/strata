@@ -148,6 +148,19 @@ nav {
   object-fit: cover; object-position: center 60%;
   display: block;
 }
+.hero-img-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center 60%;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+/* opacity driven by JS — set inline when canplay fires */
 /* gradient overlay darkens bottom so text is legible */
 .hero-overlay {
   position: absolute;
@@ -290,6 +303,17 @@ nav {
 .exp-card-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover;
+}
+.exp-card-video {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.exp-card-video.is-playing {
+  opacity: 1;
 }
 .exp-card-overlay {
   position: absolute;
@@ -833,6 +857,17 @@ nav {
   max-height: 70vh;
   object-fit: cover;
 }
+/* Lightbox-openable images */
+.lb-trigger {
+  cursor: zoom-in;
+}
+.lb-trigger img {
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.lb-trigger:hover img {
+  transform: scale(1.015);
+  filter: brightness(1.05);
+}
 .story-caption {
   margin-top: 0.6rem;
   font-family: var(--font-body);
@@ -1113,6 +1148,178 @@ nav {
   margin-left: auto;
 }
 .trip-next-card:hover .trip-next-arrow { transform: translateX(8px); }
+
+/* ─── Lightbox ─── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: grid;
+  place-items: center;
+}
+.lightbox[hidden] { display: none; }
+.lightbox-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 9, 6, 0.94);
+  transition: background 0.7s ease;
+}
+.lightbox-figure {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 85vh;
+  max-width: 88vw;
+}
+.lightbox-img {
+  max-height: 85vh;
+  max-width: 88vw;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.22s ease;
+}
+.lightbox-img-b {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+}
+.lightbox-close {
+  position: absolute;
+  top: 1.5rem; right: 1.5rem;
+  z-index: 2;
+  background: none;
+  border: none;
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0.5rem;
+  transition: opacity 0.2s;
+}
+.lightbox-close:hover { opacity: 1; }
+.lightbox-prev,
+.lightbox-next {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  z-index: 2;
+  background: none;
+  border: none;
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  cursor: pointer;
+  opacity: 0.45;
+  padding: 1rem 1.5rem;
+  transition: opacity 0.2s;
+  line-height: 1;
+}
+.lightbox-prev { left: 0; }
+.lightbox-next { right: 0; }
+.lightbox-prev:hover,
+.lightbox-next:hover { opacity: 1; }
+.lightbox-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 2;
+  padding: 1.25rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+.lightbox-caption {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.8rem;
+  color: var(--fog);
+  letter-spacing: 0.03em;
+  flex: 1;
+}
+.lightbox-counter {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--accent, var(--rust));
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .lightbox-prev,
+  .lightbox-next { padding: 0.75rem 1rem; font-size: 1rem; }
+  .lightbox-bar { padding: 1rem; }
+  .lightbox-close { top: 1rem; right: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-img  { transition: none; }
+  .lightbox-bg   { transition: none; }
+}
+
+/* ─── Elevation profile sidebar ─── */
+.elev-sidebar {
+  position: fixed;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: none;   /* shown only on wide viewports via media query below */
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.elev-svg {
+  width: 36px;
+  height: 160px;
+  overflow: visible;
+}
+.elev-fill {
+  fill: var(--fog);
+  opacity: 0.07;
+}
+.elev-line {
+  fill: none;
+  stroke: var(--fog);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.5;
+}
+.elev-dot {
+  fill: var(--bone);
+  transition: cx 0.1s ease, cy 0.1s ease;
+}
+.elev-readout {
+  font-family: var(--font-mono);
+  font-size: 6px;
+  fill: var(--fog);
+  letter-spacing: 0.04em;
+}
+.elev-label {
+  font-family: var(--font-mono);
+  font-size: 5.5px;
+  fill: var(--fog);
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+}
+.elev-unit {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--fog);
+  opacity: 0.5;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+@media (min-width: 1200px) {
+  .elev-sidebar { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .elev-dot { transition: none; }
+}
 
 /* ─── Grain overlay ─── */
 .grain {

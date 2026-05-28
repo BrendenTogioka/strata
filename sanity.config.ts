@@ -2,6 +2,7 @@ import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
 import { visionTool } from '@sanity/vision'
 import { orderableDocumentListDeskItem } from '@sanity/orderable-document-list'
+import { cloudinarySchemaPlugin } from 'sanity-plugin-cloudinary'
 import { schemaTypes } from './sanity/schemaTypes'
 
 const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID
@@ -43,6 +44,8 @@ export default defineConfig({
     }),
     // Vision: GROQ query sandbox — remove in production if desired
     visionTool({ defaultApiVersion: '2024-01-01' }),
+    // Cloudinary media browser — requires SANITY_STUDIO_CLOUDINARY_CLOUD_NAME in .env
+    cloudinarySchemaPlugin(),
   ],
 
   schema: {

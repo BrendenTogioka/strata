@@ -96,6 +96,22 @@ export default defineType({
       description: 'e.g. "2 days" or "5 nights"',
     }),
 
+    defineField({
+      name: 'routeGpx',
+      title: 'Route GPX file',
+      type: 'file',
+      description: 'Upload a .gpx from AllTrails, Strava, or Garmin. Elevation profile is auto-derived at build time.',
+      options: { accept: '.gpx,application/gpx+xml' },
+    }),
+
+    defineField({
+      name: 'elevationPoints',
+      title: 'Elevation profile (manual fallback)',
+      type: 'array',
+      of: [{ type: 'number' }],
+      description: 'Auto-derived from GPX when present. Override here for trips without GPS data. Values in feet, 10–20 points.',
+    }),
+
     // ── Classification ──────────────────────────────────────────────────
     defineField({
       name: 'category',
@@ -171,6 +187,20 @@ export default defineType({
           name: 'hex colour',
           invert: false,
         }).warning('Should be a valid hex colour like #C04820'),
+    }),
+
+    defineField({
+      name: 'cardVideo',
+      title: 'Card video clip',
+      type: 'cloudinary.asset',
+      description: 'Short 10–20s ambient clip shown on mobile expedition cards. Upload via the Cloudinary browser.',
+    }),
+
+    defineField({
+      name: 'heroVideo',
+      title: 'Hero scroll-scrub video',
+      type: 'cloudinary.asset',
+      description: 'Video scrubbed by scroll on the home page hero. Leave blank to keep the static image.',
     }),
 
     // ── Homepage feature ──────────────────────────────────────────────────

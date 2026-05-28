@@ -1,16 +1,31 @@
 ---
-// No props — hero image is fixed (valley-fire, always first)
+interface Props {
+  heroVideoUrl?: string
+}
+const { heroVideoUrl = '' } = Astro.props
 ---
 
 <section class="hero" id="hero">
   <div class="hero-img-wrap" id="hero-img-wrap">
     <img
-      src="/images/valley-fire.webp"
-      alt="Valley of Fire, Nevada"
+      src="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779938972/strata/videos/Sequence_04_6_iojrgo.jpg"
+      alt="Strata — a field journal from the edges of the earth"
       fetchpriority="high"
       loading="eager"
       decoding="sync"
+      class={heroVideoUrl ? 'hero-img-hidden' : ''}
     />
+    {heroVideoUrl && (
+      <video
+        id="hero-video"
+        class="hero-video"
+        src={heroVideoUrl}
+        muted
+        playsinline
+        preload="auto"
+        aria-hidden="true"
+      />
+    )}
   </div>
 
   <div class="hero-overlay"></div>
@@ -18,7 +33,7 @@
   <div class="hero-content">
     <div class="hero-location">
       <div class="hero-location-dot"></div>
-      <span>Valley of Fire, Nevada — 36°26′N 114°31′W</span>
+      <span>No Fixed Location — Always Moving</span>
     </div>
 
     <h1 class="hero-title" aria-label="Strata">

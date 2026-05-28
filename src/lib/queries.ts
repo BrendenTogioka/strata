@@ -18,6 +18,10 @@ const TRIP_FIELDS = `
     heroImage.asset->metadata.palette.dominant.background,
     "#C04820"
   ),
+  "cardVideoUrl":  cardVideo.secure_url,
+  "heroVideoUrl":  heroVideo.secure_url,
+  "routeGpxUrl":   routeGpx.asset->url,
+  elevationPoints,
   featured,
   featureLayout,
   "featureBlurb": coalesce(featureBlurb, description),
@@ -29,8 +33,16 @@ const TRIP_FIELDS = `
     content,
     richText,
     url,
-    image { ..., alt, caption, "dims": asset->metadata.dimensions },
-    images[] { _key, ..., alt, caption, "dims": asset->metadata.dimensions }
+    image {
+      ..., alt, caption,
+      "dims": asset->metadata.dimensions,
+      "palette": asset->metadata.palette
+    },
+    images[] {
+      _key, ..., alt, caption,
+      "dims": asset->metadata.dimensions,
+      "palette": asset->metadata.palette
+    }
   }
 `
 

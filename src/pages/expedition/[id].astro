@@ -59,12 +59,107 @@ const nextHeroUrl = nextTrip?.heroImage
   ? urlFor(nextTrip.heroImage).width(1600).quality(90).format('webp').url()
   : ''
 
+// ── Elevation profile helpers ────────────────────────────────────────────────
+async function parseGpxElevation(gpxUrl: string): Promise<number[]> {
+  try {
+    const xml  = await fetch(gpxUrl).then(r => r.text())
+    const eles = [...xml.matchAll(/<ele>([\d.]+)<\/ele>/g)].map(m => parseFloat(m[1]))
+    if (eles.length === 0) return []
+    const step = Math.max(1, Math.floor(eles.length / 20))
+    return eles.filter((_, i) => i % step === 0).slice(0, 20)
+  } catch {
+    return []
+  }
+}
+
+function placeholderElevation(seed: string, points = 14, base = 1000): number[] {
+  let h = [...seed].reduce((a, c) => (Math.imul(31, a) + c.charCodeAt(0)) | 0, 0)
+  const rand = () => {
+    h = (Math.imul(h ^ (h >>> 16), 0x45d9f3b)) | 0
+    return (h >>> 0) / 0xffffffff
+  }
+  return Array.from({ length: points }, () => Math.round(base + base * 0.05 * (rand() * 2 - 1)))
+}
+
+// Resolve elevation points: GPX → manual → seeded placeholder
+let elevPoints: number[] = []
+if (trip.routeGpxUrl) {
+  elevPoints = await parseGpxElevation(trip.routeGpxUrl)
+}
+if (elevPoints.length < 2 && trip.elevationPoints?.length >= 2) {
+  elevPoints = trip.elevationPoints
+}
+if (elevPoints.length < 2) {
+  elevPoints = placeholderElevation(trip.id)
+}
+
+// Normalise to SVG coords — viewBox="0 0 36 160"
+// Y axis = reading progress (top → article start, bottom → end)
+// X axis = elevation deflection (left=low, right=high)
+const elMin   = Math.min(...elevPoints)
+const elMax   = Math.max(...elevPoints)
+const elRange = elMax - elMin || 1
+const svgXPad = 4    // left/right padding within the 36px width
+const svgXW   = 28   // usable width for elevation deflection
+const svgYPad = 8    // top/bottom padding
+const svgYH   = 144  // usable height = 160 - 2*8
+
+const svgPoints = elevPoints.map((e, i) => {
+  const x = svgXPad + ((e - elMin) / elRange) * svgXW
+  const y = svgYPad + (i / (elevPoints.length - 1)) * svgYH
+  return { x: parseFloat(x.toFixed(1)), y: parseFloat(y.toFixed(1)) }
+})
+const pointsStr = svgPoints.map(p => `${p.x},${p.y}`).join(' ')
+
+// Fill polygon: polyline + close down to the right edge
+const fillPoints = pointsStr
+  + ` ${svgXPad},${svgYPad + svgYH} ${svgXPad},${svgYPad}`
+
+// Starting dot sits at the first point
+const firstX = svgPoints[0].x
+const firstY = svgPoints[0].y
+
 function getEmbedUrl(url: string): string {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
   if (yt) return `https://www.youtube.com/embed/${yt[1]}`
   const vimeo = url.match(/vimeo\.com\/(\d+)/)
   if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`
   return url
+}
+
+// ── Lightbox image list ─────────────────────────────────────────────────────
+// Collect all story images in order so the lightbox can navigate the full set.
+interface LightboxImage {
+  src:     string   // full-res URL for lightbox display
+  alt:     string
+  caption: string
+  palette: string   // dominant colour for ambient background tint
+}
+
+const lightboxImages: LightboxImage[] = []
+// Map from Sanity _key → lightbox index, used to set data-lightbox-idx in the template
+const lbByKey = new Map<string, number>()
+
+for (const block of (trip.story ?? [])) {
+  if (block.type === 'image' && block.image) {
+    lbByKey.set(block._key, lightboxImages.length)
+    lightboxImages.push({
+      src:     urlFor(block.image).width(1800).quality(90).format('webp').url(),
+      alt:     block.image.alt ?? '',
+      caption: block.image.caption ?? '',
+      palette: block.image.palette?.vibrant?.background ?? '',
+    })
+  } else if (block.type === 'gallery' && block.images?.length) {
+    for (const img of block.images) {
+      lbByKey.set(img._key, lightboxImages.length)
+      lightboxImages.push({
+        src:     urlFor(img).width(1800).quality(90).format('webp').url(),
+        alt:     img.alt ?? '',
+        caption: img.caption ?? '',
+        palette: img.palette?.vibrant?.background ?? '',
+      })
+    }
+  }
 }
 ---
 
@@ -161,7 +256,7 @@ function getEmbedUrl(url: string): string {
               {block.content}
             </div>
           ) : block.type === 'image' && block.image ? (
-            <figure class="story-block story-img">
+            <figure class="story-block story-img lb-trigger" data-lightbox-idx={lbByKey.get(block._key) ?? -1}>
               <img
                 src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
                 srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
@@ -179,7 +274,7 @@ function getEmbedUrl(url: string): string {
           ) : block.type === 'gallery' && block.images?.length ? (
             <div class="story-block story-gallery" style={`--cols:${Math.min(block.images.length, 4)}`}>
               {block.images.map((img: any) => (
-                <figure class="story-gallery-item">
+                <figure class="story-gallery-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
                   <img
                     src={urlFor(img).width(800).quality(85).format('webp').url()}
                     srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
@@ -254,4 +349,196 @@ function getEmbedUrl(url: string): string {
     )}
 
   </div>
+
+  <!-- ── Elevation profile sidebar ────────────────────────────────────── -->
+  <aside
+    class="elev-sidebar"
+    aria-label="Elevation profile"
+    aria-hidden="true"
+    data-points={JSON.stringify(elevPoints)}
+    data-svg-points={JSON.stringify(svgPoints)}
+  >
+    <svg
+      class="elev-svg"
+      viewBox="0 0 36 160"
+      preserveAspectRatio="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <!-- Fill area -->
+      <polygon points={fillPoints} class="elev-fill" />
+      <!-- Profile line -->
+      <polyline points={pointsStr} class="elev-line" />
+      <!-- Min / max labels -->
+      <text x="2" y={svgYPad + svgYH + 2} class="elev-label" dominant-baseline="hanging">
+        {Math.round(elMin).toLocaleString()}
+      </text>
+      <text x="2" y={svgYPad - 2} class="elev-label" dominant-baseline="auto">
+        {Math.round(elMax).toLocaleString()}
+      </text>
+      <!-- Scrubber dot — position updated by scroll driver in BaseLayout -->
+      <circle
+        id="elev-dot"
+        cx={firstX}
+        cy={firstY}
+        r="3.5"
+        class="elev-dot"
+      />
+      <!-- Elevation readout label next to dot -->
+      <text id="elev-readout" x={firstX + 5} y={firstY} class="elev-readout" dominant-baseline="middle">
+        {Math.round(elevPoints[0]).toLocaleString()} ft
+      </text>
+    </svg>
+    <div class="elev-unit">ft</div>
+  </aside>
+
+  <!-- ── Lightbox ──────────────────────────────────────────────────────── -->
+  {lightboxImages.length > 0 && (
+    <>
+      <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+        <div class="lightbox-bg" id="lightbox-bg"></div>
+        <button class="lightbox-close" id="lightbox-close" aria-label="Close lightbox">✕</button>
+        <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous photo">←</button>
+        <button class="lightbox-next" id="lightbox-next" aria-label="Next photo">→</button>
+        <figure class="lightbox-figure">
+          <img id="lightbox-img"      class="lightbox-img lightbox-img-a" src="" alt="" />
+          <img id="lightbox-img-next" class="lightbox-img lightbox-img-b" src="" alt="" aria-hidden="true" />
+        </figure>
+        <div class="lightbox-bar">
+          <span id="lightbox-caption" class="lightbox-caption"></span>
+          <span id="lightbox-counter" class="lightbox-counter" style={`--accent:${trip.accentColor}`}></span>
+        </div>
+      </div>
+
+      <script define:vars={{ lightboxImages, accentColor: trip.accentColor }}>
+        // ── State ──────────────────────────────────────────────────────────
+        let current = 0
+        const lb        = document.getElementById('lightbox')
+        const bg        = document.getElementById('lightbox-bg')
+        const imgA      = document.getElementById('lightbox-img')
+        const imgB      = document.getElementById('lightbox-img-next')
+        const captionEl = document.getElementById('lightbox-caption')
+        const counterEl = document.getElementById('lightbox-counter')
+        const closeBtn  = document.getElementById('lightbox-close')
+        const prevBtn   = document.getElementById('lightbox-prev')
+        const nextBtn   = document.getElementById('lightbox-next')
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        let activeImg = imgA   // A/B crossfade: one is "live", the other fades in
+        let inactiveImg = imgB
+
+        // ── Open / close ───────────────────────────────────────────────────
+        function open(idx) {
+          current = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
+          lb.hidden = false
+          document.body.style.overflow = 'hidden'
+          // Set both images to avoid flash — A is current, B is empty
+          activeImg.src = lightboxImages[current].src
+          activeImg.alt = lightboxImages[current].alt
+          activeImg.style.opacity = '1'
+          inactiveImg.style.opacity = '0'
+          updateMeta()
+          lb.focus()
+          // Trap focus
+          document.addEventListener('keydown', onKey)
+        }
+
+        function close() {
+          lb.hidden = true
+          document.body.style.overflow = ''
+          document.removeEventListener('keydown', onKey)
+        }
+
+        // ── Navigate ───────────────────────────────────────────────────────
+        function goTo(idx) {
+          const next = ((idx % lightboxImages.length) + lightboxImages.length) % lightboxImages.length
+          if (next === current) return
+          current = next
+          const img = lightboxImages[current]
+
+          if (prefersReducedMotion) {
+            activeImg.src = img.src
+            activeImg.alt = img.alt
+            updateMeta()
+            return
+          }
+
+          // Crossfade: load next image into inactive slot, swap, fade
+          inactiveImg.src = img.src
+          inactiveImg.alt = img.alt
+          inactiveImg.style.opacity = '0'
+
+          inactiveImg.onload = () => {
+            inactiveImg.style.opacity = '1'
+            activeImg.style.opacity   = '0'
+            // After transition completes swap roles
+            setTimeout(() => {
+              activeImg.src   = img.src
+              activeImg.style.opacity = '1'
+              inactiveImg.style.opacity = '0'
+              ;[activeImg, inactiveImg] = [inactiveImg, activeImg]
+            }, 220)
+          }
+
+          updateMeta()
+        }
+
+        function updateMeta() {
+          const img = lightboxImages[current]
+          // Caption
+          if (captionEl) captionEl.textContent = img.caption || ''
+          // Counter — "03 / 08" style
+          if (counterEl) {
+            const pad = n => String(n).padStart(2, '0')
+            counterEl.textContent = `${pad(current + 1)} / ${pad(lightboxImages.length)}`
+          }
+          // Ambient background tint from image palette
+          if (bg) {
+            const colour = img.palette || accentColor || '#1A1410'
+            bg.style.background = hexToRgba(colour, 0.22)
+          }
+        }
+
+        function hexToRgba(hex, alpha) {
+          const r = parseInt(hex.slice(1, 3), 16)
+          const g = parseInt(hex.slice(3, 5), 16)
+          const b = parseInt(hex.slice(5, 7), 16)
+          return `rgba(${r},${g},${b},${alpha})`
+        }
+
+        // ── Keyboard ───────────────────────────────────────────────────────
+        function onKey(e) {
+          if (e.key === 'Escape')      { close(); return }
+          if (e.key === 'ArrowRight')  goTo(current + 1)
+          if (e.key === 'ArrowLeft')   goTo(current - 1)
+        }
+
+        // ── Touch / swipe ──────────────────────────────────────────────────
+        let touchStartX = 0
+        lb.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX }, { passive: true })
+        lb.addEventListener('touchend', e => {
+          const dx = e.changedTouches[0].clientX - touchStartX
+          if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1)
+        }, { passive: true })
+
+        // ── Wire up triggers ───────────────────────────────────────────────
+        document.querySelectorAll('.lb-trigger').forEach(el => {
+          el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.lightboxIdx ?? '-1', 10)
+            if (idx >= 0) open(idx)
+          })
+        })
+
+        closeBtn?.addEventListener('click', close)
+        prevBtn?.addEventListener('click', () => goTo(current - 1))
+        nextBtn?.addEventListener('click', () => goTo(current + 1))
+
+        // Click outside figure closes
+        lb.addEventListener('click', e => {
+          if (e.target === lb || e.target === bg) close()
+        })
+      </script>
+    </>
+  )}
+
 </BaseLayout>

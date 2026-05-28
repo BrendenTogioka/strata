@@ -28,13 +28,16 @@ const expeditions = trips.map((trip: any, i: number) => ({
   heroUrl:    trip.heroImage
                 ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
                 : '',
-  alt:        trip.heroImage?.alt ?? trip.location,
-  id:         trip.id,
+  alt:          trip.heroImage?.alt ?? trip.location,
+  id:           trip.id,
+  cardVideoUrl: trip.cardVideoUrl ?? '',
 }))
+
+const heroVideoUrl = 'https://res.cloudinary.com/dlle6kl4n/video/upload/v1779938972/strata/videos/Sequence_04_6_iojrgo.mp4'
 ---
 
-<BaseLayout preloadImage="/images/valley-fire.webp">
-  <HeroSection />
+<BaseLayout preloadImage="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779938972/strata/videos/Sequence_04_6_iojrgo.jpg">
+  <HeroSection heroVideoUrl={heroVideoUrl} />
   <ExpeditionGallery expeditions={expeditions} />
   {featured.map((feature: any, i: number) => (
     <FeaturedSection feature={feature} index={i} />

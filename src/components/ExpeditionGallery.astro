@@ -1,14 +1,15 @@
 ---
 interface Expedition {
-  num:       string
-  title:     string
-  location:  string
-  year:      string
-  img:       string
-  imgSrcset: string
-  heroUrl:   string
-  alt:       string
-  id:        string
+  num:          string
+  title:        string
+  location:     string
+  year:         string
+  img:          string
+  imgSrcset:    string
+  heroUrl:      string
+  alt:          string
+  id:           string
+  cardVideoUrl?: string
 }
 
 interface Props {
@@ -42,6 +43,17 @@ const { expeditions } = Astro.props
             loading={i === 0 ? 'eager' : 'lazy'}
             decoding="async"
           />
+          {exp.cardVideoUrl && (
+            <video
+              class="exp-card-video"
+              data-src={exp.cardVideoUrl}
+              muted
+              loop
+              playsinline
+              preload="none"
+              aria-hidden="true"
+            />
+          )}
         </div>
         <div class="exp-card-overlay"></div>
         <div class="exp-card-content">
