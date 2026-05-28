@@ -11,20 +11,12 @@ a { color: inherit; text-decoration: none; }
   --ink:         #0C0906;   /* warm near-black */
   --char:        #1A1410;   /* deep charcoal */
   --rust:        #C04820;   /* Valley of Fire ember */
-  --terracotta:  #D0744A;   /* sandstone warm */
   --bone:        #F0E2CE;   /* warm bone */
   --fog:         #A09078;   /* hazy mid-tone */
-  --aurora-g:    #44EE88;   /* northern lights green */
-  --boreal:      #2A6A44;   /* deep aurora green */
-  --arctic:      #88AACC;   /* icy mountain blue */
-  --rose:        #D890A8;   /* mountain sunset rose */
-  --moss:        #5A6A48;   /* jungle moss */
-  --deep-green:  #0F2010;   /* jungle dark */
-  --canyon:      #6B2A12;   /* narrows depth */
-  --mist:        #8FA88A;   /* jungle mist / soft green-grey */
 
-  --font-display: 'Big Shoulders Display', sans-serif;
-  --font-body:    'Lora', Georgia, serif;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body:    'Cormorant Garamond', Georgia, serif;
+  --font-mono:    'Space Mono', monospace;
 
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.87, 0, 0.13, 1);
@@ -124,8 +116,7 @@ nav {
   inset: -15% 0;
   z-index: 0;
 }
-.hero-img-wrap img,
-.hero-img-wrap .img-placeholder {
+.hero-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover; object-position: center 60%;
   display: block;
@@ -269,8 +260,7 @@ nav {
   inset: 0;
   will-change: transform;
 }
-.exp-card-img-wrap img,
-.exp-card-img-wrap .img-placeholder {
+.exp-card-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover;
 }
@@ -567,36 +557,6 @@ nav {
 }
 
 /* ─────────────────────────────────────────────────
-   IMAGE PLACEHOLDER gradients (until real photos added)
-───────────────────────────────────────────────── */
-.ph-valley-fire {
-  background: linear-gradient(160deg,
-    #6B2A12 0%, #C04820 20%, #D88858 40%,
-    #ECC4A0 55%, #D08868 70%, #8B3818 88%, #3A1008 100%);
-}
-.ph-aurora {
-  background: radial-gradient(ellipse at 40% 85%,
-    #44EE88 0%, #1A9950 20%, #0D5530 45%,
-    #062A18 65%, #020C07 90%);
-}
-.ph-mountains {
-  background: linear-gradient(175deg,
-    #E8A8C0 0%, #C0A8CC 12%, #90A8CC 28%,
-    #B8C8E0 44%, #90B0C8 58%, #304458 75%,
-    #1A2A38 88%, #0A1420 100%);
-}
-.ph-narrows {
-  background: linear-gradient(175deg,
-    #1A0C06 0%, #2C1408 20%, #4A2010 40%,
-    #381808 60%, #281008 80%, #100804 100%);
-}
-.ph-jungle {
-  background: linear-gradient(168deg,
-    #0A1A0A 0%, #1A3A18 18%, #2D5028 38%,
-    #3A6830 55%, #507840 70%, #80A870 85%, #A8C898 100%);
-}
-
-/* ─────────────────────────────────────────────────
    TRIP PAGE
 ───────────────────────────────────────────────── */
 .trip-page {
@@ -797,7 +757,7 @@ nav {
 }
 .trip-paragraph a:hover { color: var(--rust); }
 .trip-paragraph code {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
   background: var(--char);
   color: var(--bone);
@@ -887,7 +847,7 @@ nav {
 .story-callout {
   padding: 0.9rem 1.4rem;
   border-left: 2px solid var(--rust);
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: clamp(0.7rem, 1.1vw, 0.82rem);
   letter-spacing: 0.1em;
   color: var(--fog);
@@ -904,14 +864,14 @@ nav {
 }
 .expeditions-header { margin-bottom: 3.5rem; }
 .expeditions-eyebrow {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.25em;
   color: var(--fog);
   margin-bottom: 0.75rem;
 }
 .expeditions-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(3.5rem, 8vw, 7rem);
   line-height: 0.9;
   letter-spacing: -0.01em;
@@ -919,7 +879,7 @@ nav {
   margin-bottom: 0.5rem;
 }
 .expeditions-count {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--fog);
   letter-spacing: 0.12em;
@@ -935,7 +895,7 @@ nav {
 }
 .filter-group { display: flex; flex-direction: column; gap: 0.6rem; }
 .filter-label {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.2em;
   color: var(--fog);
@@ -947,7 +907,7 @@ nav {
   border: 1px solid rgba(240,226,206,0.15);
   background: transparent;
   color: var(--fog);
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   cursor: none;
@@ -960,7 +920,7 @@ nav {
   background: transparent;
   border: 1px solid rgba(240,226,206,0.15);
   color: var(--fog);
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   padding: 0.35rem 0.75rem;
@@ -999,21 +959,21 @@ nav {
   display: flex; flex-direction: column; gap: 0.35rem;
 }
 .exp-grid-category {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--accent, var(--rust));
 }
 .exp-grid-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   line-height: 1;
   letter-spacing: 0.02em;
   color: var(--bone);
 }
 .exp-grid-meta {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   color: var(--fog);
@@ -1034,13 +994,13 @@ nav {
 .exp-grid-tag {
   padding: 0.15rem 0.5rem;
   border: 1px solid rgba(240,226,206,0.2);
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.55rem;
   letter-spacing: 0.08em;
   color: var(--fog);
 }
 .expeditions-empty {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--fog);
   padding: 3rem 0;
