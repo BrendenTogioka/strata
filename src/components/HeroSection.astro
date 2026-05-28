@@ -3,6 +3,14 @@ interface Props {
   heroVideoUrl?: string
 }
 const { heroVideoUrl = '' } = Astro.props
+
+// Derive quality-bumped + format-optimised URLs from the base MP4 upload URL
+const heroVideoWebm = heroVideoUrl
+  ? heroVideoUrl.replace('/upload/', '/upload/vc_vp9,q_85/').replace(/\.mp4$/, '.webm')
+  : ''
+const heroVideoMp4 = heroVideoUrl
+  ? heroVideoUrl.replace('/upload/', '/upload/q_85/')
+  : ''
 ---
 
 <section class="hero" id="hero">
@@ -19,12 +27,14 @@ const { heroVideoUrl = '' } = Astro.props
       <video
         id="hero-video"
         class="hero-video"
-        src={heroVideoUrl}
         muted
         playsinline
         preload="auto"
         aria-hidden="true"
-      />
+      >
+        <source src={heroVideoWebm} type="video/webm" />
+        <source src={heroVideoMp4}  type="video/mp4" />
+      </video>
     )}
   </div>
 
