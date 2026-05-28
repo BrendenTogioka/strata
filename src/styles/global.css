@@ -1429,7 +1429,7 @@ body::before {
 .filter-pill:hover  { border-color: var(--rust); color: var(--bone); transform: translateY(-1px); }
 .filter-pill:active { transform: translateY(0); }
 .filter-pill.active { border-color: var(--rust); background: var(--rust); color: var(--bone); }
-.filter-group--sort { margin-left: auto; }
+.filter-group--sort { margin-left: 0; }
 .sort-select {
   background: transparent;
   border: 1px solid rgba(240,226,206,0.15);

@@ -6,6 +6,23 @@ interface CurtainOptions {
 }
 
 /**
+ * Temporarily removes document.startViewTransition so Astro's navigate() falls
+ * back to a plain DOM swap with no snapshot capture. This prevents the browser's
+ * "rendering suppression" phase — a 1-frame pause during which the live DOM
+ * (including our curtain/iris overlay on <html>) is not shown, causing a visible
+ * dark flash. Our overlays own all visual cover; the snapshot system must stay
+ * completely out of the picture.
+ */
+function bypassViewTransition(fn: () => void): void {
+  const svt = (document as any).startViewTransition
+  if (svt) delete (document as any).startViewTransition
+  document.addEventListener('astro:after-swap', () => {
+    if (svt) (document as any).startViewTransition = svt
+  }, { once: true })
+  fn()
+}
+
+/**
  * Ink-curtain page transition.
  * 1. A near-black panel rises from the bottom to cover the viewport (~0.55s).
  * 2. Astro's client-side navigate() swaps the page underneath.
@@ -43,6 +60,6 @@ export function playCurtainTransition({ href }: CurtainOptions): void {
     y:        '0%',
     duration: 0.55,
     ease:     'power3.inOut',
-    onComplete: () => navigate(href),
+    onComplete: () => bypassViewTransition(() => navigate(href)),
   })
 }

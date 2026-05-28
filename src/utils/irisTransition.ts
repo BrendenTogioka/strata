@@ -1,6 +1,21 @@
 import { gsap } from 'gsap'
 import { navigate } from 'astro:transitions/client'
 
+/**
+ * Temporarily removes document.startViewTransition so Astro's navigate() falls
+ * back to a plain DOM swap with no snapshot capture. This prevents the browser's
+ * "rendering suppression" phase — a 1-frame pause during which the live DOM
+ * (including our iris overlay on <html>) is not shown, causing a visible dark flash.
+ */
+function bypassViewTransition(fn: () => void): void {
+  const svt = (document as any).startViewTransition
+  if (svt) delete (document as any).startViewTransition
+  document.addEventListener('astro:after-swap', () => {
+    if (svt) (document as any).startViewTransition = svt
+  }, { once: true })
+  fn()
+}
+
 interface IrisOptions {
   src:      string
   rect:     DOMRect
@@ -97,6 +112,6 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
     height:   '100vh',
     duration: 0.75,
     ease:     'power3.inOut',
-    onComplete: () => navigate(href),
+    onComplete: () => bypassViewTransition(() => navigate(href)),
   })
 }

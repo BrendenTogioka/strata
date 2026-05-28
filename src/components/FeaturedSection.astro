@@ -32,10 +32,14 @@ const imgSrcset = feature.heroImage
   ? sanityImgSrcset(feature.heroImage, [700, 1000, 1400, 2000], 85)
   : ''
 const sizes = isColor ? '(max-width: 900px) 100vw, 50vw' : '100vw'
+// Hero URL used by iris transition to preload the destination's full-res image
+const heroUrl = feature.heroImage
+  ? urlFor(feature.heroImage).width(1600).quality(90).format('webp').url()
+  : ''
 ---
 
 <section class={`feature feature--${layout}`} style={`--feat-accent:${accent}`}>
-  <a class={isColor ? 'feature-img-col' : 'feature-bg'} href={href} aria-label={lines.join(' ')}>
+  <a class={isColor ? 'feature-img-col' : 'feature-bg'} href={href} aria-label={lines.join(' ')} data-hero-url={heroUrl}>
     <div class="feature-img-wrap">
       <img src={img} srcset={imgSrcset} sizes={sizes} alt={alt} loading="lazy" decoding="async" />
     </div>

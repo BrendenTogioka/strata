@@ -695,6 +695,47 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         scrollTrigger: { trigger: section, start: 'top 60%', once: true },
         opacity: 1, y: 0, stagger: 0.12, duration: 0.9, ease: 'power3.out',
       })
+
+      // ── Featured section click transitions ──────────────────────────────
+      // Image area (feature-img-col / feature-bg) → iris from the feature photo,
+      // matching the expedition gallery card pattern.
+      // Text link (feature-link) → curtain, consistent with nav-level transitions.
+      const imgAnchor  = section.querySelector<HTMLAnchorElement>('.feature-img-col, .feature-bg')
+      const textAnchor = section.querySelector<HTMLAnchorElement>('.feature-link')
+
+      if (imgAnchor) {
+        // Preload the destination's full-res hero on hover so the iris has a
+        // head start — same pattern as the expedition gallery cards.
+        imgAnchor.addEventListener('mouseenter', () => {
+          const heroUrl = imgAnchor.dataset.heroUrl
+          if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
+            const preload = document.createElement('link')
+            preload.rel  = 'preload'
+            preload.as   = 'image'
+            preload.href = heroUrl
+            document.head.appendChild(preload)
+          }
+        }, { once: true })
+
+        imgAnchor.addEventListener('click', (e) => {
+          e.preventDefault()
+          const href    = imgAnchor.getAttribute('href') ?? '/'
+          const heroSrc = imgAnchor.dataset.heroUrl ?? ''
+          const img     = imgAnchor.querySelector<HTMLImageElement>('.feature-img-wrap img')
+          if (img?.src) {
+            playIrisTransition({ src: img.src, rect: img.getBoundingClientRect(), href, heroSrc })
+          } else {
+            playCurtainTransition({ href })
+          }
+        })
+      }
+
+      if (textAnchor) {
+        textAnchor.addEventListener('click', (e) => {
+          e.preventDefault()
+          playCurtainTransition({ href: textAnchor.getAttribute('href') ?? '/' })
+        })
+      }
     })
 
     // ── About section ────────────────────────────────────────────────────
