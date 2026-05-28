@@ -277,31 +277,40 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
     // ── Iris overlay handoff ────────────────────────────────────────────
     // The overlay from the previous page's iris transition is kept on screen
-    // until the destination hero is decoded, then removed in one frame. We do
-    // NOT cross-fade it out: the overlay image and the hero are the same photo
-    // at the same fullscreen framing, so a fade just layers a second "hero
-    // fade-in" on top of the title reveal — which reads as the intro playing
-    // twice. A hard cut after the hero has painted is seamless and prevents
-    // the dark flash when the hero wasn't cached (e.g. from the expeditions grid).
+    // until the destination hero has actually painted, then removed in a
+    // single frame. We do NOT cross-fade out — a fade would double up with
+    // the title reveal beneath. The iris's inner img already matches the
+    // hero's scale(1.16) translateY(-8%) baseline (see irisTransition.ts),
+    // so the only thing that can cause a "background flash" is the hero
+    // not being painted yet at removal time. waitForImagePainted is the
+    // belt-and-braces check that prevents that:
+    //   1. wait for load (bytes in)
+    //   2. await decode() (decoded into memory, ready to paint)
+    //   3. 2× requestAnimationFrame (compositor commits the paint)
     const irisOverlay = document.querySelector<HTMLElement>('.iris-overlay')
     if (irisOverlay) {
       const tripHero = document.querySelector<HTMLImageElement>('.trip-hero-img')
-      // Wait for both the image decode AND a minimum 200ms — on cached or
-      // fast connections decode() resolves synchronously, but the browser
-      // still needs a paint cycle to composite the hero (with its parallax
-      // transform applied) before the overlay is safe to remove. The iris's
-      // inner img already matches the hero's scale(1.16) translateY(-8%)
-      // baseline (see irisTransition.ts), so as long as the hero has
-      // painted by removal time, the handoff is visually identical.
-      const removeIris = () =>
-        requestAnimationFrame(() => requestAnimationFrame(() => irisOverlay.remove()))
+      const removeIris = () => irisOverlay.remove()
+
+      const waitForImagePainted = async (img: HTMLImageElement) => {
+        if (!img.complete || img.naturalWidth === 0) {
+          await new Promise<void>(r => {
+            img.addEventListener('load',  () => r(), { once: true })
+            img.addEventListener('error', () => r(), { once: true })
+          })
+        }
+        try { await img.decode() } catch {}
+        await new Promise<void>(r => requestAnimationFrame(() => r()))
+        await new Promise<void>(r => requestAnimationFrame(() => r()))
+      }
+
       if (tripHero) {
         Promise.all([
-          tripHero.decode().catch(() => {}),
-          new Promise<void>(r => setTimeout(r, 200)),
+          waitForImagePainted(tripHero),
+          new Promise<void>(r => setTimeout(r, 300)),
         ]).then(removeIris)
       } else {
-        setTimeout(() => requestAnimationFrame(() => irisOverlay.remove()), 120)
+        setTimeout(() => requestAnimationFrame(() => irisOverlay.remove()), 250)
       }
     }
 
