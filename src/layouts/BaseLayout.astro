@@ -500,17 +500,19 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       mm = gsap.matchMedia()
 
       mm.add('(min-width: 769px)', () => {
-        const cards       = gsap.utils.toArray<HTMLElement>('.exp-card')
-        const totalScroll = expTrack.scrollWidth - window.innerWidth
+        const cards = gsap.utils.toArray<HTMLElement>('.exp-card')
+        // Compute live so invalidateOnRefresh picks up the post-resize value.
+        // A captured const would return the stale width after a browser resize.
+        const getScroll = () => expTrack.scrollWidth - window.innerWidth
 
         const hScroll = gsap.to(expTrack, {
-          x: () => -totalScroll,
+          x: () => -getScroll(),
           ease: 'none',
           scrollTrigger: {
             trigger: expSection,
             pin: true,
             scrub: 1.2,
-            end: () => `+=${totalScroll}`,
+            end: () => `+=${getScroll()}`,
             invalidateOnRefresh: true,
             anticipatePin: 1,
           },
@@ -1186,9 +1188,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   // Same-page guard prevents the curtain firing when clicking a nav link
   // you're already on (e.g. logo click while on home, or Expeditions while
   // already browsing /expeditions).
+  // Use capture:true so this fires BEFORE Astro's ClientRouter listener.
+  // Astro's router uses a capturing click handler internally; if we register
+  // as a bubbling listener, Astro's handler runs first and sets
+  // e.defaultPrevented = true, which would suppress our curtain entirely.
+  // Capturing gives us first crack — we prevent default for our paths and
+  // call navigate() ourselves after the curtain animation completes.
   const CURTAIN_PATHS = new Set(['/', '', '/expeditions', '/expeditions/', '/gear', '/gear/', '/#contact'])
   document.addEventListener('click', (e) => {
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
     const a = (e.target as HTMLElement | null)?.closest?.('a') as HTMLAnchorElement | null
     if (!a) return
     const path = a.getAttribute('href') ?? ''
@@ -1202,7 +1210,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
     e.preventDefault()
     playCurtainTransition({ href: path || '/' })
-  })
+  }, true)  // ← capture
 
   // Re-fit hero titles on resize (no-op on pages without a .trip-title)
   let fitRaf = 0

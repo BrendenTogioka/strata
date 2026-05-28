@@ -327,6 +327,11 @@ body::before {
   height: 100vh;
   will-change: transform;
 }
+@media (min-width: 769px) {
+  .expedition-track {
+    padding-left: 18vw;
+  }
+}
 .exp-card {
   position: relative;
   flex-shrink: 0;
@@ -732,7 +737,7 @@ body::before {
   flex-direction: column;
   justify-content: center;
   padding: 10vh 5vw 10vh 4vw;
-  background: var(--char);
+  background: var(--ink);
 }
 .about-eyebrow {
   font-family: var(--font-body);
