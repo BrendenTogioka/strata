@@ -1292,6 +1292,23 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     // Final refresh so all triggers compute correct positions
     ScrollTrigger.refresh()
 
+    // ── Hash-anchor correction ───────────────────────────────────────────
+    // When navigating to /#contact (or any hash), the browser scrolls to the
+    // target BEFORE GSAP pin spacers are inserted. After the spacers land,
+    // the scroll position is inside the pinned gallery section rather than
+    // at the true target. Re-scroll with Lenis after the final refresh so
+    // all spacers are accounted for. Two rAFs ensure paint has settled.
+    if (location.hash) {
+      try {
+        const hashTarget = document.querySelector<HTMLElement>(location.hash)
+        if (hashTarget && lenis) {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            lenis!.scrollTo(hashTarget, { immediate: true })
+          }))
+        }
+      } catch {}
+    }
+
     // ── Curtain overlay handoff ──────────────────────────────────────────
     // Lifted AFTER ScrollTrigger.refresh() so pin spacers are already inserted
     // and no layout shift occurs mid-lift (which caused the "dark rectangle"
