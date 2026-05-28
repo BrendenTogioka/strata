@@ -114,7 +114,60 @@ function placeholderElevation(seed: string, points = 14, base = 1000): number[] 
     h = (Math.imul(h ^ (h >>> 16), 0x45d9f3b)) | 0
     return (h >>> 0) / 0xffffffff
   }
-  return Array.from({ length: points }, () => Math.round(base + base * 0.05 * (rand() * 2 - 1)))
+  // Vary base elevation ±35% per trip so each profile looks distinct
+  const tripBase = Math.round(base * (0.65 + rand() * 0.7))
+  // Step size controls how "jagged" the profile is — varies 8-22% of base
+  const stepFactor = 0.08 + rand() * 0.14
+  let elev = tripBase
+  return Array.from({ length: points }, () => {
+    elev += (rand() * 2 - 1) * tripBase * stepFactor
+    return Math.round(Math.max(100, Math.min(tripBase * 2.5, elev)))
+  })
+}
+
+// Seeded-random placeholder route — generates a unique bezier path per trip.
+// All trips without a GPX file get a visually distinct route that still shares
+// the same general left→right, lower→higher mountainous shape.
+function placeholderRoute(
+  seed: string,
+  w: number, h: number, pad: number
+): { path: string; startPt: {x:number;y:number}; endPt: {x:number;y:number}; midPts: {x:number;y:number}[] } {
+  let hash = [...seed].reduce((a, c) => (Math.imul(31, a) + c.charCodeAt(0)) | 0, 0)
+  const rand = () => {
+    hash = (Math.imul(hash ^ (hash >>> 16), 0x45d9f3b)) | 0
+    return (hash >>> 0) / 0xffffffff
+  }
+
+  const usW = w - 2 * pad
+  const usH = h - 2 * pad
+
+  // Jitter a base value by ±pct (5-10% per the user's request)
+  const jit = (v: number, pct = 0.08) => v + (rand() - 0.5) * 2 * v * pct
+
+  // Base control points from the original hardcoded path
+  const start  = { x: jit(100), y: jit(420) }
+  const cp1    = { x: jit(160), y: jit(400) }
+  const cp2    = { x: jit(200), y: jit(350) }
+  const a1     = { x: jit(265), y: jit(324) }
+  const s1     = { x: jit(370), y: jit(296) }
+  const a2     = { x: jit(430), y: jit(304) }
+  const s2     = { x: jit(550), y: jit(288) }
+  const a3     = { x: jit(610), y: jit(264) }
+  const s3     = { x: jit(710), y: jit(240) }
+  const end    = { x: jit(750), y: jit(250) }
+
+  // Intermediate waypoint dots
+  const mid1   = { x: jit(380), y: jit(300) }
+  const mid2   = { x: jit(615), y: jit(268) }
+
+  const path =
+    `M ${start.x.toFixed(1)},${start.y.toFixed(1)} ` +
+    `C ${cp1.x.toFixed(1)},${cp1.y.toFixed(1)} ${cp2.x.toFixed(1)},${cp2.y.toFixed(1)} ${a1.x.toFixed(1)},${a1.y.toFixed(1)} ` +
+    `S ${s1.x.toFixed(1)},${s1.y.toFixed(1)} ${a2.x.toFixed(1)},${a2.y.toFixed(1)} ` +
+    `S ${s2.x.toFixed(1)},${s2.y.toFixed(1)} ${a3.x.toFixed(1)},${a3.y.toFixed(1)} ` +
+    `S ${s3.x.toFixed(1)},${s3.y.toFixed(1)} ${end.x.toFixed(1)},${end.y.toFixed(1)}`
+
+  return { path, startPt: start, endPt: end, midPts: [mid1, mid2] }
 }
 
 let elevPoints: number[] = []
@@ -203,6 +256,9 @@ if (trip.routeGpxUrl) {
     routeEndPt   = pts[pts.length - 1]
   }
 }
+
+// Seeded placeholder route — unique per trip, stable across rebuilds
+const phRoute = routeSvgPath ? null : placeholderRoute(trip.id, mapW, mapH, mapPad)
 
 // ── Story pre-processing ─────────────────────────────────────────────────────
 // Section blocks (type=dayEntry) come in four flavours:
@@ -501,7 +557,7 @@ for (const block of storyProcessed) {
               </>
             ) : (
               <>
-                <!-- Stylised topo placeholder — laid out for 800×520 canvas -->
+                <!-- Seeded topo placeholder — unique per trip via placeholderRoute() -->
                 <ellipse class="map-topo-ring" cx="280" cy="280" rx="240" ry="180" fill="none" stroke="rgba(168,191,201,0.06)" stroke-width="1"/>
                 <ellipse class="map-topo-ring" cx="280" cy="280" rx="190" ry="140" fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
                 <ellipse class="map-topo-ring" cx="280" cy="280" rx="140" ry="100" fill="none" stroke="rgba(168,191,201,0.04)" stroke-width="1"/>
@@ -509,7 +565,7 @@ for (const block of storyProcessed) {
                 <ellipse class="map-topo-ring" cx="600" cy="260" rx="160" ry="120" fill="none" stroke="rgba(168,191,201,0.05)" stroke-width="1"/>
                 <path
                   class="map-route-path"
-                  d="M 100 420 C 160 400, 200 350, 265 324 S 370 296, 430 304 S 550 288, 610 264 S 710 240, 750 250"
+                  d={phRoute!.path}
                   fill="none"
                   stroke="rgba(192,72,32,0.6)"
                   stroke-width="2"
@@ -518,16 +574,16 @@ for (const block of storyProcessed) {
                 />
                 <path
                   class="map-route-progress"
-                  d="M 100 420 C 160 400, 200 350, 265 324 S 370 296, 430 304 S 550 288, 610 264 S 710 240, 750 250"
+                  d={phRoute!.path}
                   fill="none"
                   stroke="var(--rust)"
                   stroke-width="2.5"
                   stroke-linecap="round"
                 />
-                <circle class="map-route-dot map-route-dot--start" cx="100" cy="420" r="5" fill="var(--rust)" />
-                <circle class="map-route-dot" cx="750" cy="250" r="5"  fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
-                <circle class="map-route-dot" cx="380" cy="300" r="3.5" fill="rgba(192,72,32,0.7)" />
-                <circle class="map-route-dot" cx="615" cy="268" r="3.5" fill="rgba(192,72,32,0.7)" />
+                <circle class="map-route-dot map-route-dot--start" cx={phRoute!.startPt.x} cy={phRoute!.startPt.y} r="5" fill="var(--rust)" />
+                <circle class="map-route-dot" cx={phRoute!.endPt.x} cy={phRoute!.endPt.y} r="5" fill="none" stroke="var(--rust)" stroke-width="1.5" opacity="0.5" />
+                <circle class="map-route-dot" cx={phRoute!.midPts[0].x} cy={phRoute!.midPts[0].y} r="3.5" fill="rgba(192,72,32,0.7)" />
+                <circle class="map-route-dot" cx={phRoute!.midPts[1].x} cy={phRoute!.midPts[1].y} r="3.5" fill="rgba(192,72,32,0.7)" />
               </>
             )}
             <!-- Tracker dot — follows cursor, projected onto the route path -->

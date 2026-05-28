@@ -10,6 +10,16 @@ const imgSrcset = [700, 1000, 1400]
 
 <section class="about" id="about">
 
+  <!-- Topo contour rings — positioned over the text column (right 45%).
+       Lives at section level so it isn't clipped by the text column's flow. -->
+  <svg class="about-topo" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <ellipse class="about-topo-ring" cx="200" cy="200" rx="55"  ry="42"  fill="none" stroke="rgba(192,72,32,0.7)"  stroke-width="0.8"/>
+    <ellipse class="about-topo-ring" cx="200" cy="200" rx="95"  ry="72"  fill="none" stroke="rgba(192,72,32,0.5)"  stroke-width="0.8"/>
+    <ellipse class="about-topo-ring" cx="200" cy="200" rx="140" ry="107" fill="none" stroke="rgba(192,72,32,0.32)" stroke-width="0.8"/>
+    <ellipse class="about-topo-ring" cx="200" cy="200" rx="190" ry="146" fill="none" stroke="rgba(192,72,32,0.18)" stroke-width="0.8"/>
+    <ellipse class="about-topo-ring" cx="200" cy="200" rx="250" ry="195" fill="none" stroke="rgba(192,72,32,0.09)" stroke-width="0.8"/>
+  </svg>
+
   <!-- Image column -->
   <div class="about-img-col">
     <div class="about-img-wrap">
@@ -31,16 +41,6 @@ const imgSrcset = [700, 1000, 1400]
 
   <!-- Text column -->
   <div class="about-text-col">
-
-    <!-- Topo contour rings — decorative SVG background, JS fades in on scroll -->
-    <svg class="about-topo" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <ellipse class="about-topo-ring" cx="200" cy="200" rx="55"  ry="42"  fill="none" stroke="rgba(192,72,32,0.6)"  stroke-width="0.75"/>
-      <ellipse class="about-topo-ring" cx="200" cy="200" rx="95"  ry="72"  fill="none" stroke="rgba(192,72,32,0.45)" stroke-width="0.75"/>
-      <ellipse class="about-topo-ring" cx="200" cy="200" rx="140" ry="107" fill="none" stroke="rgba(192,72,32,0.3)"  stroke-width="0.75"/>
-      <ellipse class="about-topo-ring" cx="200" cy="200" rx="190" ry="146" fill="none" stroke="rgba(192,72,32,0.18)" stroke-width="0.75"/>
-      <ellipse class="about-topo-ring" cx="200" cy="200" rx="245" ry="190" fill="none" stroke="rgba(192,72,32,0.1)"  stroke-width="0.75"/>
-    </svg>
-
     <p class="about-eyebrow">The Humans Behind the Lens</p>
 
     <h2 class="about-headline" aria-label="Brenden and Demeris">

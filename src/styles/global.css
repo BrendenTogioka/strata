@@ -675,6 +675,7 @@ body::before {
   grid-template-columns: 55fr 45fr;
   grid-template-rows: 1fr auto;
   min-height: 100vh;
+  position: relative; /* stacking context for topo rings */
 }
 
 /* ── Image column ── */
@@ -748,7 +749,7 @@ body::before {
   padding: 10vh 5vw 10vh 4vw;
   background: var(--ink);
   position: relative;
-  overflow: hidden;
+  z-index: 1; /* above topo rings */
 }
 .about-eyebrow {
   font-family: var(--font-body);
@@ -2595,8 +2596,13 @@ body::before {
   .hero-scroll-cue { display: none; }
 
   /* Expedition gallery — CSS snap scroll on mobile */
-  .expedition { overflow: visible; }
-  .expedition-header { padding: 1.5rem 1.25rem; top: 72px; /* clear fixed nav */ }
+  .expedition { overflow: visible; padding-top: 72px; /* clear fixed nav */ }
+  .expedition-header {
+    /* Normal flow on mobile — sits above the card grid, not overlapping it */
+    position: relative;
+    top: auto;
+    padding: 1rem 1.25rem 0.5rem;
+  }
   .expedition-track {
     /* Reset GSAP horizontal layout — vertical on mobile */
     display: grid;
@@ -2743,33 +2749,34 @@ body::before {
   position: relative;
   width: 100%;
   height: 1px;
+  overflow: hidden;
   z-index: 2;
   pointer-events: none;
 }
-.horizon-line-svg {
-  display: block;
-  width: 100%;
-  height: 1px;
-  overflow: visible;
-}
+/* div-based: GSAP animates scaleX 0→1, no SVG unit issues */
 .horizon-line {
-  stroke-dasharray: 1200;
-  stroke-dashoffset: 1200;
+  width: 100%;
+  height: 100%;
+  background: rgba(240,226,206,0.18);
+  transform-origin: left center;
+  transform: scaleX(0);
 }
 
 /* ── #2 Topo contour rings (About section) ── */
+/* Positioned absolute within .about (which has position:relative), covering
+   the right text column (approximately the right 45%). Overflows freely. */
 .about-topo {
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 140%; height: 140%;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 55%;   /* wide enough to fill the 45% text column with bleed */
+  height: 130%;
   pointer-events: none;
   overflow: visible;
   opacity: 0;
   z-index: 0;
 }
-/* Ensure text sits above the rings */
-.about-text-col > *:not(.about-topo) { position: relative; z-index: 1; }
 .about-topo-ring {
   animation: about-topo-breathe 9s ease-in-out infinite;
 }

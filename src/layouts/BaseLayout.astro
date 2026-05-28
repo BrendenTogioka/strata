@@ -625,39 +625,31 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     }
 
     // ── Expedition archive grid stagger reveal (/expeditions) ────────────
-    // Header → filter bar → cards stagger in, timed after the curtain lifts.
+    // One continuous timeline: header → filter bar → cards.
     const expGrid = document.getElementById('expeditions-grid')
     if (expGrid) {
-      // Header eyebrow/title/count, then filter bar, then pills
       const tl = gsap.timeline({ delay: 0.25 })
       tl.to('.expeditions-eyebrow', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
         .to('.expeditions-title',   { opacity: 1, y: 0, duration: 0.9, ease: 'power4.out' }, '-=0.35')
         .to('.expeditions-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
         .to('.expeditions-bar',     { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.1')
+        // Cards start 0.2s after the filter bar finishes
+        .to('.exp-grid-card', {
+            opacity: 1, y: 0,
+            duration: 0.85, stagger: 0.05, ease: 'power3.out',
+          }, '+=0.2')
 
-      // Cards use CSS initial state (opacity: 0, translateY) + gsap.to to reveal.
-      // gsap.to reads the current CSS state as the start, so no immediateRender quirk.
-      gsap.to('.exp-grid-card', {
-        opacity:  1,
-        y:        0,
-        duration: 0.9,
-        stagger:  0.05,
-        delay:    1.1,
-        ease:     'power3.out',
-        scrollTrigger: { trigger: expGrid, start: 'top 85%', once: true },
-      })
-
-      // Progress trail SVG fades in after the header settles
+      // Progress trail fades with the filter bar
       const expTrail = document.querySelector<HTMLElement>('.exp-progress-trail')
       if (expTrail) {
-        gsap.to(expTrail, { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.1 })
+        gsap.to(expTrail, { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.2 })
       }
     }
 
     // ── Gear page reveal (/gear) ──────────────────────────────────────────
-    const gearGrid = document.getElementById('gear-grid')
+    // One continuous timeline: header → filter bar → cards.
     if (document.querySelector('.gear-page')) {
-      // Header → filter bar stagger matched to curtain lift timing
+      const gearGrid = document.getElementById('gear-grid')
       const gearTl = gsap.timeline({ delay: 0.25 })
       gearTl
         .to('.gear-eyebrow', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
@@ -665,17 +657,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .to('.gear-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
         .to('.gear-bar',     { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.1')
 
-      // Cards use CSS initial state (opacity: 0, translateY) + gsap.to to reveal.
       if (gearGrid) {
-        gsap.to('.gear-card', {
-          opacity:  1,
-          y:        0,
-          duration: 0.7,
-          stagger:  0.04,
-          delay:    1.0,
-          ease:     'power3.out',
-          scrollTrigger: { trigger: gearGrid, start: 'top 88%', once: true },
-        })
+        gearTl.to('.gear-card', {
+          opacity: 1, y: 0,
+          duration: 0.65, stagger: 0.04, ease: 'power3.out',
+        }, '+=0.2')
       }
     }
 
@@ -1165,16 +1151,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       }
     }
 
-    // ── SVG #1 Horizon line draw ─────────────────────────────────────────
-    document.querySelectorAll<SVGLineElement>('.horizon-line').forEach(line => {
+    // ── SVG #1 Horizon line draw (div scaleX — avoids SVG unit issues) ──
+    document.querySelectorAll<HTMLElement>('.horizon-line').forEach(line => {
       const wrap = line.closest<HTMLElement>('.horizon-line-wrap')
       if (!wrap) return
       ScrollTrigger.create({
         trigger: wrap,
-        start: 'top 92%',
+        start: 'top 95%',
         once: true,
         onEnter: () => {
-          gsap.to(line, { strokeDashoffset: 0, duration: 1.8, ease: 'power2.inOut' })
+          gsap.to(line, { scaleX: 1, duration: 1.8, ease: 'power2.inOut' })
         },
       })
     })
