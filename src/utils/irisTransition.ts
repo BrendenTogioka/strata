@@ -8,13 +8,25 @@ import { navigate } from 'astro:transitions/client'
  * (including our iris overlay on <html>) is not shown, causing a visible dark flash.
  */
 function bypassViewTransition(fn: () => void): void {
-  // `delete document.startViewTransition` is a no-op — the method lives on
-  // Document.prototype, not as an own property of the document instance.
-  // Assigning undefined as an OWN property shadows the prototype method so
-  // Astro's navigate() sees `document.startViewTransition === undefined` and
-  // skips view transitions entirely, preventing the rendering-suppression flash.
+  // The real startViewTransition lives on Document.prototype. We shadow it with
+  // an own-property mock that immediately calls Astro's swap callback and returns
+  // resolved promises. Astro proceeds normally (swap + events) but the BROWSER's
+  // View Transitions API is never invoked, so there's no rendering-suppression
+  // phase that would briefly hide the iris overlay on <html>.
+  //
+  // Setting to `undefined` instead would make `document.startViewTransition(cb)`
+  // throw a TypeError, crashing Astro's navigation silently and leaving the
+  // overlay on screen permanently.
   const svt = (document as any).startViewTransition?.bind(document)
-  ;(document as any).startViewTransition = undefined
+  ;(document as any).startViewTransition = (cb: () => Promise<void>) => {
+    const done = cb()
+    return {
+      ready:              Promise.resolve(),
+      updateCallbackDone: done ?? Promise.resolve(),
+      finished:           done ?? Promise.resolve(),
+      skipTransition:     () => {},
+    }
+  }
   document.addEventListener('astro:after-swap', () => {
     if (svt) {
       (document as any).startViewTransition = svt
