@@ -2257,19 +2257,25 @@ nav {
   .trip-hero-content { padding: 0 1.25rem 0; }
   .trip-coords { font-size: 0.7rem; }
 
-  /* Stats bar — wrap to 2-column grid */
-  .trip-stats-bar { padding: 1.25rem 0; }
+  /* Stats bar — single-column spec table: label left, value right */
   .trip-stats-inner {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
     padding: 0 1.25rem;
     max-width: 100%;
+    gap: 0;
   }
+  .stat {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    gap: 1rem;
+  }
+  .stat:last-child { border-bottom: none; }
+  .stat-value { text-align: right; }
   .stat-divider { display: none; }
-  .stat:last-child { /* Duration — lone item spans the row */
-    grid-column: 1 / -1;
-  }
 
   /* Story */
   .trip-paragraph { font-size: 1.05rem; }
@@ -2288,7 +2294,7 @@ nav {
   .section-title { font-size: clamp(2.8rem, 16vw, 5rem); }
   .expedition-track { grid-template-columns: 1fr; }
   .exp-card { height: 80vw; min-height: 280px; }
-  .trip-stats-bar { grid-template-columns: 1fr 1fr; }
+  /* stats already single-column flex at ≤768px — nothing to override */
 }
 
 /* ── Prefer reduced motion ── */
