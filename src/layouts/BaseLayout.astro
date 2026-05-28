@@ -117,6 +117,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
   import { playIrisTransition } from '../utils/irisTransition'
+  import { playCurtainTransition } from '../utils/curtainTransition'
 
   gsap.registerPlugin(ScrollTrigger)
 
@@ -280,6 +281,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       }
     }
 
+    // ── Curtain overlay handoff ─────────────────────────────────────────
+    // Ink curtain from /expeditions navigation: slide it off the top to reveal.
+    const curtain = document.querySelector<HTMLElement>('.curtain-overlay')
+    if (curtain) {
+      gsap.to(curtain, {
+        y:        '-100%',
+        duration: 0.55,
+        ease:     'power3.inOut',
+        onComplete: () => curtain.remove(),
+      })
+    }
+
     // ── Hero ────────────────────────────────────────────────────────────
     const heroSection = document.querySelector<HTMLElement>('.hero')
     const heroImgWrap = document.getElementById('hero-img-wrap')
@@ -370,8 +383,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         ease: 'none',
         scrollTrigger: {
           trigger: expSection,
-          start: 'top bottom',  // section top hits viewport bottom
-          end:   'top 60%',     // section top reaches ~40% from viewport bottom
+          start: 'top 95%',     // small offset before begin = less twitchy
+          end:   'top 40%',     // opacity 1 when section top is ~60% from bottom — cards arrive, not appear
           scrub: 0.5,
         },
       })
@@ -508,6 +521,21 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           })
         }
       }
+    }
+
+    // ── Expedition archive grid stagger reveal (/expeditions) ────────────
+    // Cards stagger up into view, pairing with the ink-curtain reveal so the
+    // user lands on a quietly composing page rather than a finished one.
+    const expGrid = document.getElementById('expeditions-grid')
+    if (expGrid) {
+      gsap.from('.exp-grid-card', {
+        opacity:  0,
+        y:        24,
+        duration: 0.9,
+        stagger:  0.05,
+        ease:     'power3.out',
+        scrollTrigger: { trigger: expGrid, start: 'top 85%', once: true },
+      })
     }
 
     // ── Featured sections (curated homepage trips) ────────────────────────
@@ -661,6 +689,21 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
   // Animations fire on every page load (covers both initial load + transitions)
   document.addEventListener('astro:page-load', initPageAnimations)
+
+  // Curtain transition for any link pointing to /expeditions (nav, gallery
+  // end-cap, "All Expeditions" link). One global delegate; document survives
+  // Astro swaps so this only registers once. Modifier keys (cmd/ctrl-click
+  // for new tab) and non-left clicks are passed through.
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    const a = (e.target as HTMLElement | null)?.closest?.('a') as HTMLAnchorElement | null
+    if (!a) return
+    const path = a.getAttribute('href') ?? ''
+    if (path === '/expeditions' || path === '/expeditions/') {
+      e.preventDefault()
+      playCurtainTransition({ href: path })
+    }
+  })
 
   // Re-fit hero titles on resize (no-op on pages without a .trip-title)
   let fitRaf = 0
