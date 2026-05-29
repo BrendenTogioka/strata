@@ -410,6 +410,24 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             scrub: 1,
           },
         })
+      } else {
+        // Hero-text drift — as the drone ascends (the scrub), the content rises
+        // and fades, reinforcing the "lifting away" feel and clearing the frame
+        // before the sticky releases. Targets the .hero-content CONTAINER, so it
+        // doesn't fight the per-child intro tweens (which animate on load at
+        // progress 0, where this leaves the container at y0 / full opacity).
+        // ⚑ TUNE: yPercent depth and the fade. Linear (ease:'none') tracks scroll.
+        gsap.to('.hero-content', {
+          yPercent: -22,
+          opacity:  0,
+          ease:     'none',
+          scrollTrigger: {
+            trigger: heroSection,
+            start: 'top top',
+            end:   'bottom bottom',
+            scrub: true,
+          },
+        })
       }
 
       // ── Hero frame-sequence (canvas scrub) ────────────────────────────────
