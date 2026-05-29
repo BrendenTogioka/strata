@@ -397,10 +397,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .to('.hero-title .line', { y: 0, duration: 1.3, stagger: 0.08, ease: 'power4.out' }, '-=0.5')
         .to('.hero-sub',         { opacity: 1, y: 0, duration: 1,   ease: 'power3.out' }, '-=0.7')
 
-      // Parallax only when there's no scrub media — the scrub canvas (formerly
-      // the video) drives its own framing, so parallax would fight it. Keyed on
-      // the canvas now; the old video lookup is kept commented for the A/B test.
-      // const heroVideo = document.getElementById('hero-video') as HTMLVideoElement | null
+      // Parallax only when there's no scrub canvas — the canvas drives its own
+      // framing (via position:sticky), so image parallax would fight it.
       const heroCanvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null
       if (!heroCanvas) {
         gsap.to(heroImgWrap, {
@@ -414,108 +412,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         })
       }
 
-      /* ─────────────────────────────────────────────────────────────────────
-         OLD — Hero <video> scrub. KEPT COMMENTED for the live A/B fallback
-         test; do NOT delete until the canvas frame-sequence below is verified
-         on real desktop + mobile. (Active code keys on #hero-canvas, so this
-         no longer runs even if uncommented while the canvas exists.)
-
-      // ── Hero video ──────────────────────────────────────────────────────
-      // Desktop (≥769px): pin the hero and stretch the scrub over 200% of
-      //   viewport-height of scroll — video stays in view ~2× longer.
-      // Mobile  (≤768px):  pinning + frame scrubbing on touch feels stuck and
-      //   chews battery, so just autoplay the same video as a smooth loop.
-      // Reduced motion: skips both — the static poster image remains.
-      // Tweak HERO_PIN_SCROLL to taste: '+=150%' ≈ 1.5×, '+=250%' ≈ 2.5×.
-      if (heroVideo && !reduceMotion()) {
-        const HERO_PIN_SCROLL = '+=200%'
-
-        // preload="none" means no network activity until we call load().
-        // Kick it off as soon as the hero is visible — for a pinned hero
-        // this always fires immediately, but IO keeps the logic correct for
-        // any future layout changes and avoids a naked load() on pages that
-        // don't have a hero video.
-        let videoLoadStarted = false
-        const startVideoLoad = () => {
-          if (videoLoadStarted) return
-          videoLoadStarted = true
-          heroVideo.load()
-        }
-        const heroLoadIO = new IntersectionObserver(
-          (entries) => { if (entries[0].isIntersecting) { startVideoLoad(); heroLoadIO.disconnect() } },
-          // Positive bottom margin expands detection downward so the load
-          // fires 200px before the section would enter the viewport.
-          { rootMargin: '0px 0px 200px 0px' }
-        )
-        heroLoadIO.observe(heroSection)
-
-        // Fade the video in once it can play (shared by both desktop and mobile)
-        const showHeroVideo = () => { heroVideo.style.opacity = '1' }
-        if (heroVideo.readyState >= 2) showHeroVideo()
-        else heroVideo.addEventListener('canplay', showHeroVideo, { once: true })
-
-        mmHero = gsap.matchMedia()
-
-        mmHero.add('(min-width: 769px)', () => {
-          heroVideo.pause()
-
-          // If the video is already seeking, stacking another currentTime
-          // assignment forces the decoder to abandon the in-flight decode and
-          // start over — the main cause of scrub jitter on full-res video.
-          // Instead, park the target time and apply it once the seek lands.
-          let pendingSeekTime: number | null = null
-          const onSeeked = () => {
-            if (pendingSeekTime !== null) {
-              heroVideo.currentTime = pendingSeekTime
-              pendingSeekTime = null
-            }
-          }
-          heroVideo.addEventListener('seeked', onSeeked)
-
-          // readyState 3 (HAVE_FUTURE_DATA) = enough buffered to render next
-          // frame instantly; guards against seeking into unbuffered territory.
-          const scrub = (progress: number) => {
-            if (!heroVideo.duration || heroVideo.readyState < 3) return
-            const t = progress * heroVideo.duration
-            if (heroVideo.seeking) { pendingSeekTime = t; return }
-            pendingSeekTime = null
-            heroVideo.currentTime = t
-          }
-          ScrollTrigger.create({
-            trigger: heroSection,
-            start: 'top top',
-            end:   HERO_PIN_SCROLL,
-            pin:   true,
-            pinSpacing: true,
-            // scrub: true = zero GSAP lag; Lenis already provides easing so
-            // adding a numeric scrub value just stacks a second delay on top.
-            scrub: true,
-            onUpdate: self => scrub(self.progress),
-          })
-          return () => {
-            heroVideo.pause()
-            heroVideo.removeEventListener('seeked', onSeeked)
-          }
-        })
-
-        mmHero.add('(max-width: 768px)', () => {
-          // Ensure load() has been called (IO may not have fired yet on mobile
-          // if the browser deferred intersection checks).
-          startVideoLoad()
-          // Wait for canplay so the first frame is decoded before play() —
-          // avoids the one-frame black flash on slower mobile connections.
-          const doPlay = () => heroVideo.play().catch(() => {})
-          if (heroVideo.readyState >= 2) doPlay()
-          else heroVideo.addEventListener('canplay', doPlay, { once: true })
-          return () => {
-            heroVideo.pause()
-            heroVideo.currentTime = 0
-          }
-        })
-      }
-         ───────────────────────────────────────────────────────────────────── */
-
-      // ── Hero frame-sequence (canvas scrub) — NEW ──────────────────────────
+      // ── Hero frame-sequence (canvas scrub) ────────────────────────────────
       // Apple-style image frame sequence painted to <canvas>, replacing the
       // scrubbed <video>. Desktop AND mobile both scrub on scroll via a pinned
       // ScrollTrigger — the SAME pin/scroll mapping the video used (+=200%).
@@ -576,8 +473,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
             const sizeCanvas = () => {
               const dpr = Math.min(window.devicePixelRatio || 1, 2)
-              heroCanvas.width  = Math.max(1, Math.round(heroSection.clientWidth  * dpr))
-              heroCanvas.height = Math.max(1, Math.round(heroSection.clientHeight * dpr))
+              // Size to the canvas's OWN rendered box (the 100vh sticky layer),
+              // NOT .hero — .hero is now a 300vh scroll track, so measuring it
+              // made the backing store 3× too tall and squashed every frame.
+              const w = heroCanvas.clientWidth  || window.innerWidth
+              const h = heroCanvas.clientHeight || window.innerHeight
+              heroCanvas.width  = Math.max(1, Math.round(w * dpr))
+              heroCanvas.height = Math.max(1, Math.round(h * dpr))
             }
 
             // Cover-draw, biased to ~60% vertical to match the poster's

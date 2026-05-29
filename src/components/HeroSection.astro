@@ -4,19 +4,12 @@ interface Props {
 }
 const { heroVideoUrl = '' } = Astro.props
 
-// Source-quality delivery: no transformations — Cloudinary streams the exact
-// MP4 you uploaded. Heaviest decode per seek; if scrub feels laggy again that's
-// the trade-off, and we can reintroduce a cap (e.g. vc_h264,q_90,w_1920,fps_60)
-// to dial back in stages.
-// NOTE: only referenced by the (commented-out) <video> fallback below now.
-const heroVideoMp4 = heroVideoUrl
-
 // ── Canvas frame-sequence source ──────────────────────────────────────────
-// The scroll-scrubbed hero is now an image frame sequence painted to <canvas>
-// (see BaseLayout.astro hero block). Frames are extracted from the SAME
-// Cloudinary video as the poster via start-offset transforms (so_<pct>p), so
-// no separate upload is needed. We parse the cloud name / version / public-id
-// out of heroVideoUrl and hand them to the canvas via data-* attributes.
+// The scroll-scrubbed hero is an image frame sequence painted to <canvas>
+// (see BaseLayout.astro hero block). Frames are extracted from the Cloudinary
+// video (heroVideoUrl) via start-offset transforms (so_<pct>p) — no separate
+// upload needed. We parse the cloud name / version / public-id out of
+// heroVideoUrl and hand them to the canvas via data-* attributes.
 //
 // ⚑ FILL IN IF THE ASSET CHANGES: this regex assumes a standard delivery URL
 //   …/res.cloudinary.com/<cloud>/video/upload/[transforms/]<vNNN>/<public/id>.<ext>
@@ -43,44 +36,22 @@ const heroPublicId  = heroCloud?.[3] ?? ''
       loading="eager"
       decoding="sync"
     />
-    {/* NOTE: the poster intentionally stays VISIBLE under the canvas — it's
-        the same so_0 frame as canvas frame 1 and paints instantly (eager /
-        high priority), so the hero is never blank while the first frame
-        streams in. The canvas (.hero-canvas) fades in on top once ready.
-        (The old <video> path hid this poster via `hero-img-hidden`; restore
-        that class on the img if you ever revert to the commented video.) */}
+    {/* The poster stays VISIBLE under the canvas — it's the same so_0 frame as
+        canvas frame 1 and paints instantly (eager / high priority), so the hero
+        is never blank while the first frame streams in. The canvas fades in on
+        top once ready (.is-ready). */}
+    {/* Canvas frame-sequence target. Cloudinary parts parsed from heroVideoUrl
+        build the per-frame URLs; if any part is empty the script bails and the
+        static poster <img> above stays visible. */}
     {heroVideoUrl && (
-      <Fragment>
-        {/*
-          OLD — scroll-scrubbed <video>. Kept (commented) for the live A/B
-          fallback test; do NOT delete until the canvas frame-sequence is
-          verified on real desktop + mobile. See BaseLayout.astro hero block.
-
-          <video
-            id="hero-video"
-            class="hero-video"
-            muted
-            playsinline
-            preload="none"
-            aria-hidden="true"
-          >
-            <source src={heroVideoMp4} type="video/mp4" />
-          </video>
-        */}
-
-        {/* NEW — canvas frame-sequence target. Cloudinary parts parsed from
-            heroVideoUrl are passed through for the scrub script to build
-            per-frame URLs. If any part is empty the script bails and the
-            static poster <img> above stays visible. */}
-        <canvas
-          id="hero-canvas"
-          class="hero-canvas"
-          aria-hidden="true"
-          data-cloud={heroCloudName}
-          data-version={heroVersion}
-          data-public-id={heroPublicId}
-        ></canvas>
-      </Fragment>
+      <canvas
+        id="hero-canvas"
+        class="hero-canvas"
+        aria-hidden="true"
+        data-cloud={heroCloudName}
+        data-version={heroVersion}
+        data-public-id={heroPublicId}
+      ></canvas>
     )}
   </div>
 

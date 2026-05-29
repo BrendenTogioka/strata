@@ -242,31 +242,16 @@ body::before {
   inset: -15% 0;             /* image-parallax case: extra height to scroll into */
   z-index: 0;
 }
-/* When the hero has a scroll-scrub video there's no parallax — pin the wrap
-   to exact viewport bounds so the video renders at native pixel size instead
-   of being scaled to fit the otherwise-oversized 130% wrap. */
+/* When the hero has a scroll-scrub canvas there's no parallax — pin the wrap
+   to exact viewport bounds so frames render at native size instead of being
+   scaled to fit the otherwise-oversized wrap. */
 .hero-img-wrap--fill { inset: 0; }
 .hero-img-wrap img {
   width: 100%; height: 100%;
   object-fit: cover; object-position: center 60%;
   display: block;
 }
-.hero-img-hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-/* OLD scrub <video> — kept commented for the canvas A/B fallback test;
-   remove once the frame-sequence is verified on real desktop + mobile.
-.hero-video {
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover; object-position: center 60%;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-*/
-/* NEW canvas frame-sequence — fades in over the static poster once frame 1 is
+/* Canvas frame-sequence — fades in over the static poster once frame 1 is
    painted (.is-ready added by JS), so the hero is never blank. Cover-fit is
    handled in JS via drawImage, so no object-fit here. */
 .hero-canvas {
@@ -2884,6 +2869,9 @@ body::before {
   .nav-links a { font-size: 0.65rem; }
 
   /* Hero */
+  /* Shorter scrub track on phones — 300vh is a long swipe and pushes content
+     too far down. 220vh ≈ 1.2 screens of scrub, then the page continues. */
+  .hero { height: 220vh; }
   .hero-title {
     font-size: clamp(4.5rem, 24vw, 8rem);
   }
