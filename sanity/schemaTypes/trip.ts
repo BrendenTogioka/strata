@@ -185,6 +185,18 @@ export default defineType({
       title: 'Field Intelligence',
       type: 'array',
       description: 'Key-value rows shown in the Field Intelligence panel (permit status, difficulty, water source, etc.).',
+      // New trips start with a standard 8-row scaffold (values say "TBD") so
+      // every trip shares the same panel shape — just edit the values.
+      initialValue: [
+        { _type: 'intelRow', _key: 'fi-permit',     key: 'Permit',           value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-difficulty', key: 'Difficulty',       value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-window',     key: 'Best Window',      value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-water',      key: 'Water Source',     value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-cell',       key: 'Cell Service',     value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-crowds',     key: 'Crowds',           value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-hazards',    key: 'Hazards',          value: 'TBD', status: '' },
+        { _type: 'intelRow', _key: 'fi-access',     key: 'Trailhead Access', value: 'TBD', status: '' },
+      ],
       of: [{
         type: 'object',
         name: 'intelRow',
@@ -230,6 +242,14 @@ export default defineType({
       title: 'Conditions at time of visit',
       type: 'array',
       description: 'Items in the conditions strip shown below the intro (temperature, weather, snowpack, etc.).',
+      // New trips start with a standard 4-item scaffold (values say "TBD") so
+      // every trip's conditions strip shares the same shape — just edit the values.
+      initialValue: [
+        { _type: 'conditionItem', _key: 'co-temp', icon: '🌡',  label: 'Temperature', value: 'TBD', subtext: '' },
+        { _type: 'conditionItem', _key: 'co-sky',  icon: '☀️', label: 'Sky',         value: 'TBD', subtext: '' },
+        { _type: 'conditionItem', _key: 'co-wind', icon: '💨', label: 'Wind',        value: 'TBD', subtext: '' },
+        { _type: 'conditionItem', _key: 'co-vis',  icon: '🌊', label: 'Water Temp',  value: 'TBD', subtext: '' },
+      ],
       of: [{
         type: 'object',
         name: 'conditionItem',
