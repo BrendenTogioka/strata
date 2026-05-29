@@ -1346,8 +1346,7 @@ body::before {
    caption text rather than on the photo). .story-img-frame wraps the single
    image; strip/gallery items have no caption so the figure == the photo. */
 .story-img-frame::before, .story-img-frame::after,
-.story-strip-item::before, .story-strip-item::after,
-.story-gallery-item::before, .story-gallery-item::after {
+.story-strip-item::before, .story-strip-item::after {
   content: '';
   position: absolute;
   width: 20px; height: 20px;
@@ -1358,24 +1357,21 @@ body::before {
 }
 .story-img-frame { position: relative; display: block; }
 .story-img-frame::before,
-.story-strip-item::before,
-.story-gallery-item::before {
+.story-strip-item::before {
   top: 10px; left: 10px;
   border-top: 1px solid rgba(240,226,206,0.75);
   border-left: 1px solid rgba(240,226,206,0.75);
   transform: translate(-6px, -6px);
 }
 .story-img-frame::after,
-.story-strip-item::after,
-.story-gallery-item::after {
+.story-strip-item::after {
   bottom: 10px; right: 10px;
   border-bottom: 1px solid rgba(240,226,206,0.75);
   border-right: 1px solid rgba(240,226,206,0.75);
   transform: translate(6px, 6px);
 }
 .story-img-frame:hover::before, .story-img-frame:hover::after,
-.story-strip-item:hover::before, .story-strip-item:hover::after,
-.story-gallery-item:hover::before, .story-gallery-item:hover::after {
+.story-strip-item:hover::before, .story-strip-item:hover::after {
   opacity: 1;
   transform: translate(0, 0);
 }
@@ -1383,8 +1379,7 @@ body::before {
    effect isn't simply absent on phones/tablets. */
 @media (hover: none) {
   .story-img-frame::before, .story-img-frame::after,
-  .story-strip-item::before, .story-strip-item::after,
-  .story-gallery-item::before, .story-gallery-item::after {
+  .story-strip-item::before, .story-strip-item::after {
     opacity: 0.55;
     transform: translate(0, 0);
   }
@@ -1420,11 +1415,7 @@ body::before {
   max-width: 860px;
   margin: 0;
 }
-/* position:relative so the film-frame corner brackets (::before/::after) anchor
-   to each photo. Without it they escaped to a distant positioned ancestor and
-   scattered across the gallery — the "photo effect off on galleries" bug.
-   (Individual images work because .story-img-frame is already relative.) */
-.story-gallery-item { margin: 0; position: relative; }
+.story-gallery-item { margin: 0; }
 .story-gallery-item img {
   width: 100%; height: 260px;
   object-fit: cover; display: block;

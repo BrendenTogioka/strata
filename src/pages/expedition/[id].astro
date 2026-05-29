@@ -742,16 +742,18 @@ for (const block of storyProcessed) {
                 <div class="story-block story-gallery" style={`--cols:${Math.min(block.images.length, 4)}`}>
                   {block.images.map((img: any) => (
                     <figure class="story-gallery-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
-                      <img
-                        src={urlFor(img).width(800).quality(85).format('webp').url()}
-                        srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
-                        sizes="(max-width: 768px) 100vw, 25vw"
-                        width={img.dims?.width}
-                        height={img.dims?.height}
-                        alt={img.alt ?? ''}
-                        loading="lazy"
-                        decoding="async"
-                      />
+                      <span class="story-img-frame">
+                        <img
+                          src={urlFor(img).width(800).quality(85).format('webp').url()}
+                          srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
+                          sizes="(max-width: 768px) 100vw, 25vw"
+                          width={img.dims?.width}
+                          height={img.dims?.height}
+                          alt={img.alt ?? ''}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </span>
                       {img.caption && <figcaption class="story-caption">{img.caption}</figcaption>}
                     </figure>
                   ))}
