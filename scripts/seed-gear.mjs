@@ -1,12 +1,26 @@
 import { createClient } from '@sanity/client'
+import { readFileSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
-const client = createClient({
-  projectId: 'hmilopzv',
-  dataset:   'production',
-  apiVersion: '2024-01-01',
-  token: 'skbismCeOlG6ClwHpr0TmpHRkBE2iF0pGss6SuIU2OltvQpGB2Vaira1QLUGk0nTNIu2L9f4DtRwoXcGCs88bJduK68ONU41ntX8tVQUi8BvAZ8QMW8BTmOEZe7qL9qTTAMbVpZiRj77rBADG8YF11qrOue2dUwsO8qjK8bO55bqSxDZxQoP',
-  useCdn: false,
-})
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
+// ── Env ──────────────────────────────────────────────────────────────────
+let projectId = process.env.PUBLIC_SANITY_PROJECT_ID
+let dataset   = process.env.PUBLIC_SANITY_DATASET ?? 'production'
+let token     = process.env.SANITY_WRITE_TOKEN
+try {
+  for (const line of readFileSync(resolve(root, '.env'), 'utf8').split('\n')) {
+    const [key, val] = line.split('=')
+    if (key?.trim() === 'PUBLIC_SANITY_PROJECT_ID' && !projectId) projectId = val?.trim()
+    if (key?.trim() === 'PUBLIC_SANITY_DATASET'    && !process.env.PUBLIC_SANITY_DATASET) dataset = val?.trim() ?? dataset
+    if (key?.trim() === 'SANITY_WRITE_TOKEN'       && !token) token = val?.trim()
+  }
+} catch {}
+if (!projectId) { console.error('❌  Missing PUBLIC_SANITY_PROJECT_ID'); process.exit(1) }
+if (!token)     { console.error('❌  Missing SANITY_WRITE_TOKEN'); process.exit(1) }
+
+const client = createClient({ projectId, dataset, apiVersion: '2024-01-01', token, useCdn: false })
 
 const gear = [
   // ── Camera ─────────────────────────────────────────────────────────────────
