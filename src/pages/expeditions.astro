@@ -97,6 +97,14 @@ const cards = trips.map((trip: any, i: number) => ({
 
     <!-- Filter + sort bar -->
     <div class="expeditions-bar" id="expeditions-bar">
+      <!-- Mobile-only disclosure: collapses the filters so the grid shows first -->
+      <button class="exp-filter-toggle" id="exp-filter-toggle" type="button" aria-expanded="false" aria-controls="expeditions-filters">
+        <span class="exp-filter-toggle-label">Filters</span>
+        <span class="exp-filter-toggle-count" id="exp-filter-count" aria-hidden="true"></span>
+        <span class="exp-filter-toggle-icon" aria-hidden="true">+</span>
+      </button>
+      <div class="expeditions-filters" id="expeditions-filters">
+        <div class="expeditions-filters-inner">
       <div class="filter-group">
         <span class="filter-label">Category</span>
         <div class="filter-pills" id="cat-filters">
@@ -129,6 +137,8 @@ const cards = trips.map((trip: any, i: number) => ({
           <option value="oldest">Oldest first</option>
         </select>
       </div>
+        </div><!-- /.expeditions-filters-inner -->
+      </div><!-- /.expeditions-filters -->
     </div>
 
     <!-- Grid -->
@@ -206,10 +216,25 @@ const cards = trips.map((trip: any, i: number) => ({
     const catBtns = document.querySelectorAll<HTMLButtonElement>('#cat-filters .filter-pill')
     const tagBtns = document.querySelectorAll<HTMLButtonElement>('#tag-filters .tag-pill')
     const sortSel = document.getElementById('sort-select') as HTMLSelectElement | null
+    const bar         = document.getElementById('expeditions-bar')
+    const filterToggle = document.getElementById('exp-filter-toggle')
+    const filterCount  = document.getElementById('exp-filter-count')
     if (!grid) return
 
     let activeCat  = ''
     let activeTags = new Set<string>()
+
+    // Mobile "Filters" disclosure (no-op on desktop where the toggle is hidden)
+    filterToggle?.addEventListener('click', () => {
+      const open = bar?.classList.toggle('is-open') ?? false
+      filterToggle.setAttribute('aria-expanded', String(open))
+    })
+    // Active-filter badge so the count is visible while the panel is collapsed
+    function updateFilterCount() {
+      const n = (activeCat ? 1 : 0) + activeTags.size
+      if (filterCount) filterCount.textContent = n ? String(n) : ''
+      filterToggle?.classList.toggle('has-active', n > 0)
+    }
 
     function cards() {
       return [...grid!.querySelectorAll<HTMLElement>('.exp-grid-card')]
@@ -227,6 +252,7 @@ const cards = trips.map((trip: any, i: number) => ({
         if (show) visible++
       })
       if (empty) empty.style.display = visible === 0 ? '' : 'none'
+      updateFilterCount()
     }
 
     function applySort(order: string) {
