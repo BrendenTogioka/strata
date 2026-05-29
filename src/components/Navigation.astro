@@ -9,8 +9,23 @@ if (isExpedition) return
 
 <nav class="site-nav">
   <a href="/" class="nav-logo">OUR ROAMING REELS</a>
-  <ul class="nav-links">
-<li><a href="/expeditions">Expeditions</a></li>
+
+  <!-- Hamburger — only shown on phones (≤480px) where the inline links are
+       collapsed into the slide-down panel. Toggled by the delegate in
+       BaseLayout so it survives view transitions. -->
+  <button
+    class="nav-toggle"
+    id="nav-toggle"
+    aria-label="Open menu"
+    aria-expanded="false"
+    aria-controls="nav-links"
+  >
+    <span class="nav-toggle-bar"></span>
+    <span class="nav-toggle-bar"></span>
+  </button>
+
+  <ul class="nav-links" id="nav-links">
+    <li><a href="/expeditions">Expeditions</a></li>
     <li><a href="/gear">Gear</a></li>
     <li><a href="/#contact">Contact</a></li>
   </ul>

@@ -426,6 +426,38 @@ export default defineType({
     // Order on the homepage is now controlled by drag-and-drop in the
     // "Featured (drag to reorder)" sidebar item — see sanity.config.ts.
 
+    // ── Field Kit (gear list) ─────────────────────────────────────────────
+    // Populated from the ultralight backpacking app via
+    // `node scripts/import-gear-list.mjs <slug> <csv>`. Weights stored in
+    // ounces; the trip page derives base/worn/consumable/total at build time.
+    defineField({
+      name: 'gearList',
+      title: 'Field Kit (gear list)',
+      type: 'array',
+      description: 'The gear carried on this trip. Import from a CSV export rather than hand-entering: node scripts/import-gear-list.mjs <slug> <csv>. At minimum, list the photo/video kit.',
+      of: [{
+        type: 'object',
+        name: 'gearItem',
+        title: 'Gear item',
+        fields: [
+          defineField({ name: 'category', title: 'Category', type: 'string', description: 'e.g. Pack, Shelter, Sleep, Kitchen, Camera, Lens', validation: Rule => Rule.required() }),
+          defineField({ name: 'item',     title: 'Item',     type: 'string', validation: Rule => Rule.required() }),
+          defineField({ name: 'brand',    title: 'Brand',    type: 'string' }),
+          defineField({ name: 'weightOz', title: 'Weight (oz)', type: 'number', description: 'Single-unit weight in ounces.' }),
+          defineField({ name: 'qty',      title: 'Quantity', type: 'number', initialValue: 1 }),
+          defineField({ name: 'worn',       title: 'Worn',       type: 'boolean', description: 'Worn weight — excluded from base weight.', initialValue: false }),
+          defineField({ name: 'consumable', title: 'Consumable', type: 'boolean', description: 'Food / fuel / water — excluded from base weight.', initialValue: false }),
+        ],
+        preview: {
+          select: { item: 'item', brand: 'brand', category: 'category', weightOz: 'weightOz', qty: 'qty' },
+          prepare({ item, brand, category, weightOz, qty }: { item: string; brand?: string; category?: string; weightOz?: number; qty?: number }) {
+            const w = typeof weightOz === 'number' ? ` · ${(weightOz * (qty ?? 1)).toFixed(1)} oz` : ''
+            return { title: `${item}${brand ? ` — ${brand}` : ''}`, subtitle: `${category ?? '—'}${w}` }
+          },
+        },
+      }],
+    }),
+
     // ── Story ───────────────────────────────────────────────────────────
     defineField({
       name: 'story',

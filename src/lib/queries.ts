@@ -23,6 +23,7 @@ const TRIP_FIELDS = `
   elevationPoints,
   fieldIntel[] { key, value, status },
   conditions[] { icon, label, value, subtext },
+  gearList[] { category, item, brand, weightOz, qty, worn, consumable },
   featured,
   featureLayout,
   "featureBlurb": coalesce(featureBlurb, description),

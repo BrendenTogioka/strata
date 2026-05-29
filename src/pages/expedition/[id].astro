@@ -37,6 +37,49 @@ const tripIndex   = allTrips.findIndex((t: any) => t.id === trip.id)
 const nextIndex   = (tripIndex + 1) % allTrips.length
 const nextTrip    = allTrips[nextIndex]
 
+// ── Field Kit (gear list) ───────────────────────────────────────────────────
+// Group items by category and derive the standard ultralight weight buckets:
+// base (everything not worn or consumable), worn, consumables, and total.
+interface GearItem { category?: string; item?: string; brand?: string; weightOz?: number; qty?: number; worn?: boolean; consumable?: boolean }
+const rawGear: GearItem[] = Array.isArray(trip.gearList) ? trip.gearList : []
+
+const OZ_TO_G = 28.349523
+const lineOz  = (g: GearItem) => (g.weightOz ?? 0) * (g.qty ?? 1)
+// "7 lb 2.3 oz" above a pound, otherwise "12.4 oz"
+const fmtOz = (oz: number) => {
+  if (oz <= 0) return '—'
+  if (oz < 16) return `${oz.toFixed(1)} oz`
+  const lb = Math.floor(oz / 16)
+  const rem = oz - lb * 16
+  return rem >= 0.05 ? `${lb} lb ${rem.toFixed(1)} oz` : `${lb} lb`
+}
+const fmtG = (oz: number) => `${Math.round(oz * OZ_TO_G).toLocaleString()} g`
+
+const gearGroups = (() => {
+  const map = new Map<string, GearItem[]>()
+  for (const g of rawGear) {
+    const cat = (g.category ?? 'Other').trim() || 'Other'
+    if (!map.has(cat)) map.set(cat, [])
+    map.get(cat)!.push(g)
+  }
+  // Heaviest categories first — most useful read for a weight-conscious kit.
+  return [...map.entries()]
+    .map(([name, items]) => ({
+      name,
+      items,
+      oz: items.reduce((s, g) => s + lineOz(g), 0),
+    }))
+    .sort((a, b) => b.oz - a.oz)
+})()
+
+const gearTotals = {
+  base:        rawGear.filter(g => !g.worn && !g.consumable).reduce((s, g) => s + lineOz(g), 0),
+  worn:        rawGear.filter(g => g.worn).reduce((s, g) => s + lineOz(g), 0),
+  consumables: rawGear.filter(g => g.consumable).reduce((s, g) => s + lineOz(g), 0),
+  total:       rawGear.reduce((s, g) => s + lineOz(g), 0),
+}
+const hasGear = rawGear.length > 0
+
 // Hero image URLs
 const heroUrl    = trip.heroImage
   ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
@@ -656,16 +699,18 @@ for (const block of storyProcessed) {
               // ── Single image ──────────────────────────────────────────
               if (block.type === 'image' && block.image) return (
                 <figure class="story-block story-img lb-trigger" data-lightbox-idx={lbByKey.get(block._key) ?? -1}>
-                  <img
-                    src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
-                    srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
-                    sizes="(max-width: 768px) 100vw, 860px"
-                    width={block.image.dims?.width}
-                    height={block.image.dims?.height}
-                    alt={block.image.alt ?? ''}
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <span class="story-img-frame">
+                    <img
+                      src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
+                      srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
+                      sizes="(max-width: 768px) 100vw, 860px"
+                      width={block.image.dims?.width}
+                      height={block.image.dims?.height}
+                      alt={block.image.alt ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
                   {block.image.caption && (
                     <figcaption class="story-caption">{block.image.caption}</figcaption>
                   )}
@@ -769,6 +814,71 @@ for (const block of storyProcessed) {
       </section>
     </div>
 
+    <!-- ── Field Kit (gear list) ─────────────────────────────────────────── -->
+    {hasGear && (
+      <section class="trip-gear story-block" id="field-kit" style={`--accent:${trip.accentColor}`}>
+        <div class="trip-wide-wrap">
+          <div class="trip-gear-eyebrow">Field Kit</div>
+          <div class="trip-gear-head">
+            <h2 class="trip-gear-title">What I Carried</h2>
+            <div class="trip-gear-totals">
+              <div class="gear-total">
+                <span class="gear-total-val">{fmtOz(gearTotals.base)}</span>
+                <span class="gear-total-sub">{fmtG(gearTotals.base)}</span>
+                <span class="gear-total-label">Base Weight</span>
+              </div>
+              {gearTotals.consumables > 0 && (
+                <div class="gear-total">
+                  <span class="gear-total-val">{fmtOz(gearTotals.consumables)}</span>
+                  <span class="gear-total-sub">{fmtG(gearTotals.consumables)}</span>
+                  <span class="gear-total-label">Consumables</span>
+                </div>
+              )}
+              {gearTotals.worn > 0 && (
+                <div class="gear-total">
+                  <span class="gear-total-val">{fmtOz(gearTotals.worn)}</span>
+                  <span class="gear-total-sub">{fmtG(gearTotals.worn)}</span>
+                  <span class="gear-total-label">Worn</span>
+                </div>
+              )}
+              <div class="gear-total gear-total--pack">
+                <span class="gear-total-val">{fmtOz(gearTotals.total)}</span>
+                <span class="gear-total-sub">{fmtG(gearTotals.total)}</span>
+                <span class="gear-total-label">Total Pack</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="trip-gear-cats">
+            {gearGroups.map(group => (
+              <div class="gear-cat">
+                <div class="gear-cat-head">
+                  <span class="gear-cat-name">{group.name}</span>
+                  <span class="gear-cat-weight">{fmtOz(group.oz)}</span>
+                </div>
+                <ul class="gear-cat-list">
+                  {group.items.map(it => (
+                    <li class="gear-line">
+                      <span class="gear-line-main">
+                        <span class="gear-line-name">{it.item}</span>
+                        {it.brand && <span class="gear-line-brand">{it.brand}</span>}
+                      </span>
+                      <span class="gear-line-meta">
+                        {(it.qty ?? 1) > 1 && <span class="gear-line-qty">×{it.qty}</span>}
+                        {it.worn && <span class="gear-line-tag">worn</span>}
+                        {it.consumable && <span class="gear-line-tag">consumable</span>}
+                        <span class="gear-line-weight">{fmtOz(lineOz(it))}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
     <!-- ── Next expedition ───────────────────────────────────────────────── -->
     {nextTrip && (
       <section class="trip-next">
@@ -869,6 +979,7 @@ for (const block of storyProcessed) {
     <>
       <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
         <div class="lightbox-bg" id="lightbox-bg"></div>
+        <div class="lightbox-spinner" id="lightbox-spinner" aria-hidden="true"></div>
         <button class="lightbox-close" id="lightbox-close" aria-label="Close lightbox">✕</button>
         <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous photo">←</button>
         <button class="lightbox-next" id="lightbox-next" aria-label="Next photo">→</button>
@@ -893,10 +1004,28 @@ for (const block of storyProcessed) {
         const closeBtn  = document.getElementById('lightbox-close')
         const prevBtn   = document.getElementById('lightbox-prev')
         const nextBtn   = document.getElementById('lightbox-next')
+        const spinner   = document.getElementById('lightbox-spinner')
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         let activeImg = imgA
         let inactiveImg = imgB
+
+        const showSpinner = () => spinner?.classList.add('is-visible')
+        const hideSpinner = () => spinner?.classList.remove('is-visible')
+
+        // Warm the immediate neighbours so swipe/arrow navigation to an
+        // un-viewed photo doesn't sit on a blank background while it loads.
+        const preloaded = new Set()
+        const preloadAround = (i) => {
+          const n = lightboxImages.length
+          for (const j of [(i + 1) % n, (i - 1 + n) % n]) {
+            const s = lightboxImages[j].src
+            if (preloaded.has(s)) continue
+            preloaded.add(s)
+            const im = new Image()
+            im.src = s
+          }
+        }
 
         // Shared helper — combine centering translate with an optional
         // scale and x-offset so all transforms stay in one declaration.
@@ -914,10 +1043,12 @@ for (const block of storyProcessed) {
           activeImg.style.opacity = '0'
           activeImg.src = lightboxImages[current].src
           activeImg.alt = lightboxImages[current].alt
+          showSpinner()
 
           if (!prefersReducedMotion) setTransform(activeImg, { scale: 1.06, blur: 6 })
 
           const showActive = () => {
+            hideSpinner()
             // Force reflow so the start-state transform is painted before
             // the transition begins — without this the scale jump is skipped.
             activeImg.offsetHeight
@@ -925,9 +1056,10 @@ for (const block of storyProcessed) {
             if (!prefersReducedMotion) resetTransform(activeImg)
           }
           if (activeImg.complete && activeImg.naturalWidth > 0) showActive()
-          else activeImg.onload = showActive
+          else { activeImg.onload = showActive; activeImg.onerror = hideSpinner }
 
           updateMeta()
+          preloadAround(current)
           lb.focus()
           document.addEventListener('keydown', onKey)
         }
@@ -970,10 +1102,12 @@ for (const block of storyProcessed) {
           inactiveImg.src = img.src
           inactiveImg.alt = img.alt
           inactiveImg.style.opacity = '0'
+          showSpinner()
           // New image starts offset in the direction of travel, slightly blurred + tilted
           setTransform(inactiveImg, { x: dir * 55, scale: 0.94, blur: 10, rotate: dir * -1.2 })
 
           const doSwap = () => {
+            hideSpinner()
             inactiveImg.offsetHeight  // force reflow before transition
             // New image slides to centre, clears blur; old image exits blurred the opposite side
             inactiveImg.style.opacity = '1'
@@ -989,8 +1123,9 @@ for (const block of storyProcessed) {
           }
 
           if (inactiveImg.complete && inactiveImg.naturalWidth > 0) doSwap()
-          else inactiveImg.onload = doSwap
+          else { inactiveImg.onload = doSwap; inactiveImg.onerror = hideSpinner }
           updateMeta()
+          preloadAround(current)
         }
 
         function updateMeta() {
@@ -1001,8 +1136,12 @@ for (const block of storyProcessed) {
             counterEl.textContent = `${pad(current + 1)} / ${pad(lightboxImages.length)}`
           }
           if (bg) {
+            // Soft palette glow behind the photo over a near-opaque dark base.
+            // Low luminance keeps the image high-contrast and "popping" while
+            // still carrying a hint of the photo's dominant colour.
             const colour = img.palette || accentColor || '#1A1410'
-            bg.style.background = hexToRgba(colour, 0.22)
+            bg.style.background =
+              `radial-gradient(135% 105% at 50% 38%, ${hexToRgba(colour, 0.20)} 0%, rgba(0,0,0,0) 62%), #08060a`
           }
         }
 

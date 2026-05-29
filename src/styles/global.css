@@ -1,6 +1,10 @@
 /* ─── Reset ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: auto; background: #0C0906; }
+/* Root font-size drives every rem-based size in this stylesheet. A fluid
+   clamp lifts the whole type scale ~6% on phones up to ~19% on desktop
+   (from the old flat 16px baseline) for more comfortable reading at every
+   width, while the vw-dominant display clamps keep large titles in check. */
+html { scroll-behavior: auto; background: #0C0906; font-size: clamp(17px, 0.6vw + 14.5px, 19px); }
 body { overflow-x: hidden; }
 img, video { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
@@ -42,7 +46,7 @@ body {
   background: var(--ink);
   color: var(--bone);
   font-family: var(--font-body);
-  font-size: clamp(16px, 1.1vw, 18px);
+  font-size: 1.04rem;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   cursor: none;
@@ -176,6 +180,32 @@ body::before {
   letter-spacing: 0.28em;
 }
 .nav-links a:hover::after { width: 100%; }
+
+/* Hamburger toggle — hidden on desktop, revealed only on phones (≤480px). */
+.nav-toggle {
+  display: none;
+  position: relative;
+  z-index: 2;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin: -0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.nav-toggle-bar {
+  width: 24px;
+  height: 1.5px;
+  margin-left: auto;
+  background: var(--bone);
+  transition: transform 0.35s var(--ease-expo), opacity 0.25s ease;
+}
+.site-nav.is-open .nav-toggle-bar:nth-child(1) { transform: translateY(3.75px) rotate(45deg); }
+.site-nav.is-open .nav-toggle-bar:nth-child(2) { transform: translateY(-3.75px) rotate(-45deg); }
 
 /* ─────────────────────────────────────────────────
    HERO SECTION
@@ -647,7 +677,16 @@ body::before {
   flex-direction: column;
   justify-content: center;
   padding: 10vh 5vw;
-  background: color-mix(in srgb, var(--feat-accent, #C04820) 72%, #0C0906);
+  /* Lower the accent ratio so light text keeps strong contrast regardless of
+     how bright the trip's accent hue is (e.g. Havasupai's turquoise). */
+  background: color-mix(in srgb, var(--feat-accent, #C04820) 52%, #0C0906);
+}
+/* In the colour panel, the body copy must read against the accent — use a
+   near-bone tone instead of the low-contrast --fog used over photos. */
+.feature--color-quote .section-body { color: rgba(245, 236, 222, 0.92); }
+.feature--color-quote .feature-quote {
+  color: #fff;
+  border-left-color: rgba(255, 255, 255, 0.9);
 }
 .feature-quote {
   margin-top: 2.5rem;
@@ -1273,9 +1312,13 @@ body::before {
 
 /* ── Film frame corner brackets ───────────────────────────────────────────────
    L-shaped brackets that slide inward on hover — a cinematic framing device.
-   Applied to both standalone story images and lightbox-trigger wrappers. */
-.story-img::before, .story-img::after,
-.lb-trigger::before, .lb-trigger::after {
+   Anchored to the image-bounding elements (NOT the .story-img figure, which
+   also contains the caption — otherwise the bottom bracket lands below the
+   caption text rather than on the photo). .story-img-frame wraps the single
+   image; strip/gallery items have no caption so the figure == the photo. */
+.story-img-frame::before, .story-img-frame::after,
+.story-strip-item::before, .story-strip-item::after,
+.story-gallery-item::before, .story-gallery-item::after {
   content: '';
   position: absolute;
   width: 20px; height: 20px;
@@ -1284,24 +1327,38 @@ body::before {
   pointer-events: none;
   z-index: 4;
 }
-.story-img::before,
-.lb-trigger::before {
+.story-img-frame { position: relative; display: block; }
+.story-img-frame::before,
+.story-strip-item::before,
+.story-gallery-item::before {
   top: 10px; left: 10px;
   border-top: 1px solid rgba(240,226,206,0.75);
   border-left: 1px solid rgba(240,226,206,0.75);
   transform: translate(-6px, -6px);
 }
-.story-img::after,
-.lb-trigger::after {
+.story-img-frame::after,
+.story-strip-item::after,
+.story-gallery-item::after {
   bottom: 10px; right: 10px;
   border-bottom: 1px solid rgba(240,226,206,0.75);
   border-right: 1px solid rgba(240,226,206,0.75);
   transform: translate(6px, 6px);
 }
-.story-img:hover::before, .story-img:hover::after,
-.lb-trigger:hover::before, .lb-trigger:hover::after {
+.story-img-frame:hover::before, .story-img-frame:hover::after,
+.story-strip-item:hover::before, .story-strip-item:hover::after,
+.story-gallery-item:hover::before, .story-gallery-item:hover::after {
   opacity: 1;
   transform: translate(0, 0);
+}
+/* Touch devices have no hover — show the frame faintly + settled so the
+   effect isn't simply absent on phones/tablets. */
+@media (hover: none) {
+  .story-img-frame::before, .story-img-frame::after,
+  .story-strip-item::before, .story-strip-item::after,
+  .story-gallery-item::before, .story-gallery-item::after {
+    opacity: 0.55;
+    transform: translate(0, 0);
+  }
 }
 
 /* Story images — lazy-load fade-in + subtle scale reveal */
@@ -2064,6 +2121,145 @@ body::before {
   .story-strip { grid-template-columns: 1fr; gap: 0.5rem; }
 }
 
+/* ─── Field Kit (per-trip gear list) ─── */
+.trip-gear { padding: 4vh 0 6vh; }
+.trip-gear-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--rust);
+  margin-bottom: 1.25rem;
+}
+.trip-gear-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-bottom: 1.75rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid rgba(240, 226, 206, 0.12);
+}
+.trip-gear-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--bone);
+}
+.trip-gear-totals { display: flex; flex-wrap: wrap; gap: 2.25rem; }
+.gear-total { display: flex; flex-direction: column; gap: 0.15rem; }
+.gear-total-val {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  line-height: 1;
+  color: var(--bone);
+}
+.gear-total--pack .gear-total-val { color: var(--accent, var(--rust)); }
+.gear-total-sub {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--fog);
+}
+.gear-total-label {
+  margin-top: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+/* Two-column masonry-ish category layout on desktop */
+.trip-gear-cats {
+  columns: 2;
+  column-gap: 3.5rem;
+}
+.gear-cat {
+  break-inside: avoid;
+  margin-bottom: 2.25rem;
+}
+.gear-cat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(240, 226, 206, 0.1);
+}
+.gear-cat-name {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+.gear-cat-weight {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--accent, var(--rust));
+  white-space: nowrap;
+}
+.gear-cat-list { list-style: none; }
+.gear-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(240, 226, 206, 0.05);
+}
+.gear-line:last-child { border-bottom: none; }
+.gear-line-main { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.gear-line-name {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.3;
+  color: var(--bone);
+}
+.gear-line-brand {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.gear-line-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gear-line-qty {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--fog);
+}
+.gear-line-tag {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fog);
+  border: 1px solid rgba(240, 226, 206, 0.18);
+  border-radius: 2px;
+  padding: 0.12rem 0.32rem;
+}
+.gear-line-weight {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--bone);
+}
+@media (max-width: 768px) {
+  .trip-gear-cats { columns: 1; }
+  .trip-gear-head { gap: 1.25rem; }
+  .trip-gear-totals { gap: 1.5rem 1.75rem; }
+}
+
 /* Next expedition */
 .trip-next {
   padding: 0 2.5rem 8vh;
@@ -2236,6 +2432,24 @@ body::before {
   letter-spacing: 0.12em;
   white-space: nowrap;
 }
+/* Loading indicator — shown while a photo loads on open or during prev/next.
+   Centred margins (not transform) so the spin animation owns the transform. */
+.lightbox-spinner {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 40px; height: 40px;
+  margin: -20px 0 0 -20px;
+  z-index: 1;
+  border: 2px solid rgba(240, 226, 206, 0.22);
+  border-top-color: var(--bone);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  animation: lb-spin 0.8s linear infinite;
+}
+.lightbox-spinner.is-visible { opacity: 1; }
+@keyframes lb-spin { to { transform: rotate(360deg); } }
 @media (max-width: 480px) {
   .lightbox-prev,
   .lightbox-next { padding: 0.75rem 1rem; font-size: 1rem; }
@@ -2245,6 +2459,7 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .lightbox-img { transition: none; }
   .lightbox-bg  { transition: none; }
+  .lightbox-spinner { animation: none; }
 }
 
 /* ─── Elevation profile sidebar ─── */
@@ -2514,6 +2729,42 @@ body::before {
   color: rgba(160,144,120,0.85);
 }
 
+/* ── Tap-to-expand details ──
+   Desktop: descriptions show inline, the toggle is hidden. Mobile: the
+   description collapses behind a "Details" toggle to keep the list scannable. */
+.gear-card-toggle { display: none; }
+.gear-card-detail { overflow: hidden; }
+@media (max-width: 768px) {
+  .gear-card-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--rust);
+  }
+  .gear-card-toggle-icon {
+    display: inline-block;
+    font-size: 0.85rem;
+    line-height: 1;
+    transition: transform 0.3s var(--ease-expo);
+  }
+  .gear-card.is-expanded .gear-card-toggle-icon { transform: rotate(45deg); }
+  .gear-card-detail {
+    max-height: 0;
+    transition: max-height 0.45s var(--ease-expo);
+  }
+  .gear-card.is-expanded .gear-card-detail { max-height: 360px; }
+  .gear-card-detail .gear-card-desc { margin-top: 0.6rem; }
+}
+
 /* Empty state */
 .gear-empty {
   padding: 8vh 0;
@@ -2540,8 +2791,11 @@ body::before {
 @media (max-width: 560px) {
   .gear-page { padding: 12vh 1.25rem 6rem; }
   .gear-grid { grid-template-columns: 1fr; background: transparent; border: none; gap: 0; }
-  .gear-card { border-bottom: 1px solid rgba(240,226,206,0.07); padding: 1.5rem 0; }
+  /* Left padding clears the text from the card edge (and the featured rust
+     bar pinned at left:0); right padding keeps wrapped description off-edge. */
+  .gear-card { border-bottom: 1px solid rgba(240,226,206,0.07); padding: 1.6rem 0.5rem 1.6rem 1.1rem; }
   .gear-card:last-child { border-bottom: none; }
+  .gear-card--featured { padding-left: 1.35rem; }
 }
 
 /* ─── Grain overlay ─── */
@@ -2746,10 +3000,45 @@ body::before {
   .section-title { overflow: hidden; }
 }
 
-/* ── Hide nav links on very small screens to avoid overflow ── */
+/* ── Phones: collapse the inline links into a slide-down panel ── */
 @media (max-width: 480px) {
-  .nav-links { display: none; }
-  /* Brand logo acts as the only nav on tiny screens */
+  .nav-toggle { display: flex; }
+  .nav-logo   { position: relative; z-index: 2; }
+
+  /* The links become a full-width panel that drops from behind the bar. */
+  .nav-links {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1;
+    padding: 5.25rem 1.25rem 1.75rem;
+    background: rgba(12, 9, 6, 0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(240, 226, 206, 0.08);
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.45s var(--ease-expo), opacity 0.3s ease;
+  }
+  .site-nav.is-open .nav-links {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .nav-links li { border-top: 1px solid rgba(240, 226, 206, 0.08); }
+  .nav-links li:first-child { border-top: none; }
+  .nav-links a {
+    display: block;
+    padding: 1.15rem 0.25rem;
+    font-size: 0.92rem;
+    letter-spacing: 0.22em;
+  }
+  /* No hover letter-spacing shift on touch — avoids layout jitter */
+  .nav-links a:hover { letter-spacing: 0.22em; }
 }
 
 /* ─────────────────────────────────────────────────

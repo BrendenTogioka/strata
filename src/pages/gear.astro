@@ -108,7 +108,15 @@ function groupOf(cat: string) {
                   <p class="gear-card-brand">{item.brand}</p>
                 )}
                 {item.description && (
-                  <p class="gear-card-desc">{item.description}</p>
+                  <>
+                    <button class="gear-card-toggle" type="button" aria-expanded="false">
+                      <span class="gear-card-toggle-label">Details</span>
+                      <span class="gear-card-toggle-icon" aria-hidden="true">+</span>
+                    </button>
+                    <div class="gear-card-detail">
+                      <p class="gear-card-desc">{item.description}</p>
+                    </div>
+                  </>
                 )}
               </div>
             </li>
@@ -148,6 +156,19 @@ function groupOf(cat: string) {
         pill.classList.add('active')
         activeGroup = pill.dataset.group ?? ''
         applyFilter()
+      })
+    })
+
+    // Tap-to-expand details (mobile). The toggle is hidden on desktop where
+    // descriptions show inline, so this is a no-op there.
+    grid?.querySelectorAll<HTMLButtonElement>('.gear-card-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest<HTMLElement>('.gear-card')
+        if (!card) return
+        const expanded = card.classList.toggle('is-expanded')
+        btn.setAttribute('aria-expanded', String(expanded))
+        const label = btn.querySelector('.gear-card-toggle-label')
+        if (label) label.textContent = expanded ? 'Hide' : 'Details'
       })
     })
   }

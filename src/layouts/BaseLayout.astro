@@ -1302,6 +1302,30 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     }
   }
 
+  // ── Mobile nav toggle ────────────────────────────────────────────────
+  // Document-level delegation so it works across view transitions without
+  // re-binding. The .site-nav is re-rendered per page, so `is-open` resets
+  // naturally on navigation.
+  const closeNav = () => {
+    const nav = document.querySelector('.site-nav')
+    if (!nav?.classList.contains('is-open')) return
+    nav.classList.remove('is-open')
+    nav.querySelector('.nav-toggle')?.setAttribute('aria-expanded', 'false')
+  }
+  document.addEventListener('click', (e) => {
+    const toggle = (e.target as HTMLElement | null)?.closest?.('.nav-toggle')
+    if (toggle) {
+      const nav = toggle.closest('.site-nav')
+      const open = nav?.classList.toggle('is-open') ?? false
+      toggle.setAttribute('aria-expanded', String(open))
+      return
+    }
+    // Tapping a link inside the open panel closes it (the curtain capture
+    // handler still owns the actual navigation).
+    if ((e.target as HTMLElement | null)?.closest?.('.nav-links a')) closeNav()
+  })
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNav() })
+
   // ── Boot ───────────────────────────────────────────────────────────────
   initLenis()
   initCursor()
