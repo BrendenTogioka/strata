@@ -189,6 +189,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   let lenisTicker: ((time: number) => void)   | null = null
   let mm:          ReturnType<typeof gsap.matchMedia> | null = null
   let mmHero:      ReturnType<typeof gsap.matchMedia> | null = null
+  // Elevation-profile scroll handler — held here so it can be detached on
+  // navigation (initPageAnimations re-binds it every page-load).
+  let elevScroll:  (() => void) | null = null
 
   // ── Lenis smooth scroll ────────────────────────────────────────────────
   function initLenis() {
@@ -437,14 +440,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       }
 
       // ── Hero frame-sequence (canvas scrub) ────────────────────────────────
-      // Apple-style image frame sequence painted to <canvas>, replacing the
-      // scrubbed <video>. Desktop AND mobile both scrub on scroll via a pinned
-      // ScrollTrigger — the SAME pin/scroll mapping the video used (+=200%).
+      // Apple-style image frame sequence painted to <canvas>. Desktop AND mobile
+      // both scrub on scroll. The hero is pinned by CSS position:sticky (NOT a
+      // GSAP pin); a non-pinning ScrollTrigger reads scroll progress across the
+      // tall .hero track and maps it to a frame index.
       //
-      // Frames come from the same Cloudinary video as the poster, via
+      // Frames come from a Cloudinary video (the same asset as the poster), via
       // start-offset extraction (so_<pct>p) — no separate upload. The canvas
       // carries data-cloud / data-version / data-public-id (parsed from
-      // heroVideoUrl in HeroSection.astro); if any is missing we bail and the
+      // heroSequenceUrl in HeroSection.astro); if any is missing we bail and the
       // static poster <img> stays visible (hero is never blank).
       //
       // Caching: decoded HTMLImageElements (each awaited through img.decode()).
@@ -1358,7 +1362,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           }
         }
 
-        window.addEventListener('scroll', updateDot, { passive: true })
+        // Detach any handler bound by a previous page before binding this one,
+        // and keep a reference so the astro:after-swap teardown can remove it —
+        // otherwise these stack up across trip-page navigations.
+        if (elevScroll) window.removeEventListener('scroll', elevScroll)
+        elevScroll = updateDot
+        window.addEventListener('scroll', elevScroll, { passive: true })
         updateDot()
       }
     }
@@ -1542,6 +1551,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     initLenis()                                                    // ← re-create lenis first
     if (mm)          { mm.revert(); mm = null }                    // ← now proxy is valid
     if (mmHero)      { mmHero.revert(); mmHero = null }
+    if (elevScroll)  { window.removeEventListener('scroll', elevScroll); elevScroll = null }
     ScrollTrigger.killAll()                                        // ← now proxy is valid
     // Clean refresh after killAll so initPageAnimations starts from a
     // zero-trigger state. The refresh inside initLenis() runs while old

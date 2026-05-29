@@ -1,21 +1,21 @@
 ---
 interface Props {
-  heroVideoUrl?: string
+  heroSequenceUrl?: string
 }
-const { heroVideoUrl = '' } = Astro.props
+const { heroSequenceUrl = '' } = Astro.props
 
 // ── Canvas frame-sequence source ──────────────────────────────────────────
 // The scroll-scrubbed hero is an image frame sequence painted to <canvas>
 // (see BaseLayout.astro hero block). Frames are extracted from the Cloudinary
-// video (heroVideoUrl) via start-offset transforms (so_<pct>p) — no separate
+// video (heroSequenceUrl) via start-offset transforms (so_<pct>p) — no separate
 // upload needed. We parse the cloud name / version / public-id out of
-// heroVideoUrl and hand them to the canvas via data-* attributes.
+// heroSequenceUrl and hand them to the canvas via data-* attributes.
 //
 // ⚑ FILL IN IF THE ASSET CHANGES: this regex assumes a standard delivery URL
 //   …/res.cloudinary.com/<cloud>/video/upload/[transforms/]<vNNN>/<public/id>.<ext>
 //   For the current asset it yields cloud=dlle6kl4n, version=v1779987514,
 //   publicId=OurRoamingReels/hero-bg.
-const heroCloud = heroVideoUrl.match(
+const heroCloud = heroSequenceUrl.match(
   /\/res\.cloudinary\.com\/([^/]+)\/video\/upload\/(?:.*?\/)?(v\d+)\/(.+)\.[a-zA-Z0-9]+$/
 )
 const heroCloudName = heroCloud?.[1] ?? ''
@@ -28,7 +28,7 @@ const heroPublicId  = heroCloud?.[3] ?? ''
      scrub length is the .hero height in global.css, not a ScrollTrigger pin. -->
 <section class="hero" id="hero">
   <div class="hero-sticky">
-  <div class:list={['hero-img-wrap', heroVideoUrl && 'hero-img-wrap--fill']} id="hero-img-wrap">
+  <div class:list={['hero-img-wrap', heroSequenceUrl && 'hero-img-wrap--fill']} id="hero-img-wrap">
     <img
       src="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779987514/OurRoamingReels/hero-bg.jpg"
       alt="Our Roaming Reels — a field journal from the edges of the earth"
@@ -40,10 +40,10 @@ const heroPublicId  = heroCloud?.[3] ?? ''
         canvas frame 1 and paints instantly (eager / high priority), so the hero
         is never blank while the first frame streams in. The canvas fades in on
         top once ready (.is-ready). */}
-    {/* Canvas frame-sequence target. Cloudinary parts parsed from heroVideoUrl
+    {/* Canvas frame-sequence target. Cloudinary parts parsed from heroSequenceUrl
         build the per-frame URLs; if any part is empty the script bails and the
         static poster <img> above stays visible. */}
-    {heroVideoUrl && (
+    {heroSequenceUrl && (
       <canvas
         id="hero-canvas"
         class="hero-canvas"

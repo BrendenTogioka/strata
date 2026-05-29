@@ -34,11 +34,13 @@ const expeditions = trips.map((trip: any, i: number) => ({
   cardVideoUrl: trip.cardVideoUrl ?? '',
 }))
 
-const heroVideoUrl = 'https://res.cloudinary.com/dlle6kl4n/video/upload/v1779987514/OurRoamingReels/hero-bg.mp4'
+// Cloudinary source video the hero <canvas> extracts its scroll-scrub frames
+// from (see HeroSection.astro). Not rendered as a <video>.
+const heroSequenceUrl = 'https://res.cloudinary.com/dlle6kl4n/video/upload/v1779987514/OurRoamingReels/hero-bg.mp4'
 ---
 
 <BaseLayout preloadImage="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779987514/OurRoamingReels/hero-bg.jpg">
-  <HeroSection heroVideoUrl={heroVideoUrl} />
+  <HeroSection heroSequenceUrl={heroSequenceUrl} />
   <ExpeditionGallery expeditions={expeditions} />
 
   <!-- Horizon line #1 — div scaleX 0→1 on scroll (reliable, no SVG unit issues) -->

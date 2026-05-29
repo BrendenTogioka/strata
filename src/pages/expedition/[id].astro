@@ -10,7 +10,13 @@ const ptComponents = {
     underline:       ({ children }: any) => `<span class="pt-u">${children}</span>`,
     'strike-through':({ children }: any) => `<s>${children}</s>`,
     link: ({ children, value }: any) => {
-      const href = value?.href ?? '#'
+      // Overriding the library's link component means we lose its built-in
+      // href safety, so re-apply it: allow only safe schemes (block
+      // javascript:/data:) and escape the value so a quote can't break out of
+      // the attribute. (children are already escaped by the library.)
+      const raw  = value?.href ?? '#'
+      const safe = /^(https?:|mailto:|tel:|\/|#)/i.test(raw) ? raw : '#'
+      const href = safe.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       const external = /^https?:\/\//i.test(href)
       return `<a href="${href}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''}>${children}</a>`
     },
@@ -103,7 +109,7 @@ const jsonLd = JSON.stringify({
   '@graph': [
     {
       '@type':         'Article',
-      headline:        trip.storyTitle || trip.pageTitle.join(' '),
+      headline:        trip.storyTitle || (trip.pageTitle?.join(' ') ?? ''),
       description:     trip.description,
       image:           ogUrl,
       datePublished:   trip.tripDate,
@@ -120,11 +126,11 @@ const jsonLd = JSON.stringify({
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home',        item: `${siteUrl}/`            },
         { '@type': 'ListItem', position: 2, name: 'Expeditions', item: `${siteUrl}/expeditions` },
-        { '@type': 'ListItem', position: 3, name: trip.pageTitle.join(' '), item: pageUrl },
+        { '@type': 'ListItem', position: 3, name: trip.pageTitle?.join(' ') ?? '', item: pageUrl },
       ],
     },
   ],
-})
+}).replace(/</g, '\\u003c')  // neutralise any literal "</script>" in a CMS field
 
 // Next expedition
 const nextUrl     = nextTrip?.heroImage
@@ -156,12 +162,18 @@ async function parseGpxElevation(gpxUrl: string): Promise<number[]> {
   }
 }
 
-function placeholderElevation(seed: string, points = 14, base = 1000): number[] {
+// Deterministic per-seed PRNG (xorshift-style). Same seed → same stream, so
+// placeholder elevation profiles and routes stay stable across builds.
+function seededRand(seed: string): () => number {
   let h = [...seed].reduce((a, c) => (Math.imul(31, a) + c.charCodeAt(0)) | 0, 0)
-  const rand = () => {
+  return () => {
     h = (Math.imul(h ^ (h >>> 16), 0x45d9f3b)) | 0
     return (h >>> 0) / 0xffffffff
   }
+}
+
+function placeholderElevation(seed: string, points = 14, base = 1000): number[] {
+  const rand = seededRand(seed)
   // Vary base elevation ±35% per trip so each profile looks distinct
   const tripBase = Math.round(base * (0.65 + rand() * 0.7))
   // Step size controls how "jagged" the profile is — varies 8-22% of base
@@ -180,11 +192,7 @@ function placeholderRoute(
   seed: string,
   w: number, h: number, pad: number
 ): { path: string; startPt: {x:number;y:number}; endPt: {x:number;y:number}; midPts: {x:number;y:number}[] } {
-  let hash = [...seed].reduce((a, c) => (Math.imul(31, a) + c.charCodeAt(0)) | 0, 0)
-  const rand = () => {
-    hash = (Math.imul(hash ^ (hash >>> 16), 0x45d9f3b)) | 0
-    return (hash >>> 0) / 0xffffffff
-  }
+  const rand = seededRand(seed)
 
   const usW = w - 2 * pad
   const usH = h - 2 * pad
@@ -340,7 +348,7 @@ const storyProcessed: any[] = (trip.story ?? []).map((block: any) => {
     // Final Thoughts would otherwise shift everything off by one).
     const bigNum = kind === 'day' ? String(dayCounter).padStart(2, '0') : null
 
-    return { ...block, _idx: sectionCounter, _eyebrow: eyebrow, _anchor: anchor, _bigNum: bigNum }
+    return { ...block, _eyebrow: eyebrow, _anchor: anchor, _bigNum: bigNum }
   }
   return block
 })
@@ -376,31 +384,29 @@ interface LightboxImage {
 const lightboxImages: LightboxImage[] = []
 const lbByKey = new Map<string, number>()
 
+const toLightboxImage = (img: any): LightboxImage => ({
+  src:     urlFor(img).width(1800).quality(90).format('webp').url(),
+  alt:     img.alt ?? '',
+  caption: img.caption ?? '',
+  palette: img.palette?.vibrant?.background ?? '',
+})
+const pushLightbox = (key: string, img: any) => {
+  lbByKey.set(key, lightboxImages.length)
+  lightboxImages.push(toLightboxImage(img))
+}
+
 for (const block of storyProcessed) {
+  // Galleries (grid + strip) are authored as type 'gallery' with a layout flag.
   if (block.type === 'image' && block.image) {
-    lbByKey.set(block._key, lightboxImages.length)
-    lightboxImages.push({
-      src:     urlFor(block.image).width(1800).quality(90).format('webp').url(),
-      alt:     block.image.alt ?? '',
-      caption: block.image.caption ?? '',
-      palette: block.image.palette?.vibrant?.background ?? '',
-    })
-  } else if ((block.type === 'gallery' || block.type === 'strip') && block.images?.length) {
-    for (const img of block.images) {
-      lbByKey.set(img._key, lightboxImages.length)
-      lightboxImages.push({
-        src:     urlFor(img).width(1800).quality(90).format('webp').url(),
-        alt:     img.alt ?? '',
-        caption: img.caption ?? '',
-        palette: img.palette?.vibrant?.background ?? '',
-      })
-    }
+    pushLightbox(block._key, block.image)
+  } else if (block.type === 'gallery' && block.images?.length) {
+    for (const img of block.images) pushLightbox(img._key, img)
   }
 }
 ---
 
 <BaseLayout
-  title={`${trip.pageTitle.join(' ')} — Our Roaming Reels`}
+  title={`${trip.pageTitle?.join(' ') ?? ''} — Our Roaming Reels`}
   description={trip.description}
   ogImage={ogUrl}
   ogImageWidth={ogImageWidth}
@@ -478,7 +484,7 @@ for (const block of storyProcessed) {
         </div>
 
         <HeroTitleTag class="trip-title">
-          {trip.pageTitle.map((line: string, i: number) => (
+          {(trip.pageTitle ?? []).map((line: string, i: number) => (
             <span class="line" style={i === 1 ? `color:${trip.accentColor}` : ''}>
               {line}
             </span>
