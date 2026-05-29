@@ -386,9 +386,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .to('.hero-title .line', { y: 0, duration: 1.3, stagger: 0.08, ease: 'power4.out' }, '-=0.5')
         .to('.hero-sub',         { opacity: 1, y: 0, duration: 1,   ease: 'power3.out' }, '-=0.7')
 
-      // Parallax only when no scrub video (video scrub drives its own position)
-      const heroVideo = document.getElementById('hero-video') as HTMLVideoElement | null
-      if (!heroVideo) {
+      // Parallax only when there's no scrub media — the scrub canvas (formerly
+      // the video) drives its own framing, so parallax would fight it. Keyed on
+      // the canvas now; the old video lookup is kept commented for the A/B test.
+      // const heroVideo = document.getElementById('hero-video') as HTMLVideoElement | null
+      const heroCanvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null
+      if (!heroCanvas) {
         gsap.to(heroImgWrap, {
           yPercent: 20, ease: 'none',
           scrollTrigger: {
@@ -399,6 +402,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           },
         })
       }
+
+      /* ─────────────────────────────────────────────────────────────────────
+         OLD — Hero <video> scrub. KEPT COMMENTED for the live A/B fallback
+         test; do NOT delete until the canvas frame-sequence below is verified
+         on real desktop + mobile. (Active code keys on #hero-canvas, so this
+         no longer runs even if uncommented while the canvas exists.)
 
       // ── Hero video ──────────────────────────────────────────────────────
       // Desktop (≥769px): pin the hero and stretch the scrub over 200% of
@@ -492,6 +501,191 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             heroVideo.currentTime = 0
           }
         })
+      }
+         ───────────────────────────────────────────────────────────────────── */
+
+      // ── Hero frame-sequence (canvas scrub) — NEW ──────────────────────────
+      // Apple-style image frame sequence painted to <canvas>, replacing the
+      // scrubbed <video>. Desktop AND mobile both scrub on scroll via a pinned
+      // ScrollTrigger — the SAME pin/scroll mapping the video used (+=200%).
+      //
+      // Frames come from the same Cloudinary video as the poster, via
+      // start-offset extraction (so_<pct>p) — no separate upload. The canvas
+      // carries data-cloud / data-version / data-public-id (parsed from
+      // heroVideoUrl in HeroSection.astro); if any is missing we bail and the
+      // static poster <img> stays visible (hero is never blank).
+      //
+      // Caching: decoded HTMLImageElements (each awaited through img.decode()).
+      // We deliberately do NOT keep a permanent ImageBitmap per frame — an
+      // ImageBitmap is a non-evictable decoded buffer (~w×h×4 bytes), so 120 of
+      // them would pin hundreds of MB. Decoded <img>s let the browser evict and
+      // re-decode under pressure, and on mobile we additionally drop frames
+      // outside a window around the current index (the release-far mitigation).
+      if (heroCanvas && !reduceMotion()) {
+        const ctx      = heroCanvas.getContext('2d')
+        const cloud    = heroCanvas.dataset.cloud
+        const version  = heroCanvas.dataset.version
+        const publicId = heroCanvas.dataset.publicId
+
+        if (ctx && cloud && version && publicId) {
+          const HERO_PIN_SCROLL = '+=200%'   // same scroll mapping the video used
+
+          // ── Per-breakpoint frame sets ─────────────────────────────────────
+          //   count  — frames in the sequence (mobile fewer to bound memory)
+          //   w / h  — Cloudinary delivery size per frame
+          //   window — frames to keep loaded each side of current (Infinity =
+          //            keep all on desktop; finite on mobile = release far)
+          // ⚑ TUNE: counts confirmed at 120 desktop / 48 mobile. Sizes/window
+          //   are safe defaults — adjust if frames look soft or RAM is tight.
+          const DESKTOP = { count: 120, w: 1600, h: 900,  window: Infinity, mq: '(min-width: 769px)' }
+          const MOBILE  = { count: 48,  w: 800,  h: 1200, window: 16,       mq: '(max-width: 768px)' }
+
+          const frameUrl = (i: number, count: number, w: number, h: number) => {
+            // Evenly-spaced frames by percentage of the video's duration.
+            const pct = count > 1 ? (i / (count - 1)) * 100 : 0
+            return `https://res.cloudinary.com/${cloud}/video/upload/` +
+                   `so_${pct.toFixed(3)}p,c_fill,g_center,w_${w},h_${h},f_auto,q_auto/` +
+                   `${version}/${publicId}.jpg`
+          }
+
+          // Build (or rebuild on breakpoint change) the whole controller.
+          // The returned cleanup is invoked by gsap.matchMedia on revert/swap.
+          const buildHero = (cfg: typeof DESKTOP) => {
+            let frames: (HTMLImageElement | undefined)[] = []
+            let currentIndex   = -1
+            let targetProgress = 0
+            let rafId          = 0
+            let pumping        = false
+            let destroyed      = false
+
+            const sizeCanvas = () => {
+              const dpr = Math.min(window.devicePixelRatio || 1, 2)
+              heroCanvas.width  = Math.max(1, Math.round(heroSection.clientWidth  * dpr))
+              heroCanvas.height = Math.max(1, Math.round(heroSection.clientHeight * dpr))
+            }
+
+            // Cover-draw, biased to ~60% vertical to match the poster's
+            // object-position: center 60%.
+            const draw = (img: HTMLImageElement) => {
+              const cw = heroCanvas.width, ch = heroCanvas.height
+              const iw = img.naturalWidth || cfg.w, ih = img.naturalHeight || cfg.h
+              const scale = Math.max(cw / iw, ch / ih)
+              const dw = iw * scale, dh = ih * scale
+              ctx.drawImage(img, (cw - dw) / 2, (ch - dh) * 0.6, dw, dh)
+            }
+
+            const indexFor = (p: number) =>
+              Math.min(Math.max(Math.round(p * (cfg.count - 1)), 0), cfg.count - 1)
+
+            const loadFrame = (i: number): Promise<HTMLImageElement | undefined> => {
+              const cached = frames[i]
+              if (cached) return Promise.resolve(cached)
+              return new Promise((resolve) => {
+                const img = new Image()
+                img.decoding = 'async'
+                const finish = async () => {
+                  try { if (img.decode) await img.decode() } catch {}
+                  if (destroyed) return resolve(undefined)
+                  frames[i] = img
+                  resolve(img)
+                }
+                img.onload  = finish
+                img.onerror = () => resolve(undefined)
+                img.src = frameUrl(i, cfg.count, cfg.w, cfg.h)
+                if (img.complete && img.naturalWidth) finish()  // already cached
+              })
+            }
+
+            const redraw = () => {
+              const img = frames[currentIndex]
+              if (img) draw(img)
+            }
+
+            // rAF-throttled paint — only repaints when the frame index changes.
+            const paint = async () => {
+              rafId = 0
+              const idx = indexFor(targetProgress)
+              if (idx === currentIndex) return
+              const img = frames[idx] ?? await loadFrame(idx)
+              if (destroyed) return
+              // Progress may have advanced while awaiting — draw the latest.
+              const want = indexFor(targetProgress)
+              const f = frames[want] ?? img
+              if (!f) { pump(); return }
+              draw(f)
+              currentIndex = want
+              if (want !== indexFor(targetProgress)) schedule()  // chase
+            }
+
+            const schedule = () => { if (!rafId) rafId = requestAnimationFrame(paint) }
+
+            // Background streamer: keeps frames within `window` of the current
+            // index loaded (nearest-first), releasing anything beyond it.
+            const pump = async () => {
+              if (pumping || destroyed) return
+              pumping = true
+              const max = cfg.window === Infinity ? cfg.count : cfg.window
+              while (!destroyed) {
+                const center = indexFor(targetProgress)
+                if (cfg.window !== Infinity) {
+                  for (let i = 0; i < frames.length; i++) {
+                    if (frames[i] && Math.abs(i - center) > cfg.window) frames[i] = undefined
+                  }
+                }
+                let next = -1
+                for (let d = 0; d <= max; d++) {
+                  const a = center + d, b = center - d
+                  if (a < cfg.count && !frames[a]) { next = a; break }
+                  if (b >= 0          && !frames[b]) { next = b; break }
+                }
+                if (next === -1) break  // window fully loaded
+                await loadFrame(next)
+                if (next === indexFor(targetProgress)) schedule()
+              }
+              pumping = false
+            }
+
+            const onProgress = (p: number) => { targetProgress = p; schedule(); pump() }
+            const onResize   = () => { sizeCanvas(); redraw() }
+
+            // ── Boot: size, draw frame 1 instantly, fade in, then stream ──
+            sizeCanvas()
+            loadFrame(0).then((img) => {
+              if (destroyed || !img) return
+              // Only paint frame 1 if nothing's been drawn yet — the user may
+              // have already scrubbed to a later frame while this was loading.
+              if (currentIndex === -1) { currentIndex = 0; draw(img) }
+              heroCanvas.classList.add('is-ready')  // fade canvas in over poster
+              pump()
+            })
+
+            window.addEventListener('resize', onResize, { passive: true })
+
+            const st = ScrollTrigger.create({
+              trigger: heroSection,
+              start: 'top top',
+              end:   HERO_PIN_SCROLL,
+              pin:   true,
+              pinSpacing: true,
+              scrub: true,
+              onUpdate: self => onProgress(self.progress),
+            })
+
+            // Cleanup — runs on breakpoint swap AND page swap (matchMedia revert)
+            return () => {
+              destroyed = true
+              if (rafId) cancelAnimationFrame(rafId)
+              window.removeEventListener('resize', onResize)
+              st.kill()
+              frames = []
+              heroCanvas.classList.remove('is-ready')
+            }
+          }
+
+          mmHero = gsap.matchMedia()
+          mmHero.add(DESKTOP.mq, () => buildHero(DESKTOP))
+          mmHero.add(MOBILE.mq,  () => buildHero(MOBILE))
+        }
       }
     }
 

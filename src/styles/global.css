@@ -237,6 +237,8 @@ body::before {
   opacity: 0;
   pointer-events: none;
 }
+/* OLD scrub <video> — kept commented for the canvas A/B fallback test;
+   remove once the frame-sequence is verified on real desktop + mobile.
 .hero-video {
   position: absolute;
   inset: 0;
@@ -245,7 +247,19 @@ body::before {
   opacity: 0;
   transition: opacity 0.6s ease;
 }
-/* opacity driven by JS — set inline when canplay fires */
+*/
+/* NEW canvas frame-sequence — fades in over the static poster once frame 1 is
+   painted (.is-ready added by JS), so the hero is never blank. Cover-fit is
+   handled in JS via drawImage, so no object-fit here. */
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.hero-canvas.is-ready { opacity: 1; }
 /* gradient overlay darkens bottom so text is legible */
 .hero-overlay {
   position: absolute;
