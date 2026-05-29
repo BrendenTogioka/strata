@@ -2872,7 +2872,12 @@ body::before {
 @media (max-width: 768px) {
 
   /* Navigation */
-  nav { padding: 1.25rem 1.25rem; }
+  /* Use .site-nav (not bare `nav`) so this beats the base `.site-nav` padding
+     on specificity — the bare-element rule lost and the nav stayed at 2.5rem,
+     leaving the logo indented ~22px more than the page content (hero title,
+     story text are at 1.25rem on mobile), so it looked shifted right. Match the
+     content's 1.25rem; keep the 1.75rem vertical so the nav height is unchanged. */
+  .site-nav { padding: 1.75rem 1.25rem; }
   .nav-links { gap: 1.5rem; }
   .nav-links a { font-size: 0.65rem; }
 
