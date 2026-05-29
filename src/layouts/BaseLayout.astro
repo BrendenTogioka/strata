@@ -253,11 +253,22 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       my = e.clientY
     }, { passive: true })
 
-    const tick = () => {
-      rx += (mx - rx) * 0.12
-      ry += (my - ry) * 0.12
-      cursor.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`
-      ring.style.transform   = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`
+    // Frame-rate-independent smoothing: the ring eases toward the pointer by
+    // SMOOTH per 60fps-frame, scaled by real delta time so the feel is identical
+    // on 60Hz and 120Hz displays (the old fixed 0.12/frame was 2× snappier on
+    // 120Hz). Higher SMOOTH = snappier / less lag; lower = more trailing.
+    // ⚑ TUNE: 0.22 ≈ tight but still trails; 0.30 ≈ very snappy; 0.14 ≈ floaty.
+    const SMOOTH = 0.22
+    let last = performance.now()
+    const tick = (now: number) => {
+      const dt = Math.min((now - last) / 16.667, 4)   // frames elapsed (capped)
+      last = now
+      const f = 1 - Math.pow(1 - SMOOTH, dt)
+      rx += (mx - rx) * f
+      ry += (my - ry) * f
+      // translate3d keeps each on its own GPU layer → smoother, no repaint.
+      cursor.style.transform = `translate3d(${mx}px, ${my}px, 0) translate(-50%, -50%)`
+      ring.style.transform   = `translate3d(${rx}px, ${ry}px, 0) translate(-50%, -50%)`
       requestAnimationFrame(tick)
     }
     requestAnimationFrame(tick)
@@ -521,15 +532,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       // them would pin hundreds of MB. Decoded <img>s let the browser evict and
       // re-decode under pressure, and on mobile we additionally drop frames
       // outside a window around the current index (the release-far mitigation).
-      if (heroCanvas && !reduceMotion()) {
+      if (heroCanvas && !reduceMotion()) try {
         const ctx      = heroCanvas.getContext('2d')
         const cloud    = heroCanvas.dataset.cloud
         const version  = heroCanvas.dataset.version
         const publicId = heroCanvas.dataset.publicId
 
         if (ctx && cloud && version && publicId) {
-          const HERO_PIN_SCROLL = '+=200%'   // same scroll mapping the video used
-
           // ── Per-breakpoint frame sets ─────────────────────────────────────
           //   count  — frames in the sequence (mobile fewer to bound memory)
           //   w / h  — Cloudinary delivery size per frame
@@ -677,19 +686,17 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
             window.addEventListener('resize', onResize, { passive: true })
 
+            // No GSAP pin — the hero is held by CSS position:sticky now. This
+            // trigger only READS scroll progress across the tall .hero track
+            // (top of track at viewport top → bottom of track at viewport
+            // bottom) and maps it to a frame index. It's the same passive
+            // scroll read the section-reveal triggers use, so it works on
+            // mobile (a GSAP pin there corrupted scroll tracking → frozen hero
+            // + invisible content).
             const st = ScrollTrigger.create({
               trigger: heroSection,
               start: 'top top',
-              end:   HERO_PIN_SCROLL,
-              pin:   true,
-              pinSpacing: true,
-              scrub: true,
-              // Pin via transform, not position:fixed. On mobile there's no
-              // Lenis scrollerProxy, and position:fixed pinning interacts badly
-              // with the page's body overflow + the dynamic mobile toolbar —
-              // the pin would stick and progress never advance (hero frozen,
-              // canvas never scrubs). Transform pinning is immune to both.
-              pinType: 'transform',
+              end:   'bottom bottom',
               onUpdate: self => onProgress(self.progress),
             })
 
@@ -710,6 +717,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           mmHero.add(DESKTOP.mq, () => buildHero(DESKTOP))
           mmHero.add(MOBILE.mq,  () => buildHero(MOBILE))
         }
+      } catch (err) {
+        // A hero-canvas failure must NEVER break the rest of the page's
+        // animations (section reveals etc.) — log and leave the poster showing.
+        console.warn('[hero] frame-sequence init failed; poster stays', err)
       }
     }
 

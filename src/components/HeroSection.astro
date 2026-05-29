@@ -30,7 +30,11 @@ const heroVersion   = heroCloud?.[2] ?? ''
 const heroPublicId  = heroCloud?.[3] ?? ''
 ---
 
+<!-- .hero is a tall scroll TRACK; .hero-sticky pins the visuals via CSS
+     position:sticky (no GSAP pin — that broke scroll tracking on mobile). The
+     scrub length is the .hero height in global.css, not a ScrollTrigger pin. -->
 <section class="hero" id="hero">
+  <div class="hero-sticky">
   <div class:list={['hero-img-wrap', heroVideoUrl && 'hero-img-wrap--fill']} id="hero-img-wrap">
     <img
       src="https://res.cloudinary.com/dlle6kl4n/video/upload/so_0/v1779987514/OurRoamingReels/hero-bg.jpg"
@@ -104,5 +108,6 @@ const heroPublicId  = heroCloud?.[3] ?? ''
       </div>
     </div>
   </div>
+  </div><!-- /.hero-sticky -->
 </section>
 

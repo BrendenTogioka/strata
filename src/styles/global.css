@@ -93,6 +93,7 @@ body {
   z-index: 9999;
 
   mix-blend-mode: screen;
+  will-change: transform;
   transition: width 0.3s var(--ease-expo), height 0.3s var(--ease-expo);
 }
 .cursor-ring {
@@ -103,6 +104,7 @@ body {
   pointer-events: none;
   z-index: 9998;
 
+  will-change: transform;
   transition: width 0.4s var(--ease-expo), height 0.4s var(--ease-expo), border-color 0.3s;
 }
 /* Expand ring when hovering interactive elements */
@@ -214,8 +216,20 @@ body::before {
 /* ─────────────────────────────────────────────────
    HERO SECTION
 ───────────────────────────────────────────────── */
+/* Tall scroll TRACK. Its height is the scrub length: the sticky layer below
+   stays for (track − 100vh) of scroll, so 300vh ≈ the old "+=200%" pin range.
+   ⚑ TUNE pacing here: 250vh = quicker reveal, 350vh = slower/more cinematic.
+   NOTE: must NOT set overflow here — overflow on a sticky element's ancestor
+   breaks position:sticky. Clipping lives on .hero-sticky itself. */
 .hero {
   position: relative;
+  height: 300vh;
+}
+/* Sticky layer — holds the canvas/poster/overlay/content at viewport height
+   while the track scrolls past. Replaces the GSAP pin (robust on mobile). */
+.hero-sticky {
+  position: sticky;
+  top: 0;
   height: 100vh;
   overflow: hidden;
   display: flex;
