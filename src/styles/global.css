@@ -1420,7 +1420,11 @@ body::before {
   max-width: 860px;
   margin: 0;
 }
-.story-gallery-item { margin: 0; }
+/* position:relative so the film-frame corner brackets (::before/::after) anchor
+   to each photo. Without it they escaped to a distant positioned ancestor and
+   scattered across the gallery — the "photo effect off on galleries" bug.
+   (Individual images work because .story-img-frame is already relative.) */
+.story-gallery-item { margin: 0; position: relative; }
 .story-gallery-item img {
   width: 100%; height: 260px;
   object-fit: cover; display: block;
@@ -2074,6 +2078,7 @@ body::before {
 .story-strip-item {
   margin: 0;
   overflow: hidden;
+  position: relative;   /* anchor the corner brackets to each strip photo */
 }
 .story-strip-item img {
   width: 100%;
