@@ -47,8 +47,8 @@ const ogImageHeight = trip.heroImage?.dims
   ? Math.round(1200 / trip.heroImage.dims.width * trip.heroImage.dims.height)
   : undefined
 
-// JSON-LD structured data
-const siteUrl   = 'https://ourroamingreels.netlify.app'
+// JSON-LD structured data — derive from the configured site so it never drifts
+const siteUrl   = (Astro.site?.href ?? 'https://ourroamingreels.com/').replace(/\/$/, '')
 const pageUrl   = `${siteUrl}/expedition/${trip.id}`
 const jsonLd = JSON.stringify({
   '@context': 'https://schema.org',

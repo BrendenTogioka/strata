@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /studio
 
-Sitemap: https://strata.journal/sitemap-index.xml
+Sitemap: https://ourroamingreels.com/sitemap-index.xml
