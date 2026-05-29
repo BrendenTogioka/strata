@@ -527,10 +527,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           scrollTrigger: {
             trigger: expSection,
             pin: true,
-            scrub: 1.2,
+            scrub: 0.8,
             end: () => `+=${getScroll()}`,
             invalidateOnRefresh: true,
-            anticipatePin: 1,
+            // anticipatePin removed: it pre-pins the section based on scroll
+            // velocity, but the scrub lag then leaves expTrack at x=0 for
+            // the anticipation window, making all cards flash into view at
+            // once. Without anticipation the pin starts at the exact trigger
+            // point and the scrub stays consistent.
           },
         })
 
@@ -1381,6 +1385,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     if (mm)          { mm.revert(); mm = null }                    // ← now proxy is valid
     if (mmHero)      { mmHero.revert(); mmHero = null }
     ScrollTrigger.killAll()                                        // ← now proxy is valid
+    // Clean refresh after killAll so initPageAnimations starts from a
+    // zero-trigger state. The refresh inside initLenis() runs while old
+    // triggers are still alive; this second pass ensures no stale GSAP
+    // state carries over to the new page's animations.
+    ScrollTrigger.refresh()
     // Iris overlays are intentionally kept alive here — initPageAnimations
     // fades them out after the destination hero image has loaded, which
     // prevents the flash of unstyled background between navigation events.

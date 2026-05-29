@@ -313,6 +313,10 @@ body::before {
 .expedition {
   position: relative;
   overflow: hidden;
+  /* Seal the 18vw left padding gap — without a background the section is
+     transparent there, and when GSAP pins it (position:fixed) whatever is
+     behind shows through. This prevents content bleed during the pin. */
+  background: var(--ink);
 }
 .expedition-header {
   position: absolute;
