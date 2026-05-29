@@ -189,6 +189,7 @@ const cards = trips.map((trip: any, i: number) => ({
 
 <script>
   import { playIrisTransition } from '../utils/irisTransition'
+  import { preloadImage } from '../utils/viewTransition'
 
   function initExpeditions() {
     const grid    = document.getElementById('expeditions-grid')
@@ -255,16 +256,7 @@ const cards = trips.map((trip: any, i: number) => ({
 
     // Iris transition on card click
     cards().forEach(card => {
-      card.addEventListener('mouseenter', () => {
-        const heroUrl = card.dataset.heroUrl
-        if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
-          const link = document.createElement('link')
-          link.rel  = 'preload'
-          link.as   = 'image'
-          link.href = heroUrl
-          document.head.appendChild(link)
-        }
-      }, { once: true })
+      card.addEventListener('mouseenter', () => preloadImage(card.dataset.heroUrl), { once: true })
 
       card.addEventListener('click', e => {
         e.preventDefault()

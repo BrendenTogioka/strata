@@ -1,46 +1,9 @@
 import { gsap } from 'gsap'
 import { navigate } from 'astro:transitions/client'
+import { bypassViewTransition } from './viewTransition'
 
 interface CurtainOptions {
   href: string
-}
-
-/**
- * Temporarily removes document.startViewTransition so Astro's navigate() falls
- * back to a plain DOM swap with no snapshot capture. This prevents the browser's
- * "rendering suppression" phase — a 1-frame pause during which the live DOM
- * (including our curtain/iris overlay on <html>) is not shown, causing a visible
- * dark flash. Our overlays own all visual cover; the snapshot system must stay
- * completely out of the picture.
- */
-function bypassViewTransition(fn: () => void): void {
-  // The real startViewTransition lives on Document.prototype. We shadow it with
-  // an own-property mock that immediately calls Astro's swap callback and returns
-  // resolved promises. Astro proceeds normally (swap + events) but the BROWSER's
-  // View Transitions API is never invoked, so there's no rendering-suppression
-  // phase that would briefly hide the curtain/iris overlay on <html>.
-  //
-  // Setting to `undefined` instead would make `document.startViewTransition(cb)`
-  // throw a TypeError, crashing Astro's navigation silently and leaving the
-  // overlay on screen permanently.
-  const svt = (document as any).startViewTransition?.bind(document)
-  ;(document as any).startViewTransition = (cb: () => Promise<void>) => {
-    const done = cb()
-    return {
-      ready:              Promise.resolve(),
-      updateCallbackDone: done ?? Promise.resolve(),
-      finished:           done ?? Promise.resolve(),
-      skipTransition:     () => {},
-    }
-  }
-  document.addEventListener('astro:after-swap', () => {
-    if (svt) {
-      (document as any).startViewTransition = svt
-    } else {
-      delete (document as any).startViewTransition
-    }
-  }, { once: true })
-  fn()
 }
 
 /**

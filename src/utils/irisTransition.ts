@@ -1,41 +1,6 @@
 import { gsap } from 'gsap'
 import { navigate } from 'astro:transitions/client'
-
-/**
- * Temporarily removes document.startViewTransition so Astro's navigate() falls
- * back to a plain DOM swap with no snapshot capture. This prevents the browser's
- * "rendering suppression" phase — a 1-frame pause during which the live DOM
- * (including our iris overlay on <html>) is not shown, causing a visible dark flash.
- */
-function bypassViewTransition(fn: () => void): void {
-  // The real startViewTransition lives on Document.prototype. We shadow it with
-  // an own-property mock that immediately calls Astro's swap callback and returns
-  // resolved promises. Astro proceeds normally (swap + events) but the BROWSER's
-  // View Transitions API is never invoked, so there's no rendering-suppression
-  // phase that would briefly hide the iris overlay on <html>.
-  //
-  // Setting to `undefined` instead would make `document.startViewTransition(cb)`
-  // throw a TypeError, crashing Astro's navigation silently and leaving the
-  // overlay on screen permanently.
-  const svt = (document as any).startViewTransition?.bind(document)
-  ;(document as any).startViewTransition = (cb: () => Promise<void>) => {
-    const done = cb()
-    return {
-      ready:              Promise.resolve(),
-      updateCallbackDone: done ?? Promise.resolve(),
-      finished:           done ?? Promise.resolve(),
-      skipTransition:     () => {},
-    }
-  }
-  document.addEventListener('astro:after-swap', () => {
-    if (svt) {
-      (document as any).startViewTransition = svt
-    } else {
-      delete (document as any).startViewTransition
-    }
-  }, { once: true })
-  fn()
-}
+import { bypassViewTransition, preloadImage } from './viewTransition'
 
 interface IrisOptions {
   src:      string
@@ -69,13 +34,7 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
   }
   // Kick off a preload for the destination's full-res hero immediately —
   // the 0.75s animation gives the browser a head start before the page swap.
-  if (heroSrc && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroSrc)}"]`)) {
-    const preload = document.createElement('link')
-    preload.rel  = 'preload'
-    preload.as   = 'image'
-    preload.href = heroSrc
-    document.head.appendChild(preload)
-  }
+  preloadImage(heroSrc)
   // Container starts at the card image's exact screen position
   const container = document.createElement('div')
   container.className = 'iris-overlay'
