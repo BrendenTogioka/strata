@@ -550,12 +550,19 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
           // Build (or rebuild on breakpoint change) the whole controller.
           // The returned cleanup is invoked by gsap.matchMedia on revert/swap.
+          // Concurrent loads. Cloudinary serves over HTTP/2, so several frames
+          // can stream in parallel; first-generation of each transform is slow
+          // (~1s) but immutable-cached after, so this only bites the first view.
+          const MAX_CONCURRENT = 8
+
           const buildHero = (cfg: typeof DESKTOP) => {
             let frames: (HTMLImageElement | undefined)[] = []
-            let currentIndex   = -1
+            const loading      = new Set<number>()
+            let drawnFrame: HTMLImageElement | null = null
             let targetProgress = 0
             let rafId          = 0
-            let pumping        = false
+            let workers        = 0
+            let allLoaded      = false   // desktop: whole sequence cached
             let destroyed      = false
 
             const sizeCanvas = () => {
@@ -572,92 +579,101 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
               const scale = Math.max(cw / iw, ch / ih)
               const dw = iw * scale, dh = ih * scale
               ctx.drawImage(img, (cw - dw) / 2, (ch - dh) * 0.6, dw, dh)
+              drawnFrame = img
             }
 
             const indexFor = (p: number) =>
               Math.min(Math.max(Math.round(p * (cfg.count - 1)), 0), cfg.count - 1)
 
-            const loadFrame = (i: number): Promise<HTMLImageElement | undefined> => {
-              const cached = frames[i]
-              if (cached) return Promise.resolve(cached)
+            // Closest already-loaded frame to idx — lets the scrub stay smooth
+            // (coarse, then sharpening) before the exact frame has streamed in.
+            const nearestLoaded = (idx: number): HTMLImageElement | null => {
+              if (frames[idx]) return frames[idx]!
+              for (let d = 1; d < cfg.count; d++) {
+                if (idx + d < cfg.count && frames[idx + d]) return frames[idx + d]!
+                if (idx - d >= 0        && frames[idx - d]) return frames[idx - d]!
+              }
+              return null
+            }
+
+            // SYNCHRONOUS paint — NEVER awaits the network. Draws the best frame
+            // available right now; loads fill in and re-trigger via schedule().
+            const paint = () => {
+              rafId = 0
+              if (destroyed) return
+              const idx = indexFor(targetProgress)
+              const img = frames[idx] || nearestLoaded(idx)
+              if (img && img !== drawnFrame) draw(img)
+            }
+            const schedule = () => { if (!rafId && !destroyed) rafId = requestAnimationFrame(paint) }
+
+            // Decode happens here, OFF the paint path. On completion we repaint
+            // (rAF-coalesced) so the freshly-arrived frame can upgrade the view.
+            const load = (i: number): Promise<void> => {
+              if (frames[i] || loading.has(i)) return Promise.resolve()
+              loading.add(i)
               return new Promise((resolve) => {
                 const img = new Image()
                 img.decoding = 'async'
                 const finish = async () => {
                   try { if (img.decode) await img.decode() } catch {}
-                  if (destroyed) return resolve(undefined)
+                  loading.delete(i)
+                  if (destroyed) return resolve()
                   frames[i] = img
-                  resolve(img)
+                  schedule()
+                  resolve()
                 }
                 img.onload  = finish
-                img.onerror = () => resolve(undefined)
+                img.onerror = () => { loading.delete(i); resolve() }
                 img.src = frameUrl(i, cfg.count, cfg.w, cfg.h)
                 if (img.complete && img.naturalWidth) finish()  // already cached
               })
             }
 
-            const redraw = () => {
-              const img = frames[currentIndex]
-              if (img) draw(img)
-            }
-
-            // rAF-throttled paint — only repaints when the frame index changes.
-            const paint = async () => {
-              rafId = 0
-              const idx = indexFor(targetProgress)
-              if (idx === currentIndex) return
-              const img = frames[idx] ?? await loadFrame(idx)
-              if (destroyed) return
-              // Progress may have advanced while awaiting — draw the latest.
-              const want = indexFor(targetProgress)
-              const f = frames[want] ?? img
-              if (!f) { pump(); return }
-              draw(f)
-              currentIndex = want
-              if (want !== indexFor(targetProgress)) schedule()  // chase
-            }
-
-            const schedule = () => { if (!rafId) rafId = requestAnimationFrame(paint) }
-
-            // Background streamer: keeps frames within `window` of the current
-            // index loaded (nearest-first), releasing anything beyond it.
-            const pump = async () => {
-              if (pumping || destroyed) return
-              pumping = true
+            // Worker-pool preloader: each worker repeatedly loads the nearest
+            // not-yet-loaded in-window frame to the CURRENT index, so loading
+            // always chases where the user is. On mobile (finite window) it also
+            // releases frames that drift outside the window — the RAM mitigation.
+            const nextToLoad = (): number => {
+              const center = indexFor(targetProgress)
               const max = cfg.window === Infinity ? cfg.count : cfg.window
+              for (let d = 0; d <= max; d++) {
+                const a = center + d, b = center - d
+                if (a < cfg.count && !frames[a] && !loading.has(a)) return a
+                if (b >= 0        && !frames[b] && !loading.has(b)) return b
+              }
+              return -1
+            }
+            const worker = async () => {
               while (!destroyed) {
-                const center = indexFor(targetProgress)
                 if (cfg.window !== Infinity) {
+                  const center = indexFor(targetProgress)
                   for (let i = 0; i < frames.length; i++) {
                     if (frames[i] && Math.abs(i - center) > cfg.window) frames[i] = undefined
                   }
                 }
-                let next = -1
-                for (let d = 0; d <= max; d++) {
-                  const a = center + d, b = center - d
-                  if (a < cfg.count && !frames[a]) { next = a; break }
-                  if (b >= 0          && !frames[b]) { next = b; break }
-                }
-                if (next === -1) break  // window fully loaded
-                await loadFrame(next)
-                if (next === indexFor(targetProgress)) schedule()
+                const next = nextToLoad()
+                if (next === -1) { if (cfg.window === Infinity) allLoaded = true; break }
+                await load(next)
               }
-              pumping = false
+              workers--
+            }
+            const ensureWorkers = () => {
+              if (destroyed || allLoaded) return
+              while (workers < MAX_CONCURRENT) { workers++; worker() }
             }
 
-            const onProgress = (p: number) => { targetProgress = p; schedule(); pump() }
-            const onResize   = () => { sizeCanvas(); redraw() }
+            const onProgress = (p: number) => { targetProgress = p; schedule(); ensureWorkers() }
+            const onResize   = () => { sizeCanvas(); if (drawnFrame) draw(drawnFrame) }
 
-            // ── Boot: size, draw frame 1 instantly, fade in, then stream ──
+            // ── Boot: size, load frame 1 first, fade in, then stream the rest ──
             sizeCanvas()
-            loadFrame(0).then((img) => {
-              if (destroyed || !img) return
-              // Only paint frame 1 if nothing's been drawn yet — the user may
-              // have already scrubbed to a later frame while this was loading.
-              if (currentIndex === -1) { currentIndex = 0; draw(img) }
+            load(0).then(() => {
+              if (destroyed) return
+              schedule()                            // paint frame 1 (or nearest)
               heroCanvas.classList.add('is-ready')  // fade canvas in over poster
-              pump()
             })
+            ensureWorkers()
 
             window.addEventListener('resize', onResize, { passive: true })
 
@@ -678,6 +694,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
               window.removeEventListener('resize', onResize)
               st.kill()
               frames = []
+              loading.clear()
+              drawnFrame = null
               heroCanvas.classList.remove('is-ready')
             }
           }
