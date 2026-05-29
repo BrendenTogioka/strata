@@ -1,10 +1,9 @@
 ---
-const imgBase = 'https://res.cloudinary.com/dlle6kl4n/image/upload'
-const imgId   = 'v1757649729/DSCF4827_t8bghf.jpg'
+const imgBase = 'https://cdn.sanity.io/images/hmilopzv/production/a5b2b14dc8de8d9d09da7e3424f19bd5f50d91bb-2063x3095.webp'
 
-const imgUrl    = `${imgBase}/w_1400,q_85,f_webp/${imgId}`
+const imgUrl    = `${imgBase}?w=1400&q=85&fm=webp&fit=max`
 const imgSrcset = [700, 1000, 1400]
-  .map(w => `${imgBase}/w_${w},q_85,f_webp/${imgId} ${w}w`)
+  .map(w => `${imgBase}?w=${w}&q=85&fm=webp&fit=max ${w}w`)
   .join(', ')
 ---
 
@@ -27,26 +26,28 @@ const imgSrcset = [700, 1000, 1400]
         src={imgUrl}
         srcset={imgSrcset}
         sizes="(max-width: 900px) 100vw, 55vw"
-        alt="Brenden and Demeris on the trail — Our Roaming Reels"
+        alt="Brenden and Demeris on the Fire Wave at Valley of Fire — Our Roaming Reels"
         loading="lazy"
         decoding="async"
       />
     </div>
     <div class="about-img-overlay"></div>
-    <div class="about-img-badge">
-      <div class="about-badge-dot"></div>
-      <span>Los Angeles, CA</span>
-    </div>
   </div>
 
   <!-- Text column -->
   <div class="about-text-col">
     <p class="about-eyebrow">The Humans Behind the Lens</p>
 
-    <h2 class="about-headline" aria-label="Brenden and Demeris">
-      <span class="line"><span class="line-inner">BRENDEN <span class="about-amp">&amp;</span></span></span>
-      <span class="line"><span class="line-inner">DEMERIS</span></span>
-    </h2>
+    <div class="about-headline-row">
+      <h2 class="about-headline" aria-label="Brenden and Demeris">
+        <span class="line"><span class="line-inner">BRENDEN <span class="about-amp">&amp;</span></span></span>
+        <span class="line"><span class="line-inner">DEMERIS</span></span>
+      </h2>
+      <div class="about-loc-badge">
+        <div class="about-badge-dot"></div>
+        <span>Los Angeles, CA</span>
+      </div>
+    </div>
 
     <p class="about-sub">
       We just really love being outside.<br />

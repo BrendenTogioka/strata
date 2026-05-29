@@ -122,6 +122,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
   import { playIrisTransition } from '../utils/irisTransition'
   import { playCurtainTransition } from '../utils/curtainTransition'
+  import { preloadImage } from '../utils/viewTransition'
 
   gsap.registerPlugin(ScrollTrigger)
 
@@ -284,7 +285,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       gsap.set([
         '.hero-location', '.hero-sub', '.section-eyebrow', '.section-body',
         '.feature-quote', '.feature-link',
-        '.about-eyebrow', '.about-sub', '.about-body', '.about-img-badge',
+        '.about-eyebrow', '.about-sub', '.about-body', '.about-loc-badge',
         '.contact-pre', '.contact-sub', '.contact-email-label', '.contact-email',
         '.contact-footer', '.trip-stats-bar', '.back-btn', '.story-block',
         '.trip-map-section',
@@ -585,17 +586,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 
       // Iris transition on card click — video stops first, iris uses the static image
       document.querySelectorAll<HTMLElement>('.exp-card').forEach((card) => {
-        const preloadCardHero = () => {
-          const heroUrl = card.dataset.heroUrl
-          if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
-            const link = document.createElement('link')
-            link.rel  = 'preload'
-            link.as   = 'image'
-            link.href = heroUrl
-            document.head.appendChild(link)
-          }
-        }
-        card.addEventListener('mouseenter', preloadCardHero, { once: true })
+        card.addEventListener('mouseenter', () => preloadImage(card.dataset.heroUrl), { once: true })
 
         card.addEventListener('click', (e) => {
           e.preventDefault()
@@ -739,16 +730,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       if (imgAnchor) {
         // Preload the destination's full-res hero on hover so the iris has a
         // head start — same pattern as the expedition gallery cards.
-        imgAnchor.addEventListener('mouseenter', () => {
-          const heroUrl = imgAnchor.dataset.heroUrl
-          if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
-            const preload = document.createElement('link')
-            preload.rel  = 'preload'
-            preload.as   = 'image'
-            preload.href = heroUrl
-            document.head.appendChild(preload)
-          }
-        }, { once: true })
+        imgAnchor.addEventListener('mouseenter', () => preloadImage(imgAnchor.dataset.heroUrl), { once: true })
 
         imgAnchor.addEventListener('click', (e) => {
           e.preventDefault()
@@ -793,7 +775,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           gsap.to('.about-headline .line-inner', { y: 0, stagger: 0.08, duration: 1.1, ease: 'power4.out', delay: 0.1 })
           gsap.to('.about-sub',                  { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.3 })
           gsap.to('.about-body',                 { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.45 })
-          gsap.to('.about-img-badge',            { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: 0.6 })
+          gsap.to('.about-loc-badge',            { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: 0.6 })
         },
       })
 
@@ -1129,16 +1111,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       if (nextCard) {
         // Preload the destination's full-res hero on hover — gives the iris
         // animation (0.75s) a head start so the image is cached on arrival.
-        nextCard.addEventListener('mouseenter', () => {
-          const heroUrl = nextCard.dataset.heroUrl
-          if (heroUrl && !document.querySelector(`link[rel="preload"][href="${CSS.escape(heroUrl)}"]`)) {
-            const link = document.createElement('link')
-            link.rel = 'preload'
-            link.as  = 'image'
-            link.href = heroUrl
-            document.head.appendChild(link)
-          }
-        }, { once: true })
+        nextCard.addEventListener('mouseenter', () => preloadImage(nextCard.dataset.heroUrl), { once: true })
 
         nextCard.addEventListener('click', () => {
           // Pause the hover-preview video so iris uses the static image
