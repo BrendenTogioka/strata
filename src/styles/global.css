@@ -5,7 +5,11 @@
    (from the old flat 16px baseline) for more comfortable reading at every
    width, while the vw-dominant display clamps keep large titles in check. */
 html { scroll-behavior: auto; background: #0C0906; font-size: clamp(17px, 0.6vw + 14.5px, 19px); }
-body { overflow-x: hidden; }
+/* `clip`, not `hidden`: overflow-x:hidden coerces overflow-y to `auto`, which
+   turns <body> into a scroll container and breaks ScrollTrigger's scroll
+   tracking / pinning on mobile (no Lenis proxy there). `clip` prevents the
+   horizontal scrollbar without creating a scroll container. */
+body { overflow-x: clip; }
 img, video { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 

@@ -684,6 +684,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
               pin:   true,
               pinSpacing: true,
               scrub: true,
+              // Pin via transform, not position:fixed. On mobile there's no
+              // Lenis scrollerProxy, and position:fixed pinning interacts badly
+              // with the page's body overflow + the dynamic mobile toolbar —
+              // the pin would stick and progress never advance (hero frozen,
+              // canvas never scrubs). Transform pinning is immune to both.
+              pinType: 'transform',
               onUpdate: self => onProgress(self.progress),
             })
 
