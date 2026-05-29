@@ -571,7 +571,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             }
             const ensureWorkers = () => {
               if (destroyed || allLoaded) return
-              while (workers < MAX_CONCURRENT) { workers++; worker() }
+              // Spawn ONLY while there's actually a frame to load. Without the
+              // nextToLoad() !== -1 guard, a worker that finds nothing exits
+              // synchronously (no await), drops `workers`, and this loop
+              // respawns it forever → main-thread freeze. On mobile that's fatal
+              // because `allLoaded` is never set (finite window), so every
+              // scroll could trigger the spin. The guard caps spawns to real work.
+              while (workers < MAX_CONCURRENT && nextToLoad() !== -1) { workers++; worker() }
             }
 
             const onProgress = (p: number) => { targetProgress = p; schedule(); ensureWorkers() }
