@@ -1440,18 +1440,24 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     ScrollTrigger.refresh()
 
     // ── Hash-anchor correction ───────────────────────────────────────────
-    // When navigating to /#contact (or any hash), the browser scrolls to the
-    // target BEFORE GSAP pin spacers are inserted. After the spacers land,
-    // the scroll position is inside the pinned gallery section rather than
-    // at the true target. Re-scroll with Lenis after the final refresh so
-    // all spacers are accounted for. Two rAFs ensure paint has settled.
+    // When navigating to /#contact (or any hash), the target's final position
+    // isn't known until GSAP pin spacers (especially the pinned gallery) are
+    // inserted. Scroll too early and we land at the target's PRE-spacer offset —
+    // which falls inside the pinned gallery. So: force a refresh to insert the
+    // spacers, scroll to the target's current position, then re-assert once on a
+    // short delay to cover any deferred refresh. Native fallback when Lenis is
+    // off (touch), so mobile hash nav lands correctly too.
     if (location.hash) {
       try {
         const hashTarget = document.querySelector<HTMLElement>(location.hash)
-        if (hashTarget && lenis) {
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            lenis!.scrollTo(hashTarget, { immediate: true })
-          }))
+        if (hashTarget) {
+          const go = () => {
+            if (lenis) lenis.scrollTo(hashTarget, { immediate: true })
+            else window.scrollTo(0, hashTarget.getBoundingClientRect().top + window.scrollY)
+          }
+          ScrollTrigger.refresh()
+          requestAnimationFrame(() => requestAnimationFrame(go))
+          setTimeout(go, 300)
         }
       } catch {}
     }
