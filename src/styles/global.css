@@ -2885,6 +2885,9 @@ body::before {
   /* Shorter scrub track on phones — 300vh is a long swipe and pushes content
      too far down. 220vh ≈ 1.2 screens of scrub, then the page continues. */
   .hero { height: 220vh; }
+  /* Lift the hero text ~80px off the bottom on phones (was sitting too low).
+     ⚑ TUNE: the +80px addend. */
+  .hero-sticky { padding-bottom: calc(8vh + 80px); }
   .hero-title {
     font-size: clamp(4.5rem, 24vw, 8rem);
   }
