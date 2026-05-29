@@ -16,6 +16,7 @@
     "migrate:copy": "node scripts/migrate-copy.mjs",
     "migrate:orderrank": "node scripts/migrate-orderrank.mjs",
     "migrate:fieldintel": "node scripts/backfill-field-intel-conditions.mjs",
+    "gen:alt": "node scripts/generate-alt-captions.mjs",
     "studio": "sanity dev"
   },
   "dependencies": {

@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import { toHTML } from '@portabletext/to-html'
 import { client, urlFor, sanityImgSrcset } from '../../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../../lib/queries'
+import { applyAltFallback } from '../../lib/altFallback.mjs'
 
 const ptComponents = {
   marks: {
@@ -25,6 +26,10 @@ export async function getStaticPaths() {
 }
 
 const { trip, trips: allTrips } = Astro.props
+
+// Safety net: guarantee no image renders without alt. Real, descriptive alt is
+// authored per image; this only fills anything left blank (see lib/altFallback).
+applyAltFallback(trip)
 
 const HeroTitleTag = trip.storyTitle ? 'p' : 'h1'
 
