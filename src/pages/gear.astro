@@ -36,6 +36,14 @@ function groupOf(cat: string) {
   return 'other'
 }
 
+// Top-level group headers — mirror the Field Kit's mono category labels.
+const GROUP_LABELS: Record<string, string> = {
+  camera:      'Camera',
+  backpacking: 'Backpacking',
+  other:       'Other',
+}
+const GROUP_ORDER = ['camera', 'backpacking', 'other']
+
 // ── Weight formatting ───────────────────────────────────────────────────────
 // "1 lb 9.3 oz" above a pound, otherwise "9.3 oz". Matches the expedition Field Kit.
 function fmtOz(oz: number) {
@@ -47,6 +55,21 @@ function fmtOz(oz: number) {
 }
 
 const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
+
+// Group into Camera → Backpacking sections. Within each: featured first, then
+// alphabetical by name. Empty groups are dropped.
+const gearGroups = GROUP_ORDER
+  .map(key => {
+    const items = gear
+      .filter((g: any) => groupOf(g.category) === key)
+      .sort((a: any, b: any) => {
+        if (!!a.featured !== !!b.featured) return a.featured ? -1 : 1
+        return (a.name ?? '').localeCompare(b.name ?? '')
+      })
+    const oz = items.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
+    return { key, label: GROUP_LABELS[key] ?? key, items, oz }
+  })
+  .filter(g => g.items.length > 0)
 ---
 
 <BaseLayout
@@ -94,61 +117,75 @@ const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
       </div>
     </div>
 
-    <!-- Grid -->
+    <!-- Grouped sections — Camera, then Backpacking -->
     {gear.length > 0 ? (
-      <ul class="gear-grid" id="gear-grid">
-        {gear.map((item: any) => {
-          const group   = groupOf(item.category)
-          const catLabel = CATEGORY_LABELS[item.category] ?? item.category
-          const imgUrl = item.image
-            ? urlFor(item.image).width(600).quality(85).format('webp').url()
-            : null
+      <div class="gear-groups" id="gear-groups">
+        {gearGroups.map(group => (
+          <section class="gear-group" data-group={group.key}>
+            <div class="gear-group-head">
+              <span class="gear-group-name">{group.label}</span>
+              <span class="gear-group-meta">
+                <span class="gear-group-count">{group.items.length} items</span>
+                {group.oz > 0 && (
+                  <span class="gear-group-weight">{fmtOz(group.oz)}</span>
+                )}
+              </span>
+            </div>
+            <ul class="gear-grid">
+              {group.items.map((item: any) => {
+                const catLabel = CATEGORY_LABELS[item.category] ?? item.category
+                const imgUrl = item.image
+                  ? urlFor(item.image).width(600).quality(85).format('webp').url()
+                  : null
 
-          return (
-            <li
-              class={`gear-card${item.featured ? ' gear-card--featured' : ''}`}
-              data-group={group}
-              data-weight={item.weightOz ?? 0}
-            >
-              {imgUrl && (
-                <div class="gear-card-img-wrap">
-                  <img
-                    src={imgUrl}
-                    alt={item.image?.alt ?? item.name}
-                    loading="lazy"
-                    decoding="async"
-                    width={item.image?.dims?.width}
-                    height={item.image?.dims?.height}
-                  />
-                </div>
-              )}
-              <div class="gear-card-body">
-                <div class="gear-card-meta">
-                  <span class="gear-card-cat">{catLabel}</span>
-                  {item.weightOz > 0 && (
-                    <span class="gear-card-weight">{fmtOz(item.weightOz)}</span>
-                  )}
-                </div>
-                <p class="gear-card-name">{item.name}</p>
-                {item.brand && (
-                  <p class="gear-card-brand">{item.brand}</p>
-                )}
-                {item.description && (
-                  <>
-                    <button class="gear-card-toggle" type="button" aria-expanded="false">
-                      <span class="gear-card-toggle-label">Details</span>
-                      <span class="gear-card-toggle-icon" aria-hidden="true">+</span>
-                    </button>
-                    <div class="gear-card-detail">
-                      <p class="gear-card-desc">{item.description}</p>
+                return (
+                  <li
+                    class={`gear-card${item.featured ? ' gear-card--featured' : ''}`}
+                    data-group={group.key}
+                    data-weight={item.weightOz ?? 0}
+                  >
+                    {imgUrl && (
+                      <div class="gear-card-img-wrap">
+                        <img
+                          src={imgUrl}
+                          alt={item.image?.alt ?? item.name}
+                          loading="lazy"
+                          decoding="async"
+                          width={item.image?.dims?.width}
+                          height={item.image?.dims?.height}
+                        />
+                      </div>
+                    )}
+                    <div class="gear-card-body">
+                      <div class="gear-card-meta">
+                        <span class="gear-card-cat">{catLabel}</span>
+                        {item.weightOz > 0 && (
+                          <span class="gear-card-weight">{fmtOz(item.weightOz)}</span>
+                        )}
+                      </div>
+                      <p class="gear-card-name">{item.name}</p>
+                      {item.brand && (
+                        <p class="gear-card-brand">{item.brand}</p>
+                      )}
+                      {item.description && (
+                        <>
+                          <button class="gear-card-toggle" type="button" aria-expanded="false">
+                            <span class="gear-card-toggle-label">Details</span>
+                            <span class="gear-card-toggle-icon" aria-hidden="true">+</span>
+                          </button>
+                          <div class="gear-card-detail">
+                            <p class="gear-card-desc">{item.description}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
     ) : (
       <div class="gear-empty">
         <p class="gear-empty-msg">Gear list coming soon.</p>
@@ -162,8 +199,8 @@ const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
 
 <script>
   function initGear() {
-    const grid    = document.getElementById('gear-grid')
-    const pills   = document.querySelectorAll<HTMLButtonElement>('#gear-filters .filter-pill')
+    const groupsWrap = document.getElementById('gear-groups')
+    const pills      = document.querySelectorAll<HTMLButtonElement>('#gear-filters .filter-pill')
     if (!pills.length) return
 
     let activeGroup = ''
@@ -181,15 +218,17 @@ const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
     }
 
     function applyFilter() {
-      if (!grid) return
+      if (!groupsWrap) return
       let count = 0, oz = 0
-      grid.querySelectorAll<HTMLElement>('.gear-card').forEach(card => {
-        const g = card.dataset.group ?? ''
+      groupsWrap.querySelectorAll<HTMLElement>('.gear-group').forEach(section => {
+        const g = section.dataset.group ?? ''
         const visible = !activeGroup || g === activeGroup
-        card.style.display = visible ? '' : 'none'
+        section.style.display = visible ? '' : 'none'
         if (visible) {
-          count++
-          oz += parseFloat(card.dataset.weight ?? '0') || 0
+          section.querySelectorAll<HTMLElement>('.gear-card').forEach(card => {
+            count++
+            oz += parseFloat(card.dataset.weight ?? '0') || 0
+          })
         }
       })
       if (numEl)    numEl.textContent = String(count)
@@ -207,7 +246,7 @@ const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
 
     // Tap-to-expand details (mobile). The toggle is hidden on desktop where
     // descriptions show inline, so this is a no-op there.
-    grid?.querySelectorAll<HTMLButtonElement>('.gear-card-toggle').forEach(btn => {
+    groupsWrap?.querySelectorAll<HTMLButtonElement>('.gear-card-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const card = btn.closest<HTMLElement>('.gear-card')
         if (!card) return
