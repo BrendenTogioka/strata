@@ -475,10 +475,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           //   w / h  — Cloudinary delivery size per frame
           //   window — frames to keep loaded each side of current (Infinity =
           //            keep all on desktop; finite on mobile = release far)
+          //   scrub  — ScrollTrigger catch-up easing (seconds) applied to the
+          //            scroll→frame mapping. DESKTOP is false: Lenis already
+          //            smooths the scroll position there, so a second ease only
+          //            adds lag. MOBILE has no Lenis (it's disabled on touch),
+          //            so raw native scroll → discrete frame index "steps";
+          //            0.6s of scrub is the only smoothing layer on touch and
+          //            removes that stepping. (See onUpdate below — with scrub,
+          //            self.progress arrives already eased.)
           // ⚑ TUNE: counts confirmed at 120 desktop / 48 mobile. Sizes/window
           //   are safe defaults — adjust if frames look soft or RAM is tight.
-          const DESKTOP = { count: 120, w: 1920, h: 1080, window: Infinity, mq: '(min-width: 769px)' }
-          const MOBILE  = { count: 48,  w: 900,  h: 1350, window: 16,       mq: '(max-width: 768px)' }
+          const DESKTOP = { count: 120, w: 1920, h: 1080, window: Infinity, scrub: false as number | false, mq: '(min-width: 769px)' }
+          const MOBILE  = { count: 48,  w: 900,  h: 1350, window: 16,       scrub: 0.6 as number | false,   mq: '(max-width: 768px)' }
 
           const frameUrl = (i: number, count: number, w: number, h: number) => {
             // Evenly-spaced frames by percentage of the video's duration.
@@ -635,10 +643,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
             // scroll read the section-reveal triggers use, so it works on
             // mobile (a GSAP pin there corrupted scroll tracking → frozen hero
             // + invisible content).
+            //
+            // scrub (mobile only — see cfg comment): when set, ScrollTrigger
+            // eases its own progress toward the scroll position, so the
+            // self.progress handed to onProgress is already smoothed. Desktop
+            // passes scrub:false (Lenis already eases there).
             const st = ScrollTrigger.create({
               trigger: heroSection,
               start: 'top top',
               end:   'bottom bottom',
+              scrub: cfg.scrub,
               onUpdate: self => onProgress(self.progress),
             })
 
