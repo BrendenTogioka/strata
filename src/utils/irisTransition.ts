@@ -62,6 +62,14 @@ export function playIrisTransition({ src, rect, href, heroSrc }: IrisOptions): v
     left:      '50%',
     width:     '100vw',
     height:    '100vh',
+    // The global `img { max-width: 100% }` reset (global.css) otherwise caps
+    // this to the OVERLAY container's width, not the viewport — so while the
+    // container is mid-expand (narrower than the viewport, most visible on
+    // desktop where cards are ~65vw) the image shrinks to the container and
+    // "postage-stamps" instead of staying full-bleed and being revealed.
+    // Opt out so 100vw/100vh always resolve to the viewport.
+    maxWidth:  'none',
+    maxHeight: 'none',
     objectFit: 'cover',
     transform: 'translate(-50%, -50%) scale(1.16) translateY(-8%)',
   })
