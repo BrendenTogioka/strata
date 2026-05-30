@@ -36,14 +36,6 @@ function groupOf(cat: string) {
   return 'other'
 }
 
-// Top-level group headers — mirror the Field Kit's mono category labels.
-const GROUP_LABELS: Record<string, string> = {
-  camera:      'Camera',
-  backpacking: 'Backpacking',
-  other:       'Other',
-}
-const GROUP_ORDER = ['camera', 'backpacking', 'other']
-
 // ── Weight formatting ───────────────────────────────────────────────────────
 // "1 lb 9.3 oz" above a pound, otherwise "9.3 oz". Matches the expedition Field Kit.
 function fmtOz(oz: number) {
@@ -54,22 +46,35 @@ function fmtOz(oz: number) {
   return rem >= 0.05 ? `${lb} lb ${rem.toFixed(1)} oz` : `${lb} lb`
 }
 
-const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
+// One flat, mixed grid. The "All" view interleaves both groups; the Camera /
+// Backpacking pills filter down to a single group (animated client-side).
+// Order: featured first, then alphabetical by name.
+const allGear = [...gear].sort((a: any, b: any) => {
+  if (!!a.featured !== !!b.featured) return a.featured ? -1 : 1
+  return (a.name ?? '').localeCompare(b.name ?? '')
+})
 
-// Group into Camera → Backpacking sections. Within each: featured first, then
-// alphabetical by name. Empty groups are dropped.
-const gearGroups = GROUP_ORDER
-  .map(key => {
-    const items = gear
-      .filter((g: any) => groupOf(g.category) === key)
-      .sort((a: any, b: any) => {
-        if (!!a.featured !== !!b.featured) return a.featured ? -1 : 1
-        return (a.name ?? '').localeCompare(b.name ?? '')
-      })
-    const oz = items.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
-    return { key, label: GROUP_LABELS[key] ?? key, items, oz }
-  })
-  .filter(g => g.items.length > 0)
+// Item count per top-level group (drives the group header when filtered).
+const groupCounts: Record<string, number> = { camera: 0, backpacking: 0 }
+gear.forEach((it: any) => {
+  const g = groupOf(it.category)
+  if (g in groupCounts) groupCounts[g]++
+})
+
+// Sub-category chips, shown when a group is active. Canonical order, limited to
+// the fine-grained categories actually present in that group.
+const SUBCAT_ORDER = [
+  'camera', 'lens', 'tripod', 'filter', 'audio', 'accessories',
+  'pack', 'shelter', 'sleep', 'kitchen', 'navigation', 'clothing',
+  'nutrition', 'electronics', 'safety', 'misc',
+]
+const subcatsByGroup: Record<string, string[]> = { camera: [], backpacking: [] }
+for (const cat of SUBCAT_ORDER) {
+  const g = groupOf(cat)
+  if ((g === 'camera' || g === 'backpacking') && gear.some((it: any) => it.category === cat)) {
+    subcatsByGroup[g].push(cat)
+  }
+}
 ---
 
 <BaseLayout
@@ -82,9 +87,7 @@ const gearGroups = GROUP_ORDER
       <p class="gear-eyebrow">FIELD KIT</p>
       <h1 class="gear-title">THE GEAR</h1>
       <p class="gear-count">
-        <span id="gear-count-num">{gear.length}</span> items{totalOz > 0 && (
-          <> · <span id="gear-count-weight">{fmtOz(totalOz)}</span></>
-        )}
+        <span id="gear-count-num">{gear.length}</span> items
       </p>
 
       <!-- Viewfinder reticle — draws in as the header fades, JS fades the SVG in -->
@@ -117,74 +120,79 @@ const gearGroups = GROUP_ORDER
       </div>
     </div>
 
-    <!-- Grouped sections — Camera, then Backpacking -->
+    <!-- One mixed grid. "All" interleaves both groups; the pills filter down
+         to a single group, animated client-side. -->
     {gear.length > 0 ? (
-      <div class="gear-groups" id="gear-groups">
-        {gearGroups.map(group => (
-          <section class="gear-group" data-group={group.key}>
-            <div class="gear-group-head">
-              <span class="gear-group-name">{group.label}</span>
-              <span class="gear-group-meta">
-                <span class="gear-group-count">{group.items.length} items</span>
-                {group.oz > 0 && (
-                  <span class="gear-group-weight">{fmtOz(group.oz)}</span>
-                )}
-              </span>
-            </div>
-            <ul class="gear-grid">
-              {group.items.map((item: any) => {
-                const catLabel = CATEGORY_LABELS[item.category] ?? item.category
-                const imgUrl = item.image
-                  ? urlFor(item.image).width(600).quality(85).format('webp').url()
-                  : null
+      <div class="gear-results" id="gear-results">
 
-                return (
-                  <li
-                    class={`gear-card${item.featured ? ' gear-card--featured' : ''}`}
-                    data-group={group.key}
-                    data-weight={item.weightOz ?? 0}
-                  >
-                    {imgUrl && (
-                      <div class="gear-card-img-wrap">
-                        <img
-                          src={imgUrl}
-                          alt={item.image?.alt ?? item.name}
-                          loading="lazy"
-                          decoding="async"
-                          width={item.image?.dims?.width}
-                          height={item.image?.dims?.height}
-                        />
-                      </div>
-                    )}
-                    <div class="gear-card-body">
-                      <div class="gear-card-meta">
-                        <span class="gear-card-cat">{catLabel}</span>
-                        {item.weightOz > 0 && (
-                          <span class="gear-card-weight">{fmtOz(item.weightOz)}</span>
-                        )}
-                      </div>
-                      <p class="gear-card-name">{item.name}</p>
-                      {item.brand && (
-                        <p class="gear-card-brand">{item.brand}</p>
-                      )}
-                      {item.description && (
-                        <>
-                          <button class="gear-card-toggle" type="button" aria-expanded="false">
-                            <span class="gear-card-toggle-label">Details</span>
-                            <span class="gear-card-toggle-icon" aria-hidden="true">+</span>
-                          </button>
-                          <div class="gear-card-detail">
-                            <p class="gear-card-desc">{item.description}</p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
+        <!-- Group header — hidden in the mixed "All" view, shown when filtered -->
+        <div class="gear-group-head" id="gear-group-head" hidden>
+          <span class="gear-group-name" id="gear-group-name"></span>
+          <span class="gear-group-count" id="gear-group-count"></span>
+        </div>
+
+        <!-- Sub-category chips — one bar per group, revealed when that group is active -->
+        {Object.entries(subcatsByGroup).map(([g, cats]) => cats.length > 1 && (
+          <div class="gear-subbar" data-group={g} hidden>
+            <button class="subfilter-pill active" data-cat="">All</button>
+            {cats.map(cat => (
+              <button class="subfilter-pill" data-cat={cat}>{CATEGORY_LABELS[cat] ?? cat}</button>
+            ))}
+          </div>
         ))}
+
+        <ul class="gear-grid" id="gear-grid">
+          {allGear.map((item: any) => {
+            const catLabel = CATEGORY_LABELS[item.category] ?? item.category
+            const imgUrl = item.image
+              ? urlFor(item.image).width(600).quality(85).format('webp').url()
+              : null
+
+            return (
+              <li
+                class={`gear-card${item.featured ? ' gear-card--featured' : ''}`}
+                data-group={groupOf(item.category)}
+                data-cat={item.category}
+              >
+                {imgUrl && (
+                  <div class="gear-card-img-wrap">
+                    <img
+                      src={imgUrl}
+                      alt={item.image?.alt ?? item.name}
+                      loading="lazy"
+                      decoding="async"
+                      width={item.image?.dims?.width}
+                      height={item.image?.dims?.height}
+                    />
+                  </div>
+                )}
+                <div class="gear-card-body">
+                  <div class="gear-card-meta">
+                    <span class="gear-card-cat">{catLabel}</span>
+                    {item.weightOz > 0 && (
+                      <span class="gear-card-weight">{fmtOz(item.weightOz)}</span>
+                    )}
+                  </div>
+                  <p class="gear-card-name">{item.name}</p>
+                  {item.brand && (
+                    <p class="gear-card-brand">{item.brand}</p>
+                  )}
+                  {item.description && (
+                    <>
+                      <button class="gear-card-toggle" type="button" aria-expanded="false">
+                        <span class="gear-card-toggle-label">Details</span>
+                        <span class="gear-card-toggle-icon" aria-hidden="true">+</span>
+                      </button>
+                      <div class="gear-card-detail">
+                        <p class="gear-card-desc">{item.description}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
       </div>
     ) : (
       <div class="gear-empty">
@@ -198,55 +206,141 @@ const gearGroups = GROUP_ORDER
 </BaseLayout>
 
 <script>
+  import { gsap } from 'gsap'
+
+  const GROUP_LABELS: Record<string, string> = { camera: 'Camera', backpacking: 'Backpacking' }
+
   function initGear() {
-    const groupsWrap = document.getElementById('gear-groups')
-    const pills      = document.querySelectorAll<HTMLButtonElement>('#gear-filters .filter-pill')
-    if (!pills.length) return
+    const grid    = document.getElementById('gear-grid')
+    const pills   = document.querySelectorAll<HTMLButtonElement>('#gear-filters .filter-pill')
+    if (!grid || !pills.length) return
+
+    const head      = document.getElementById('gear-group-head')
+    const headName  = document.getElementById('gear-group-name')
+    const headCount = document.getElementById('gear-group-count')
+    const numEl     = document.getElementById('gear-count-num')
+    const subbars   = Array.from(document.querySelectorAll<HTMLElement>('.gear-subbar'))
+
+    const cards  = Array.from(grid.querySelectorAll<HTMLElement>('.gear-card'))
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     let activeGroup = ''
+    let activeCat   = ''
 
-    const numEl    = document.getElementById('gear-count-num')
-    const weightEl = document.getElementById('gear-count-weight')
+    const matches = (card: HTMLElement) => {
+      if (activeGroup && (card.dataset.group ?? '') !== activeGroup) return false
+      if (activeCat   && (card.dataset.cat   ?? '') !== activeCat)   return false
+      return true
+    }
+    const visibleCount = () => cards.reduce((n, c) => n + (matches(c) ? 1 : 0), 0)
 
-    // "1 lb 9.3 oz" above a pound, else "9.3 oz" — mirrors the Astro fmtOz.
-    function fmtOz(oz: number) {
-      if (!oz || oz <= 0) return ''
-      if (oz < 16) return `${oz.toFixed(1)} oz`
-      const lb = Math.floor(oz / 16)
-      const rem = oz - lb * 16
-      return rem >= 0.05 ? `${lb} lb ${rem.toFixed(1)} oz` : `${lb} lb`
+    function syncHeader() {
+      if (!head) return
+      head.hidden = !activeGroup
+      if (!activeGroup) return
+      if (headName)  headName.textContent  = GROUP_LABELS[activeGroup] ?? activeGroup
+      if (headCount) headCount.textContent = `${visibleCount()} items`
     }
 
-    function applyFilter() {
-      if (!groupsWrap) return
-      let count = 0, oz = 0
-      groupsWrap.querySelectorAll<HTMLElement>('.gear-group').forEach(section => {
-        const g = section.dataset.group ?? ''
-        const visible = !activeGroup || g === activeGroup
-        section.style.display = visible ? '' : 'none'
-        if (visible) {
-          section.querySelectorAll<HTMLElement>('.gear-card').forEach(card => {
-            count++
-            oz += parseFloat(card.dataset.weight ?? '0') || 0
-          })
+    function syncSubbar() {
+      subbars.forEach(bar => { bar.hidden = !activeGroup || bar.dataset.group !== activeGroup })
+    }
+
+    // Animated filter: pin the leaving cards where they sat and fade them out,
+    // FLIP the survivors into their new slots, and fade the entrants in.
+    function applyFilter(animate: boolean) {
+      if (!grid) return
+      const firsts = new Map<HTMLElement, DOMRect>()
+      cards.forEach(c => { if (!c.classList.contains('is-hidden')) firsts.set(c, c.getBoundingClientRect()) })
+
+      const leaving: HTMLElement[] = []
+      cards.forEach(c => {
+        const show = matches(c)
+        if (!show && firsts.has(c)) leaving.push(c)
+        c.classList.toggle('is-hidden', !show)
+      })
+
+      if (numEl) numEl.textContent = String(visibleCount())
+      syncHeader()
+
+      if (!animate || reduce) {
+        cards.forEach(c => {
+          if (!c.classList.contains('is-hidden')) gsap.set(c, { opacity: 1, x: 0, y: 0, scale: 1 })
+        })
+        return
+      }
+
+      const gridRect = grid.getBoundingClientRect()
+
+      // Out — re-show each leaving card as an absolute overlay where it was, fade out.
+      leaving.forEach(c => {
+        const r = firsts.get(c)!
+        c.classList.remove('is-hidden')
+        gsap.set(c, {
+          position: 'absolute', margin: 0, zIndex: 1, pointerEvents: 'none',
+          top: r.top - gridRect.top, left: r.left - gridRect.left, width: r.width,
+        })
+        gsap.to(c, {
+          opacity: 0, scale: 0.94, duration: 0.3, ease: 'power2.out',
+          onComplete: () => { gsap.set(c, { clearProps: 'all' }); c.classList.add('is-hidden') },
+        })
+      })
+
+      // In / move — FLIP the survivors, fade the entrants in.
+      cards.forEach(c => {
+        if (c.classList.contains('is-hidden') || leaving.includes(c)) return
+        const prev = firsts.get(c)
+        const last = c.getBoundingClientRect()
+        if (prev) {
+          const dx = prev.left - last.left
+          const dy = prev.top - last.top
+          if (dx || dy) gsap.fromTo(c, { x: dx, y: dy }, { x: 0, y: 0, duration: 0.55, ease: 'power3.out' })
+        } else {
+          gsap.fromTo(c, { opacity: 0, y: 18, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: 'power3.out' })
         }
       })
-      if (numEl)    numEl.textContent = String(count)
-      if (weightEl) weightEl.textContent = fmtOz(oz)
     }
 
     pills.forEach(pill => {
       pill.addEventListener('click', () => {
+        const next = pill.dataset.group ?? ''
+        if (next === activeGroup) return
         pills.forEach(p => p.classList.remove('active'))
         pill.classList.add('active')
-        activeGroup = pill.dataset.group ?? ''
-        applyFilter()
+        activeGroup = next
+        activeCat   = ''
+        // Reset every sub-bar to its "All" chip before revealing the active one.
+        subbars.forEach(bar => bar.querySelectorAll('.subfilter-pill').forEach((p, i) => p.classList.toggle('active', i === 0)))
+        syncSubbar()
+        applyFilter(true)
+
+        // Slide the header + sub-bar in alongside the cards.
+        if (!reduce && activeGroup) {
+          if (head && !head.hidden) {
+            gsap.fromTo(head, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' })
+          }
+          const bar = subbars.find(b => b.dataset.group === activeGroup && !b.hidden)
+          if (bar) gsap.fromTo(bar, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', delay: 0.05 })
+        }
+      })
+    })
+
+    subbars.forEach(bar => {
+      bar.querySelectorAll<HTMLButtonElement>('.subfilter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const next = pill.dataset.cat ?? ''
+          if (next === activeCat) return
+          bar.querySelectorAll('.subfilter-pill').forEach(p => p.classList.remove('active'))
+          pill.classList.add('active')
+          activeCat = next
+          applyFilter(true)
+        })
       })
     })
 
     // Tap-to-expand details (mobile). The toggle is hidden on desktop where
     // descriptions show inline, so this is a no-op there.
-    groupsWrap?.querySelectorAll<HTMLButtonElement>('.gear-card-toggle').forEach(btn => {
+    grid.querySelectorAll<HTMLButtonElement>('.gear-card-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const card = btn.closest<HTMLElement>('.gear-card')
         if (!card) return

@@ -2715,32 +2715,24 @@ body::before {
   transform: translateY(12px);
 }
 
-/* Grouped sections — Camera, then Backpacking. Header mirrors the Field Kit's
-   .gear-cat-head mono label so the two surfaces share a language. */
-.gear-groups { display: flex; flex-direction: column; gap: 3.5rem; }
+/* Group header — appears when a single group is filtered (hidden in "All").
+   Mirrors the Field Kit's .gear-cat-head mono label so the surfaces share a
+   language. Toggled via the `hidden` attribute, animated by GSAP. */
 .gear-group-head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: 1rem;
   padding-bottom: 0.85rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   border-bottom: 1px solid rgba(240, 226, 206, 0.12);
-  opacity: 0;
-  transform: translateY(12px);
 }
+.gear-group-head[hidden] { display: none; }
 .gear-group-name {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--bone);
-}
-.gear-group-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 1.1rem;
-  white-space: nowrap;
 }
 .gear-group-count {
   font-family: var(--font-mono);
@@ -2749,12 +2741,30 @@ body::before {
   text-transform: uppercase;
   color: var(--fog);
 }
-.gear-group-weight {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  color: var(--rust);
+
+/* Sub-category chips — refine within an active group (Lens, Shelter, …) */
+.gear-subbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.75rem;
 }
+.gear-subbar[hidden] { display: none; }
+.subfilter-pill {
+  padding: 0.26rem 0.7rem;
+  border: 1px solid rgba(240,226,206,0.12);
+  background: transparent;
+  color: var(--fog);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: none;
+  transition: border-color 0.2s, color 0.2s, background 0.2s, transform 0.15s var(--ease-expo);
+}
+.subfilter-pill:hover  { border-color: var(--rust); color: var(--bone); transform: translateY(-1px); }
+.subfilter-pill:active { transform: translateY(0); }
+.subfilter-pill.active { border-color: var(--rust); color: var(--bone); }
 
 /* Grid — 3 columns desktop, 2 tablet, 1 mobile */
 .gear-grid {
@@ -2764,7 +2774,9 @@ body::before {
   gap: 1px;
   background: rgba(240,226,206,0.06);
   border: 1px solid rgba(240,226,206,0.06);
+  position: relative; /* anchor for the absolute fade-out overlays during filtering */
 }
+.gear-card.is-hidden { display: none; }
 
 /* Card */
 .gear-card {

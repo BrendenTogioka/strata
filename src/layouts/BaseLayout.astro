@@ -314,7 +314,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         '.trip-intro-eyebrow', '.trip-journal-eyebrow', '.trip-map-eyebrow',
         '.expeditions-eyebrow', '.expeditions-title', '.expeditions-count',
         '.expeditions-bar', '.gear-eyebrow', '.gear-title', '.gear-count', '.gear-bar',
-        '.exp-grid-card', '.gear-card', '.gear-group-head',
+        '.exp-grid-card', '.gear-card',
       ], { opacity: 1, x: 0, y: 0 })
       gsap.set([
         '.hero-title .line', '.section-title .line', '.section-title .line-inner',
@@ -842,7 +842,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
     // ── Gear page reveal (/gear) ──────────────────────────────────────────
     // One continuous timeline: header → filter bar → cards.
     if (document.querySelector('.gear-page')) {
-      const gearGroups = document.getElementById('gear-groups')
+      const gearGrid = document.getElementById('gear-grid')
       const gearTl = gsap.timeline({ delay: 0.25 })
       gearTl
         .to('.gear-eyebrow', { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' })
@@ -850,15 +850,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
         .to('.gear-count',   { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, '-=0.5')
         .to('.gear-bar',     { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '-=0.1')
 
-      if (gearGroups) {
-        gearTl.to('.gear-group-head', {
-          opacity: 1, y: 0,
-          duration: 0.5, stagger: 0.08, ease: 'power3.out',
-        }, '+=0.1')
+      if (gearGrid) {
         gearTl.to('.gear-card', {
           opacity: 1, y: 0,
           duration: 0.65, stagger: 0.04, ease: 'power3.out',
-        }, '-=0.3')
+        }, '+=0.2')
       }
 
       // Reticle fades in with the filter bar
