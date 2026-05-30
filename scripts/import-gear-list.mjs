@@ -2,18 +2,28 @@
  * Import a per-trip gear list (the "Field Kit" section) from a CSV exported by
  * the ultralight backpacking app, and write it onto the trip's `gearList` field.
  *
+ * It also SYNCS new pieces into the standalone /gear library: each item is
+ * matched against existing `gear` docs by name+brand; misses are created as
+ * HIDDEN gear docs (showOnGearPage:false) for you to publish from Studio,
+ * matches are left untouched. Pass --no-sync to skip this.
+ *
  * Usage:
- *   node scripts/import-gear-list.mjs <trip-slug> <path-to-csv>
+ *   node scripts/import-gear-list.mjs <trip-slug> <path-to-csv> [--no-sync]
  *   e.g. node scripts/import-gear-list.mjs santa-cruz-island ~/Downloads/santa-cruz.csv
  *
  * Reads PUBLIC_SANITY_PROJECT_ID / PUBLIC_SANITY_DATASET / SANITY_WRITE_TOKEN
  * from .env (same as the seed scripts). Safe to re-run — it replaces the
- * trip's gearList wholesale each time.
+ * trip's gearList wholesale and re-syncs the library idempotently (no dupes).
  *
- * Expected CSV columns (header names are matched fuzzily, order-independent):
- *   Category, Item (or Name), Brand, Weight, Qty, Worn, Consumable
+ * Expected CSV columns (header names are matched fuzzily, order-independent).
+ * This matches the Ultralight app's export directly — no need to reshape it:
+ *   Category, Item (or Name), Brand, (Unit) Weight, Quantity, Wear Type, Included, Notes
  *   - Weight may be "15.7 oz", "15.7", or "445 g" — grams are auto-converted.
- *   - Worn / Consumable are optional; yes/true/1/x count as true.
+ *     "Unit Weight" is preferred over "Total Weight" (qty is applied separately).
+ *   - Wear Type is a single column with values base / worn / consumable.
+ *     (Legacy fallback: separate boolean "Worn" / "Consumable" columns.)
+ *   - Included = No/false/0 rows are skipped; blank counts as included.
+ *   - Notes (optional) becomes the item's `note`, shown under it in the Field Kit.
  */
 
 import { createClient } from '@sanity/client'
@@ -25,9 +35,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const root      = resolve(__dirname, '..')
 
 // ── Args ───────────────────────────────────────────────────────────────────
-const [slug, csvPath] = process.argv.slice(2)
+const args   = process.argv.slice(2)
+const noSync = args.includes('--no-sync')
+const [slug, csvPath] = args.filter(a => !a.startsWith('--'))
 if (!slug || !csvPath) {
-  console.error('Usage: node scripts/import-gear-list.mjs <trip-slug> <path-to-csv>')
+  console.error('Usage: node scripts/import-gear-list.mjs <trip-slug> <path-to-csv> [--no-sync]')
   process.exit(1)
 }
 
@@ -104,20 +116,39 @@ const rows = parseCsv(text)
 if (rows.length < 2) { console.error('❌  CSV has no data rows'); process.exit(1) }
 
 const headers = rows[0]
-const cCat  = findCol(headers, 'categ', 'type')
+const cCat  = findCol(headers, 'categ')
 const cItem = findCol(headers, 'item', 'name', 'gear', 'product')
 const cBrand= findCol(headers, 'brand', 'make', 'manufact')
-const cWt   = findCol(headers, 'weight', 'oz', 'gram')
+const cWt   = findCol(headers, 'unitweight', 'weight', 'oz', 'gram')
 const cQty  = findCol(headers, 'qty', 'quant', 'count')
-const cWorn = findCol(headers, 'worn')
+const cWear = findCol(headers, 'wear')          // single "Wear Type" col: base / worn / consumable
+const cWorn = findCol(headers, 'worn')          // legacy fallback: separate boolean columns
 const cCons = findCol(headers, 'consum', 'consumable')
+const cInc  = findCol(headers, 'includ')        // "Included" yes/no — skip rows the user excluded
+const cNote = findCol(headers, 'note', 'comment')
 
 if (cItem === -1) { console.error(`❌  Could not find an Item/Name column. Headers: ${headers.join(', ')}`); process.exit(1) }
 
-let rk = 0
+let rk = 0, skipped = 0
 const gearList = rows.slice(1).map(r => {
   const item = (r[cItem] ?? '').trim()
   if (!item) return null
+  // Honor an Included column: skip rows explicitly marked not-included (blank counts as included).
+  if (cInc !== -1) {
+    const inc = (r[cInc] ?? '').trim()
+    if (inc && !truthy(inc)) { skipped++; return null }
+  }
+  // Wear type: prefer a single "Wear Type" column (base/worn/consumable),
+  // else fall back to legacy separate Worn / Consumable boolean columns.
+  let worn = false, consumable = false
+  if (cWear !== -1) {
+    const w = norm(r[cWear])
+    worn = w === 'worn'
+    consumable = w === 'consumable'
+  } else {
+    worn = cWorn !== -1 ? truthy(r[cWorn]) : false
+    consumable = cCons !== -1 ? truthy(r[cCons]) : false
+  }
   const qty = cQty !== -1 ? parseInt((r[cQty] ?? '1').replace(/[^0-9]/g, ''), 10) || 1 : 1
   return {
     _type: 'gearItem',
@@ -127,8 +158,9 @@ const gearList = rows.slice(1).map(r => {
     ...(cBrand !== -1 && (r[cBrand] ?? '').trim() ? { brand: r[cBrand].trim() } : {}),
     weightOz: cWt !== -1 ? parseWeightOz(r[cWt]) : 0,
     qty,
-    worn: cWorn !== -1 ? truthy(r[cWorn]) : false,
-    consumable: cCons !== -1 ? truthy(r[cCons]) : false,
+    worn,
+    consumable,
+    ...(cNote !== -1 && (r[cNote] ?? '').trim() ? { note: r[cNote].trim() } : {}),
   }
 }).filter(Boolean)
 
@@ -141,4 +173,62 @@ const totalOz = gearList.reduce((s, g) => s + (g.weightOz ?? 0) * (g.qty ?? 1), 
 await client.patch(doc._id).set({ gearList }).commit()
 
 console.log(`✅  Imported ${gearList.length} gear items (${totalOz.toFixed(1)} oz total) into "${(doc.title ?? []).join(' ') || slug}".`)
+
+// ── Sync new pieces into the /gear library ─────────────────────────────────
+// Each unique item is matched against existing `gear` docs by name+brand.
+// A match is left untouched; a miss is created as a HIDDEN gear doc
+// (showOnGearPage:false) for the user to publish from Studio. Opt out with --no-sync.
+if (!noSync) {
+  // Ultralight category → /gear schema category value.
+  const CAT_MAP = {
+    pack:'pack', backpack:'pack', packcarry:'pack', carry:'pack',
+    shelter:'shelter', tent:'shelter', tarp:'shelter', bivy:'shelter', sheltersleep:'shelter', stakes:'shelter',
+    sleep:'sleep', sleeping:'sleep', quilt:'sleep', sleepingbag:'sleep', pad:'sleep', pillow:'sleep',
+    kitchen:'kitchen', cook:'kitchen', stove:'kitchen', cookpot:'kitchen', utensils:'kitchen', fuel:'kitchen',
+    water:'nutrition', hydration:'nutrition', reservoir:'nutrition', food:'nutrition', snacks:'nutrition', nutrition:'nutrition', foodwater:'nutrition',
+    clothing:'clothing', clothes:'clothing', footwear:'clothing', apparel:'clothing', clothingfootwear:'clothing', pants:'clothing', gloves:'clothing', hat:'clothing',
+    navigation:'navigation', nav:'navigation',
+    electronics:'electronics', electronic:'electronics', battery:'electronics', batterycharger:'electronics', charger:'electronics', phone:'electronics', headlamp:'electronics',
+    safety:'safety', firstaid:'safety', medical:'safety', safetyfirstaid:'safety',
+    camera:'camera', lens:'lens', tripod:'tripod', filter:'filter', audio:'audio',
+    accessory:'accessories', accessories:'accessories',
+    misc:'misc', other:'misc', hygiene:'misc', sunscreen:'misc', sunglasses:'misc',
+  }
+  const mapCat = s => CAT_MAP[norm(s)] ?? 'misc'
+  // Identity keys for fuzzy name+brand matching across both naming conventions.
+  const keysFor = (name, brand) => {
+    const ks = new Set(); const n = norm(name); const b = norm(brand)
+    ks.add(n)
+    if (b && n.startsWith(b)) ks.add(n.slice(b.length)) // name with brand prefix removed
+    if (b) ks.add(b + n)                                // brand-prefixed form
+    return ks
+  }
+
+  const existing = await client.fetch('*[_type == "gear"]{ name, brand }')
+  const keys = new Set()
+  for (const g of existing) for (const k of keysFor(g.name ?? '', g.brand ?? '')) keys.add(k)
+
+  let created = 0, matched = 0
+  let tx = client.transaction()
+  for (const it of gearList) {
+    const name = it.brand ? `${it.brand} ${it.item}` : it.item
+    const ik = keysFor(name, it.brand ?? '')
+    if ([...ik].some(k => keys.has(k))) { matched++; continue }
+    for (const k of ik) keys.add(k)
+    tx = tx.create({
+      _type: 'gear',
+      name,
+      ...(it.brand ? { brand: it.brand } : {}),
+      category: mapCat(it.category),
+      weightOz: it.weightOz ?? 0,
+      showOnGearPage: false,
+      featured: false,
+      ...(it.note ? { description: it.note } : {}),
+    })
+    created++
+  }
+  if (created) await tx.commit()
+  console.log(`   Gear library: ${created} new item(s) added — HIDDEN until you flip "Show on Gear page" in Studio; ${matched} already present (left untouched).`)
+}
+
 console.log(`   Restart the dev server (or rebuild) to see the Field Kit section.`)

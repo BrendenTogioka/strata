@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import SiteFooter from '../components/SiteFooter.astro'
 import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../lib/queries'
+import { cardVideoSrc } from '../lib/cloudinaryVideo'
 
 const trips = await client.fetch(ALL_TRIPS_QUERY)
 
@@ -167,7 +168,7 @@ const cards = trips.map((trip: any, i: number) => ({
             {card.cardVideoUrl && (
               <video
                 class="exp-card-video"
-                data-src={card.cardVideoUrl}
+                data-src={cardVideoSrc(card.cardVideoUrl)}
                 muted
                 loop
                 playsinline

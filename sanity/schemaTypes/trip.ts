@@ -447,6 +447,7 @@ export default defineType({
           defineField({ name: 'qty',      title: 'Quantity', type: 'number', initialValue: 1 }),
           defineField({ name: 'worn',       title: 'Worn',       type: 'boolean', description: 'Worn weight — excluded from base weight.', initialValue: false }),
           defineField({ name: 'consumable', title: 'Consumable', type: 'boolean', description: 'Food / fuel / water — excluded from base weight.', initialValue: false }),
+          defineField({ name: 'note',       title: 'Note',       type: 'text', rows: 2, description: 'Optional — imported from the CSV Notes column; shown under the item.' }),
         ],
         preview: {
           select: { item: 'item', brand: 'brand', category: 'category', weightOz: 'weightOz', qty: 'qty' },

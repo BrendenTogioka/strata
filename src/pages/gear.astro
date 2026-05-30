@@ -15,22 +15,38 @@ const CATEGORY_LABELS: Record<string, string> = {
   audio:       'Audio',
   accessories: 'Accessories',
   pack:        'Pack & Carry',
-  shelter:     'Shelter & Sleep',
+  shelter:     'Shelter',
+  sleep:       'Sleep',
+  kitchen:     'Kitchen',
   navigation:  'Navigation',
   clothing:    'Clothing',
   nutrition:   'Food & Water',
+  electronics: 'Electronics',
   safety:      'Safety',
+  misc:        'Misc',
 }
 
 // Map fine-grained categories → top-level filter group
 const CAMERA_CATS      = new Set(['camera', 'lens', 'tripod', 'filter', 'audio', 'accessories'])
-const BACKPACKING_CATS = new Set(['pack', 'shelter', 'navigation', 'clothing', 'nutrition', 'safety'])
+const BACKPACKING_CATS = new Set(['pack', 'shelter', 'sleep', 'kitchen', 'navigation', 'clothing', 'nutrition', 'electronics', 'safety', 'misc'])
 
 function groupOf(cat: string) {
   if (CAMERA_CATS.has(cat))      return 'camera'
   if (BACKPACKING_CATS.has(cat)) return 'backpacking'
   return 'other'
 }
+
+// ── Weight formatting ───────────────────────────────────────────────────────
+// "1 lb 9.3 oz" above a pound, otherwise "9.3 oz". Matches the expedition Field Kit.
+function fmtOz(oz: number) {
+  if (!oz || oz <= 0) return ''
+  if (oz < 16) return `${oz.toFixed(1)} oz`
+  const lb = Math.floor(oz / 16)
+  const rem = oz - lb * 16
+  return rem >= 0.05 ? `${lb} lb ${rem.toFixed(1)} oz` : `${lb} lb`
+}
+
+const totalOz = gear.reduce((s: number, g: any) => s + (g.weightOz ?? 0), 0)
 ---
 
 <BaseLayout
@@ -42,7 +58,11 @@ function groupOf(cat: string) {
     <header class="gear-header">
       <p class="gear-eyebrow">FIELD KIT</p>
       <h1 class="gear-title">THE GEAR</h1>
-      <p class="gear-count">{gear.length} items</p>
+      <p class="gear-count">
+        <span id="gear-count-num">{gear.length}</span> items{totalOz > 0 && (
+          <> · <span id="gear-count-weight">{fmtOz(totalOz)}</span></>
+        )}
+      </p>
 
       <!-- Viewfinder reticle — draws in as the header fades, JS fades the SVG in -->
       <svg class="gear-reticle" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -88,6 +108,7 @@ function groupOf(cat: string) {
             <li
               class={`gear-card${item.featured ? ' gear-card--featured' : ''}`}
               data-group={group}
+              data-weight={item.weightOz ?? 0}
             >
               {imgUrl && (
                 <div class="gear-card-img-wrap">
@@ -102,7 +123,12 @@ function groupOf(cat: string) {
                 </div>
               )}
               <div class="gear-card-body">
-                <span class="gear-card-cat">{catLabel}</span>
+                <div class="gear-card-meta">
+                  <span class="gear-card-cat">{catLabel}</span>
+                  {item.weightOz > 0 && (
+                    <span class="gear-card-weight">{fmtOz(item.weightOz)}</span>
+                  )}
+                </div>
                 <p class="gear-card-name">{item.name}</p>
                 {item.brand && (
                   <p class="gear-card-brand">{item.brand}</p>
@@ -142,12 +168,32 @@ function groupOf(cat: string) {
 
     let activeGroup = ''
 
+    const numEl    = document.getElementById('gear-count-num')
+    const weightEl = document.getElementById('gear-count-weight')
+
+    // "1 lb 9.3 oz" above a pound, else "9.3 oz" — mirrors the Astro fmtOz.
+    function fmtOz(oz: number) {
+      if (!oz || oz <= 0) return ''
+      if (oz < 16) return `${oz.toFixed(1)} oz`
+      const lb = Math.floor(oz / 16)
+      const rem = oz - lb * 16
+      return rem >= 0.05 ? `${lb} lb ${rem.toFixed(1)} oz` : `${lb} lb`
+    }
+
     function applyFilter() {
       if (!grid) return
+      let count = 0, oz = 0
       grid.querySelectorAll<HTMLElement>('.gear-card').forEach(card => {
         const g = card.dataset.group ?? ''
-        card.style.display = (!activeGroup || g === activeGroup) ? '' : 'none'
+        const visible = !activeGroup || g === activeGroup
+        card.style.display = visible ? '' : 'none'
+        if (visible) {
+          count++
+          oz += parseFloat(card.dataset.weight ?? '0') || 0
+        }
       })
+      if (numEl)    numEl.textContent = String(count)
+      if (weightEl) weightEl.textContent = fmtOz(oz)
     }
 
     pills.forEach(pill => {

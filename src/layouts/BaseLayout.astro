@@ -75,6 +75,12 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
       <link rel="preload" as="image" href={preloadImage} fetchpriority="high" />
     )}
 
+    <!-- Media origins: hero frames + card videos (Cloudinary) and story/gallery
+         images (Sanity) are cross-origin. Preconnect so the TLS handshake is
+         already warm when the first frame/image is requested. -->
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

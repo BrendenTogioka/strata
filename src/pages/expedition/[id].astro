@@ -4,6 +4,7 @@ import { toHTML } from '@portabletext/to-html'
 import { client, urlFor, sanityImgSrcset } from '../../lib/sanity'
 import { ALL_TRIPS_QUERY } from '../../lib/queries'
 import { applyAltFallback } from '../../lib/altFallback.mjs'
+import { cardVideoSrc } from '../../lib/cloudinaryVideo'
 
 const ptComponents = {
   marks: {
@@ -46,7 +47,7 @@ const nextTrip    = allTrips[nextIndex]
 // ── Field Kit (gear list) ───────────────────────────────────────────────────
 // Group items by category and derive the standard ultralight weight buckets:
 // base (everything not worn or consumable), worn, consumables, and total.
-interface GearItem { category?: string; item?: string; brand?: string; weightOz?: number; qty?: number; worn?: boolean; consumable?: boolean }
+interface GearItem { category?: string; item?: string; brand?: string; weightOz?: number; qty?: number; worn?: boolean; consumable?: boolean; note?: string }
 const rawGear: GearItem[] = Array.isArray(trip.gearList) ? trip.gearList : []
 
 const OZ_TO_G = 28.349523
@@ -519,6 +520,15 @@ for (const block of storyProcessed) {
             <span class="stat-label">Duration</span>
             <span class="stat-value">{trip.duration}</span>
           </div>
+          {hasGear && gearTotals.base > 0 && (
+            <>
+              <div class="stat-divider"></div>
+              <div class="stat">
+                <span class="stat-label">Base Weight</span>
+                <span class="stat-value">{fmtOz(gearTotals.base)}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -870,6 +880,7 @@ for (const block of storyProcessed) {
                       <span class="gear-line-main">
                         <span class="gear-line-name">{it.item}</span>
                         {it.brand && <span class="gear-line-brand">{it.brand}</span>}
+                        {it.note && <span class="gear-line-note">{it.note}</span>}
                       </span>
                       <span class="gear-line-meta">
                         {(it.qty ?? 1) > 1 && <span class="gear-line-qty">×{it.qty}</span>}
@@ -911,7 +922,7 @@ for (const block of storyProcessed) {
             {nextTrip.cardVideoUrl && (
               <video
                 class="exp-card-video"
-                data-src={nextTrip.cardVideoUrl}
+                data-src={cardVideoSrc(nextTrip.cardVideoUrl)}
                 muted
                 loop
                 playsinline

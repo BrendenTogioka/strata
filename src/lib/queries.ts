@@ -23,7 +23,7 @@ const TRIP_FIELDS = `
   elevationPoints,
   fieldIntel[] { key, value, status },
   conditions[] { icon, label, value, subtext },
-  gearList[] { category, item, brand, weightOz, qty, worn, consumable },
+  gearList[] { category, item, brand, weightOz, qty, worn, consumable, note },
   featured,
   featureLayout,
   "featureBlurb": coalesce(featureBlurb, description),
@@ -77,11 +77,12 @@ export const FEATURED_TRIPS_QUERY = `
 
 // All gear — sorted by category then name. Featured items float to top within each group.
 export const GEAR_QUERY = `
-  *[_type == "gear"] | order(featured desc, category asc, name asc) {
+  *[_type == "gear" && showOnGearPage != false] | order(featured desc, category asc, name asc) {
     _id,
     name,
     brand,
     category,
+    weightOz,
     description,
     featured,
     image {

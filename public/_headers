@@ -1,0 +1,17 @@
+# Netlify edge/CDN caching rules. Astro copies public/ to the publish root,
+# where Netlify reads this file. More-specific paths win on conflicting headers.
+#
+# Why: the static HTML was shipping `Cache-Control: max-age=0, must-revalidate`,
+# so every request revalidated to origin (~1s TTFB observed). We keep the BROWSER
+# conservative (revalidate, so users get fresh content) but let Netlify's EDGE
+# serve the HTML instantly. Netlify invalidates its CDN cache on every deploy,
+# so a long edge TTL never serves stale content across publishes.
+
+# Hashed, immutable build assets — cache hard, forever (browser + edge).
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML pages: instant from Netlify's edge, revalidated by the browser.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+  Netlify-CDN-Cache-Control: public, s-maxage=31536000, stale-while-revalidate=86400

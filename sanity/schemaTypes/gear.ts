@@ -13,11 +13,15 @@ const CATEGORIES = [
   { title: 'Camera Accessories',   value: 'accessories' },
   // Backpacking group
   { title: 'Pack & Carry',         value: 'pack'        },
-  { title: 'Shelter & Sleep',      value: 'shelter'     },
+  { title: 'Shelter',              value: 'shelter'     },
+  { title: 'Sleep',                value: 'sleep'       },
+  { title: 'Kitchen',              value: 'kitchen'     },
   { title: 'Navigation',           value: 'navigation'  },
   { title: 'Clothing & Footwear',  value: 'clothing'    },
   { title: 'Food & Water',         value: 'nutrition'   },
+  { title: 'Electronics',          value: 'electronics' },
   { title: 'Safety & First Aid',   value: 'safety'      },
+  { title: 'Misc',                 value: 'misc'        },
 ]
 
 export default defineType({
@@ -53,6 +57,14 @@ export default defineType({
     }),
 
     defineField({
+      name: 'weightOz',
+      title: 'Weight (oz)',
+      type: 'number',
+      description: 'Single-unit weight in ounces. Shown on the card and summed into the page total (per filter).',
+      validation: Rule => Rule.min(0),
+    }),
+
+    defineField({
       name: 'description',
       title: 'Personal note',
       type: 'text',
@@ -69,10 +81,18 @@ export default defineType({
     }),
 
     defineField({
+      name: 'showOnGearPage',
+      title: 'Show on Gear page',
+      type: 'boolean',
+      description: 'Controls visibility on the public /gear page. Items auto-imported from a trip arrive turned OFF — flip this on to publish them. Items added by hand here default to ON.',
+      initialValue: true,
+    }),
+
+    defineField({
       name: 'featured',
       title: 'Featured item',
       type: 'boolean',
-      description: 'Pin this item to the top of its category group.',
+      description: 'Pin this item to the top of its category group (only applies when shown on the Gear page).',
       initialValue: false,
     }),
   ],
@@ -92,10 +112,14 @@ export default defineType({
     select: {
       title:    'name',
       subtitle: 'brand',
+      weightOz: 'weightOz',
+      show:     'showOnGearPage',
       media:    'image',
     },
-    prepare({ title, subtitle }: { title?: string; subtitle?: string }) {
-      return { title: title ?? 'Untitled', subtitle: subtitle ?? '' }
+    prepare({ title, subtitle, weightOz, show }: { title?: string; subtitle?: string; weightOz?: number; show?: boolean }) {
+      const w = typeof weightOz === 'number' && weightOz > 0 ? ` · ${weightOz} oz` : ''
+      const hidden = show === false ? ' · (hidden)' : ''
+      return { title: title ?? 'Untitled', subtitle: `${subtitle ?? ''}${w}${hidden}` }
     },
   },
 })

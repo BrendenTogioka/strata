@@ -1,4 +1,6 @@
 ---
+import { cardVideoSrc } from '../lib/cloudinaryVideo'
+
 interface Expedition {
   num:          string
   title:        string
@@ -46,7 +48,7 @@ const { expeditions } = Astro.props
           {exp.cardVideoUrl && (
             <video
               class="exp-card-video"
-              data-src={exp.cardVideoUrl}
+              data-src={cardVideoSrc(exp.cardVideoUrl)}
               muted
               loop
               playsinline
