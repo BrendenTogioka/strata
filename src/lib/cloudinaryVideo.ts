@@ -8,14 +8,19 @@
  *   - `q_auto`     let Cloudinary pick perceptually-lossless quality
  *   - force `.mp4` so .mov/.webm originals transcode to a container every browser
  *                  plays (the loops are muted/aria-hidden, so AVC mp4 is ideal)
- * Result is ~100× smaller (validated: 69 MB → ~0.67 MB) and visually identical at
- * card size. The first request for a new transform transcodes (slow once), then
- * it's immutable-CDN-cached.
+ * Result is far smaller than the raw original yet stays crisp at card size. The
+ * first request for a new transform transcodes (slow once), then it's
+ * immutable-CDN-cached.
+ *
+ * `width` must cover the card's *device* pixels: these cards are large (the home
+ * gallery cards are 60–70vw × 100vh and `object-fit: cover`), so on a HiDPI
+ * display an 800px derivative gets upscaled and looks soft. Callers pass a width
+ * sized to the card; the 1280 default suits the smaller grid cards.
  *
  * Defensive + idempotent: empty strings, non-Cloudinary URLs, and URLs that
  * already carry a transform segment are returned unchanged.
  */
-export function cardVideoSrc(url: string | undefined | null, width = 800): string {
+export function cardVideoSrc(url: string | undefined | null, width = 1280): string {
   if (!url) return url ?? ''
   const marker = '/video/upload/'
   const at = url.indexOf(marker)

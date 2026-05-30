@@ -1438,6 +1438,16 @@ body::before {
   padding-left: 0.6em;
   display: inline-block;        /* transforms apply (GSAP scroll-in rotates/scales) */
   transform-origin: center;
+  /* Subtle perpetual twinkle. Animates opacity + glow only (NOT transform), so
+     it composes with the GSAP scroll-in instead of fighting its inline transform. */
+  animation: divider-twinkle 4.5s ease-in-out infinite;
+}
+@keyframes divider-twinkle {
+  0%, 100% { opacity: 0.6;  text-shadow: 0 0 0 rgba(240, 226, 206, 0); }
+  50%      { opacity: 1;    text-shadow: 0 0 9px rgba(240, 226, 206, 0.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-divider-mark { animation: none; opacity: 1; }
 }
 .story-callout {
   padding: 0.9rem 1.4rem;

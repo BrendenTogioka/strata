@@ -8,8 +8,11 @@
  * matches are left untouched. Pass --no-sync to skip this.
  *
  * Usage:
- *   node scripts/import-gear-list.mjs <trip-slug> <path-to-csv> [--no-sync]
+ *   node scripts/import-gear-list.mjs <trip-slug> <path-to-csv> [--no-sync] [--no-images] [--dry-run]
  *   e.g. node scripts/import-gear-list.mjs santa-cruz-island ~/Downloads/santa-cruz.csv
+ *   --dry-run    parse + probe image URLs and report, writing nothing
+ *   --no-images  skip uploading/attaching images from the Image URL column
+ *   --no-sync    skip the /gear library sync entirely
  *
  * Reads PUBLIC_SANITY_PROJECT_ID / PUBLIC_SANITY_DATASET / SANITY_WRITE_TOKEN
  * from .env (same as the seed scripts). Safe to re-run — it replaces the
@@ -24,6 +27,11 @@
  *     (Legacy fallback: separate boolean "Worn" / "Consumable" columns.)
  *   - Included = No/false/0 rows are skipped; blank counts as included.
  *   - Notes (optional) becomes the item's `note`, shown under it in the Field Kit.
+ *   - Image URL (optional) is fetched and uploaded to Sanity, then attached to
+ *     the item's /gear library doc (new docs, or existing ones that lack an
+ *     image). gearItem rows themselves carry no image — only the library cards.
+ *   - A leading "Summary / Base weight / …" block (if present) is skipped; the
+ *     real header row is detected automatically.
  */
 
 import { createClient } from '@sanity/client'
@@ -35,8 +43,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const root      = resolve(__dirname, '..')
 
 // ── Args ───────────────────────────────────────────────────────────────────
-const args   = process.argv.slice(2)
-const noSync = args.includes('--no-sync')
+const args     = process.argv.slice(2)
+const noSync   = args.includes('--no-sync')
+const noImages = args.includes('--no-images')
+const dryRun   = args.includes('--dry-run') || args.includes('--dry')
 const [slug, csvPath] = args.filter(a => !a.startsWith('--'))
 if (!slug || !csvPath) {
   console.error('Usage: node scripts/import-gear-list.mjs <trip-slug> <path-to-csv> [--no-sync]')
@@ -115,7 +125,16 @@ const text = readFileSync(resolve(csvPath), 'utf8')
 const rows = parseCsv(text)
 if (rows.length < 2) { console.error('❌  CSV has no data rows'); process.exit(1) }
 
-const headers = rows[0]
+// Some Ultralight exports prepend a "Summary / Base weight / …" block before the
+// real table. Find the actual header row (one with a Name/Item AND a Category
+// column) and ignore everything above it.
+const isHeaderRow = row =>
+  row.some(c => /^(name|item|gear|product)$/.test(norm(c))) &&
+  row.some(c => norm(c).includes('categ'))
+const hIdx = Math.max(0, rows.findIndex(isHeaderRow))
+
+const headers  = rows[hIdx]
+const dataRows = rows.slice(hIdx + 1)
 const cCat  = findCol(headers, 'categ')
 const cItem = findCol(headers, 'item', 'name', 'gear', 'product')
 const cBrand= findCol(headers, 'brand', 'make', 'manufact')
@@ -126,11 +145,12 @@ const cWorn = findCol(headers, 'worn')          // legacy fallback: separate boo
 const cCons = findCol(headers, 'consum', 'consumable')
 const cInc  = findCol(headers, 'includ')        // "Included" yes/no — skip rows the user excluded
 const cNote = findCol(headers, 'note', 'comment')
+const cImg  = findCol(headers, 'imageurl', 'imagelink', 'image', 'photo', 'picture')
 
 if (cItem === -1) { console.error(`❌  Could not find an Item/Name column. Headers: ${headers.join(', ')}`); process.exit(1) }
 
 let rk = 0, skipped = 0
-const gearList = rows.slice(1).map(r => {
+const gearList = dataRows.map(r => {
   const item = (r[cItem] ?? '').trim()
   if (!item) return null
   // Honor an Included column: skip rows explicitly marked not-included (blank counts as included).
@@ -161,6 +181,9 @@ const gearList = rows.slice(1).map(r => {
     worn,
     consumable,
     ...(cNote !== -1 && (r[cNote] ?? '').trim() ? { note: r[cNote].trim() } : {}),
+    // Local-only: the source image URL. Used by the library sync below; stripped
+    // before the gearList is written (the gearItem schema has no image field).
+    ...(cImg !== -1 && /^https?:\/\//i.test((r[cImg] ?? '').trim()) ? { _imageUrl: r[cImg].trim() } : {}),
   }
 }).filter(Boolean)
 
@@ -170,9 +193,17 @@ const doc = await client.fetch('*[_type == "trip" && id.current == $slug][0]{ _i
 if (!doc?._id) { console.error(`❌  No trip found with slug "${slug}"`); process.exit(1) }
 
 const totalOz = gearList.reduce((s, g) => s + (g.weightOz ?? 0) * (g.qty ?? 1), 0)
-await client.patch(doc._id).set({ gearList }).commit()
+const cleanList = gearList.map(({ _imageUrl, ...g }) => g) // drop local-only field before writing
+const tripTitle = (doc.title ?? []).join(' ') || slug
 
-console.log(`✅  Imported ${gearList.length} gear items (${totalOz.toFixed(1)} oz total) into "${(doc.title ?? []).join(' ') || slug}".`)
+if (dryRun) {
+  console.log(`🔍  DRY RUN — no writes.`)
+  console.log(`    Header row detected at line ${hIdx + 1}; ${gearList.length} item(s) parsed (${totalOz.toFixed(1)} oz total)${skipped ? `, ${skipped} skipped (not included)` : ''}.`)
+  console.log(`    Would replace gearList on "${tripTitle}".`)
+} else {
+  await client.patch(doc._id).set({ gearList: cleanList }).commit()
+  console.log(`✅  Imported ${gearList.length} gear items (${totalOz.toFixed(1)} oz total) into "${tripTitle}".`)
+}
 
 // ── Sync new pieces into the /gear library ─────────────────────────────────
 // Each unique item is matched against existing `gear` docs by name+brand.
@@ -204,31 +235,89 @@ if (!noSync) {
     return ks
   }
 
-  const existing = await client.fetch('*[_type == "gear"]{ name, brand }')
-  const keys = new Set()
-  for (const g of existing) for (const k of keysFor(g.name ?? '', g.brand ?? '')) keys.add(k)
+  // Existing docs, with their _id and whether they already carry an image, keyed
+  // by every identity variant so we can both de-dupe and backfill images.
+  const existing = await client.fetch('*[_type == "gear"]{ _id, name, brand, "hasImage": defined(image.asset) }')
+  const byKey = new Map()
+  for (const g of existing) for (const k of keysFor(g.name ?? '', g.brand ?? '')) byKey.set(k, g)
+
+  // Fetch an image URL and upload it to Sanity as an asset reference.
+  async function uploadImage(url, label) {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const buf = Buffer.from(await res.arrayBuffer())
+    const ext = (url.split('?')[0].split('.').pop() || 'jpg').toLowerCase().slice(0, 4)
+    const asset = await client.assets.upload('image', buf, { filename: `${label}.${ext}` })
+    return { _type: 'image', asset: { _type: 'reference', _ref: asset._id } }
+  }
 
   let created = 0, matched = 0
-  let tx = client.transaction()
+  let imgAdded = 0, imgSkipped = 0, imgFailed = 0
+  const probed = new Set() // de-dupe URL reachability probes in dry run
+
   for (const it of gearList) {
     const name = it.brand ? `${it.brand} ${it.item}` : it.item
-    const ik = keysFor(name, it.brand ?? '')
-    if ([...ik].some(k => keys.has(k))) { matched++; continue }
-    for (const k of ik) keys.add(k)
-    tx = tx.create({
-      _type: 'gear',
-      name,
-      ...(it.brand ? { brand: it.brand } : {}),
-      category: mapCat(it.category),
-      weightOz: it.weightOz ?? 0,
-      showOnGearPage: false,
-      featured: false,
-      ...(it.note ? { description: it.note } : {}),
-    })
-    created++
+    const ik   = keysFor(name, it.brand ?? '')
+    const hit  = [...ik].map(k => byKey.get(k)).find(Boolean)
+    const url  = it._imageUrl
+
+    // In dry run, just probe each unique URL once and report intent.
+    if (dryRun) {
+      if (hit) matched++; else created++
+      if (url && !noImages) {
+        if (hit?.hasImage) { imgSkipped++ }
+        else if (!probed.has(url)) {
+          probed.add(url)
+          try {
+            const r = await fetch(url, { method: 'HEAD' })
+            if (r.ok) imgAdded++; else { imgFailed++; console.log(`   ⚠️  ${name}: image HTTP ${r.status}`) }
+          } catch (e) { imgFailed++; console.log(`   ⚠️  ${name}: image fetch failed — ${e.message}`) }
+        }
+      }
+      continue
+    }
+
+    let doc = hit
+    if (!doc) {
+      doc = await client.create({
+        _type: 'gear',
+        name,
+        ...(it.brand ? { brand: it.brand } : {}),
+        category: mapCat(it.category),
+        weightOz: it.weightOz ?? 0,
+        showOnGearPage: false,
+        featured: false,
+        ...(it.note ? { description: it.note } : {}),
+      })
+      const rec = { _id: doc._id, name, brand: it.brand ?? '', hasImage: false }
+      for (const k of ik) byKey.set(k, rec)
+      doc = rec
+      created++
+    } else {
+      matched++
+    }
+
+    // Attach the image to any doc that lacks one (new, or a prior hidden import).
+    if (url && !noImages && !doc.hasImage) {
+      try {
+        const image = await uploadImage(url, norm(name) || 'gear')
+        await client.patch(doc._id).set({ image }).commit()
+        doc.hasImage = true
+        imgAdded++
+      } catch (e) {
+        imgFailed++
+        console.log(`   ⚠️  ${name}: image upload failed — ${e.message}`)
+      }
+    } else if (url && doc.hasImage) {
+      imgSkipped++
+    }
   }
-  if (created) await tx.commit()
-  console.log(`   Gear library: ${created} new item(s) added — HIDDEN until you flip "Show on Gear page" in Studio; ${matched} already present (left untouched).`)
+
+  const verb = dryRun ? 'would add' : 'added'
+  console.log(`   Gear library: ${created} new item(s) ${verb} — HIDDEN until you flip "Show on Gear page" in Studio; ${matched} already present.`)
+  if (!noImages) {
+    console.log(`   Images: ${imgAdded} ${verb}, ${imgSkipped} skipped (doc already has one), ${imgFailed} failed.`)
+  }
 }
 
 console.log(`   Restart the dev server (or rebuild) to see the Field Kit section.`)
