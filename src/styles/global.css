@@ -2945,6 +2945,93 @@ body::before {
   color: var(--fog);
 }
 
+/* ─── Full Kits index — complete loadouts, linking to each trip's Field Kit ─── */
+.gear-kits { margin-top: 5rem; }
+.gear-kits-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(240, 226, 206, 0.12);
+}
+.gear-kits-title {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+.gear-kits-sub {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.gear-kits-list { list-style: none; }
+.gear-kit {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.15rem 0.25rem;
+  border-bottom: 1px solid rgba(240, 226, 206, 0.07);
+  text-decoration: none;
+  transition: padding-left 0.35s var(--ease-expo);
+}
+.gear-kit:hover { padding-left: 0.9rem; }
+.gear-kit-main { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.gear-kit-name {
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  line-height: 1.1;
+  color: var(--bone);
+  transition: color 0.3s ease;
+}
+.gear-kit:hover .gear-kit-name { color: var(--accent, var(--rust)); }
+.gear-kit-loc {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.gear-kit-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.gear-kit-count {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+.gear-kit-weight {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--accent, var(--rust));
+}
+.gear-kit-arrow {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--fog);
+  transition: transform 0.35s var(--ease-expo), color 0.3s ease;
+}
+.gear-kit:hover .gear-kit-arrow { transform: translateX(5px); color: var(--accent, var(--rust)); }
+@media (max-width: 600px) {
+  .gear-kit-loc { display: none; }
+  .gear-kit-meta { gap: 1rem; }
+  .gear-kit-count { display: none; }
+}
+
 @media (max-width: 900px) {
   .gear-grid { grid-template-columns: repeat(2, 1fr); }
 }

@@ -1,10 +1,23 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 import SiteFooter from '../components/SiteFooter.astro'
-import { client, urlFor } from '../lib/sanity'
-import { GEAR_QUERY } from '../lib/queries'
+import { client, urlFor, sanityImgSrcset } from '../lib/sanity'
+import { GEAR_QUERY, FULL_KITS_QUERY } from '../lib/queries'
 
 const gear = await client.fetch(GEAR_QUERY)
+
+// ── Full Kits index ─────────────────────────────────────────────────────────
+// Trips that carry a Field Kit, surfaced at the bottom of /gear as complete
+// loadouts. Base weight = everything not worn or consumable (the standard
+// ultralight figure), matching the expedition page's Field Kit math.
+const fullKits = await client.fetch(FULL_KITS_QUERY)
+const kitRows = (Array.isArray(fullKits) ? fullKits : []).map((k: any) => {
+  const items = Array.isArray(k.gearList) ? k.gearList : []
+  const lineOz = (g: any) => (g.weightOz ?? 0) * (g.qty ?? 1)
+  const base = items.filter((g: any) => !g.worn && !g.consumable).reduce((s: number, g: any) => s + lineOz(g), 0)
+  const title = Array.isArray(k.pageTitle) ? k.pageTitle.join(' ') : (k.pageTitle ?? k.id)
+  return { id: k.id, title, location: k.location, accent: k.accentColor, base, count: items.length }
+}).filter((k: any) => k.count > 0)
 
 // ── Category metadata ──────────────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string> = {
@@ -145,8 +158,11 @@ for (const cat of SUBCAT_ORDER) {
           {allGear.map((item: any) => {
             const catLabel = CATEGORY_LABELS[item.category] ?? item.category
             const imgUrl = item.image
-              ? urlFor(item.image).width(600).quality(85).format('webp').url()
+              ? urlFor(item.image).width(800).quality(88).format('webp').url()
               : null
+            const imgSrcset = item.image
+              ? sanityImgSrcset(item.image, [400, 600, 800, 1000], 88)
+              : ''
 
             return (
               <li
@@ -158,6 +174,8 @@ for (const cat of SUBCAT_ORDER) {
                   <div class="gear-card-img-wrap">
                     <img
                       src={imgUrl}
+                      srcset={imgSrcset}
+                      sizes="(max-width: 768px) 88vw, (max-width: 1100px) 44vw, 30vw"
                       alt={item.image?.alt ?? item.name}
                       loading="lazy"
                       decoding="async"
@@ -199,6 +217,32 @@ for (const cat of SUBCAT_ORDER) {
         <p class="gear-empty-msg">Gear list coming soon.</p>
         <p class="gear-empty-sub">Add items in the Studio to populate this page.</p>
       </div>
+    )}
+
+    {kitRows.length > 0 && (
+      <section class="gear-kits">
+        <div class="gear-kits-head">
+          <span class="gear-kits-title">Full Kits</span>
+          <span class="gear-kits-sub">Complete loadouts, by expedition</span>
+        </div>
+        <ul class="gear-kits-list">
+          {kitRows.map((k: any) => (
+            <li>
+              <a class="gear-kit" href={`/expedition/${k.id}#field-kit`} style={`--accent:${k.accent}`}>
+                <span class="gear-kit-main">
+                  <span class="gear-kit-name">{k.title}</span>
+                  {k.location && <span class="gear-kit-loc">{k.location}</span>}
+                </span>
+                <span class="gear-kit-meta">
+                  <span class="gear-kit-count">{k.count} items</span>
+                  <span class="gear-kit-weight">{fmtOz(k.base)} base</span>
+                  <span class="gear-kit-arrow" aria-hidden="true">→</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     )}
 
     <SiteFooter />

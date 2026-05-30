@@ -26,10 +26,10 @@ const lines   = feature.pageTitle ?? []
 const alt     = feature.heroImage?.alt ?? feature.location ?? ''
 
 const img = feature.heroImage
-  ? urlFor(feature.heroImage).width(2000).quality(85).format('webp').url()
+  ? urlFor(feature.heroImage).width(2000).quality(90).format('webp').url()
   : ''
 const imgSrcset = feature.heroImage
-  ? sanityImgSrcset(feature.heroImage, [700, 1000, 1400, 2000], 85)
+  ? sanityImgSrcset(feature.heroImage, [700, 1000, 1400, 2000, 2600], 90)
   : ''
 const sizes = isColor ? '(max-width: 900px) 100vw, 50vw' : '100vw'
 // Hero URL used by iris transition to preload the destination's full-res image

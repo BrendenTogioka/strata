@@ -477,8 +477,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
           //            keep all on desktop; finite on mobile = release far)
           // ⚑ TUNE: counts confirmed at 120 desktop / 48 mobile. Sizes/window
           //   are safe defaults — adjust if frames look soft or RAM is tight.
-          const DESKTOP = { count: 120, w: 1600, h: 900,  window: Infinity, mq: '(min-width: 769px)' }
-          const MOBILE  = { count: 48,  w: 800,  h: 1200, window: 16,       mq: '(max-width: 768px)' }
+          const DESKTOP = { count: 120, w: 1920, h: 1080, window: Infinity, mq: '(min-width: 769px)' }
+          const MOBILE  = { count: 48,  w: 900,  h: 1350, window: 16,       mq: '(max-width: 768px)' }
 
           const frameUrl = (i: number, count: number, w: number, h: number) => {
             // Evenly-spaced frames by percentage of the video's duration.

@@ -60,10 +60,10 @@ const cards = trips.map((trip: any, i: number) => ({
   tags:      (trip.tags ?? []) as string[],
   accent:    trip.accentColor ?? '#C04820',
   img:       trip.heroImage
-               ? urlFor(trip.heroImage).width(800).quality(80).format('webp').url()
+               ? urlFor(trip.heroImage).width(900).quality(88).format('webp').url()
                : '',
   imgSrcset: trip.heroImage
-               ? sanityImgSrcset(trip.heroImage, [400, 600, 800], 80)
+               ? sanityImgSrcset(trip.heroImage, [500, 800, 1100], 88)
                : '',
   alt:       trip.heroImage?.alt ?? trip.location,
   href:      `/expedition/${trip.id}`,

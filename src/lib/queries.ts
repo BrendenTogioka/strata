@@ -75,6 +75,19 @@ export const FEATURED_TRIPS_QUERY = `
   }
 `
 
+// Trips that have a Field Kit (gearList) — the "Full Kits" index at the bottom
+// of /gear. Newest first. gearList comes back raw so the page can derive base
+// weight + item count without baking the math into GROQ.
+export const FULL_KITS_QUERY = `
+  *[_type == "trip" && count(gearList) > 0] | order(tripDate desc) {
+    "id":       id.current,
+    pageTitle,
+    location,
+    "accentColor": coalesce(accentColor, "#C04820"),
+    gearList[] { weightOz, qty, worn, consumable },
+  }
+`
+
 // All gear — sorted by category then name. Featured items float to top within each group.
 export const GEAR_QUERY = `
   *[_type == "gear" && showOnGearPage != false] | order(featured desc, category asc, name asc) {

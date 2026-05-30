@@ -92,7 +92,7 @@ const heroUrl    = trip.heroImage
   ? urlFor(trip.heroImage).width(1600).quality(90).format('webp').url()
   : ''
 const heroSrcset = trip.heroImage
-  ? sanityImgSrcset(trip.heroImage, [800, 1200, 1600, 2400], 90)
+  ? sanityImgSrcset(trip.heroImage, [800, 1200, 1600, 2400, 2880], 90)
   : ''
 const ogUrl = trip.heroImage
   ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
@@ -135,10 +135,10 @@ const jsonLd = JSON.stringify({
 
 // Next expedition
 const nextUrl     = nextTrip?.heroImage
-  ? urlFor(nextTrip.heroImage).width(800).quality(85).format('webp').url()
+  ? urlFor(nextTrip.heroImage).width(1200).quality(90).format('webp').url()
   : ''
 const nextSrcset  = nextTrip?.heroImage
-  ? sanityImgSrcset(nextTrip.heroImage, [500, 800, 1200])
+  ? sanityImgSrcset(nextTrip.heroImage, [800, 1200, 1600, 2000], 90)
   : ''
 const nextHeroUrl = nextTrip?.heroImage
   ? urlFor(nextTrip.heroImage).width(1600).quality(90).format('webp').url()
@@ -147,7 +147,7 @@ const nextHeroUrl = nextTrip?.heroImage
 // preload picks the exact resolution it'd pick on first paint, no wasted
 // fetch and no cache miss when the user clicks the next-trip card.
 const nextHeroSrcset = nextTrip?.heroImage
-  ? sanityImgSrcset(nextTrip.heroImage, [800, 1200, 1600, 2400], 90)
+  ? sanityImgSrcset(nextTrip.heroImage, [800, 1200, 1600, 2400, 2880], 90)
   : ''
 
 // ── Elevation profile helpers ────────────────────────────────────────────────
@@ -386,7 +386,7 @@ const lightboxImages: LightboxImage[] = []
 const lbByKey = new Map<string, number>()
 
 const toLightboxImage = (img: any): LightboxImage => ({
-  src:     urlFor(img).width(1800).quality(90).format('webp').url(),
+  src:     urlFor(img).width(2400).quality(90).format('webp').url(),
   alt:     img.alt ?? '',
   caption: img.caption ?? '',
   palette: img.palette?.vibrant?.background ?? '',
@@ -717,8 +717,8 @@ for (const block of storyProcessed) {
                 <figure class="story-block story-img lb-trigger" data-lightbox-idx={lbByKey.get(block._key) ?? -1}>
                   <span class="story-img-frame">
                     <img
-                      src={urlFor(block.image).width(1200).quality(85).format('webp').url()}
-                      srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 85)}
+                      src={urlFor(block.image).width(1200).quality(90).format('webp').url()}
+                      srcset={sanityImgSrcset(block.image, [600, 900, 1200, 1800], 90)}
                       sizes="(max-width: 768px) 100vw, 860px"
                       width={block.image.dims?.width}
                       height={block.image.dims?.height}
@@ -739,8 +739,8 @@ for (const block of storyProcessed) {
                   {block.images.map((img: any) => (
                     <figure class="story-strip-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
                       <img
-                        src={urlFor(img).width(800).quality(85).format('webp').url()}
-                        srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
+                        src={urlFor(img).width(1000).quality(90).format('webp').url()}
+                        srcset={sanityImgSrcset(img, [500, 800, 1100], 90)}
                         sizes="(max-width: 768px) 100vw, 33vw"
                         width={img.dims?.width}
                         height={img.dims?.height}
@@ -760,8 +760,8 @@ for (const block of storyProcessed) {
                     <figure class="story-gallery-item lb-trigger" data-lightbox-idx={lbByKey.get(img._key) ?? -1}>
                       <span class="story-img-frame">
                         <img
-                          src={urlFor(img).width(800).quality(85).format('webp').url()}
-                          srcset={sanityImgSrcset(img, [400, 600, 800], 85)}
+                          src={urlFor(img).width(1000).quality(90).format('webp').url()}
+                          srcset={sanityImgSrcset(img, [500, 800, 1100], 90)}
                           sizes="(max-width: 768px) 100vw, 25vw"
                           width={img.dims?.width}
                           height={img.dims?.height}
@@ -916,7 +916,7 @@ for (const block of storyProcessed) {
             <img
               src={nextUrl}
               srcset={nextSrcset}
-              sizes="(max-width: 768px) 100vw, 600px"
+              sizes="(max-width: 768px) 100vw, 1100px"
               alt={nextTrip.heroImage?.alt ?? nextTrip.location}
               loading="lazy"
               decoding="async"
@@ -924,7 +924,7 @@ for (const block of storyProcessed) {
             {nextTrip.cardVideoUrl && (
               <video
                 class="exp-card-video"
-                data-src={cardVideoSrc(nextTrip.cardVideoUrl, 1600)}
+                data-src={cardVideoSrc(nextTrip.cardVideoUrl, 1920)}
                 muted
                 loop
                 playsinline

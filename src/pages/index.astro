@@ -19,11 +19,11 @@ const expeditions = trips.map((trip: any, i: number) => ({
   year:       trip.date?.split(' ').pop() ?? '',
   // Mid-res fallback + full-quality URL for iris overlay transition
   img:        trip.heroImage
-                ? urlFor(trip.heroImage).width(1200).quality(85).format('webp').url()
+                ? urlFor(trip.heroImage).width(1400).quality(90).format('webp').url()
                 : '',
-  // Responsive srcset: 600→mobile, 900→tablet, 1200→desktop, 1800→retina desktop
+  // Responsive srcset: 600→mobile … 2200→large retina (cards are 60–70vw × 100vh)
   imgSrcset:  trip.heroImage
-                ? sanityImgSrcset(trip.heroImage, [600, 900, 1200, 1800])
+                ? sanityImgSrcset(trip.heroImage, [600, 900, 1200, 1800, 2200], 90)
                 : '',
   // Full-res hero URL — used for hover/click preloading before iris transition
   heroUrl:    trip.heroImage
