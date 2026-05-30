@@ -10,9 +10,10 @@
  * Usage:
  *   node scripts/import-gear-list.mjs <trip-slug> <path-to-csv> [--no-sync] [--no-images] [--dry-run]
  *   e.g. node scripts/import-gear-list.mjs santa-cruz-island ~/Downloads/santa-cruz.csv
- *   --dry-run    parse + probe image URLs and report, writing nothing
- *   --no-images  skip uploading/attaching images from the Image URL column
- *   --no-sync    skip the /gear library sync entirely
+ *   --dry-run         parse + probe image URLs and report, writing nothing
+ *   --no-images       skip uploading/attaching images from the Image URL column
+ *   --replace-images  re-upload images even for docs that already have one
+ *   --no-sync         skip the /gear library sync entirely
  *
  * Reads PUBLIC_SANITY_PROJECT_ID / PUBLIC_SANITY_DATASET / SANITY_WRITE_TOKEN
  * from .env (same as the seed scripts). Safe to re-run — it replaces the
@@ -46,6 +47,7 @@ const root      = resolve(__dirname, '..')
 const args     = process.argv.slice(2)
 const noSync   = args.includes('--no-sync')
 const noImages = args.includes('--no-images')
+const replaceImages = args.includes('--replace-images') || args.includes('--reimage')
 const dryRun   = args.includes('--dry-run') || args.includes('--dry')
 const [slug, csvPath] = args.filter(a => !a.startsWith('--'))
 if (!slug || !csvPath) {
@@ -265,7 +267,7 @@ if (!noSync) {
     if (dryRun) {
       if (hit) matched++; else created++
       if (url && !noImages) {
-        if (hit?.hasImage) { imgSkipped++ }
+        if (hit?.hasImage && !replaceImages) { imgSkipped++ }
         else if (!probed.has(url)) {
           probed.add(url)
           try {
@@ -298,7 +300,8 @@ if (!noSync) {
     }
 
     // Attach the image to any doc that lacks one (new, or a prior hidden import).
-    if (url && !noImages && !doc.hasImage) {
+    // With --replace-images, overwrite even when the doc already has one.
+    if (url && !noImages && (!doc.hasImage || replaceImages)) {
       try {
         const image = await uploadImage(url, norm(name) || 'gear')
         await client.patch(doc._id).set({ image }).commit()

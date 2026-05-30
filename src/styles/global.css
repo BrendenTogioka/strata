@@ -2814,21 +2814,30 @@ body::before {
 /* Card image (optional, for future use) */
 .gear-card-img-wrap {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1 / 1;          /* square — matches the 1200² transparent product shots */
   overflow: hidden;
   margin-bottom: 1.25rem;
-  background: var(--char);
+  /* Faint warm "studio sweep" so products lift off the tile without a white box */
+  background:
+    radial-gradient(120% 100% at 50% 38%,
+      rgba(240, 226, 206, 0.06) 0%,
+      rgba(240, 226, 206, 0.02) 40%,
+      rgba(12, 9, 6, 0) 72%),
+    var(--char);
 }
 .gear-card-img-wrap img {
+  box-sizing: border-box;
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;          /* whole product, never cropped */
+  padding: 12%;                 /* breathing room inside the tile */
   display: block;
-  filter: saturate(0.7);
-  transition: filter 0.4s ease, transform 0.5s var(--ease-expo);
+  /* drop-shadow tracks the product's alpha silhouette → a real cast shadow */
+  filter: saturate(0.85) drop-shadow(0 10px 16px rgba(0, 0, 0, 0.45));
+  transition: filter 0.45s ease, transform 0.5s var(--ease-expo);
 }
 .gear-card:hover .gear-card-img-wrap img {
-  filter: saturate(1);
-  transform: scale(1.03);
+  filter: saturate(1) drop-shadow(0 16px 22px rgba(0, 0, 0, 0.55));
+  transform: scale(1.04);       /* gentle lift + zoom */
 }
 
 /* Card body */
